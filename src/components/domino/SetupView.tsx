@@ -28,30 +28,36 @@ interface SetupViewProps {
 
 const MODE_OPTIONS: {
   value: GameMode;
-  title: string;
+  shortTitle: string;
   subtitle: string;
-  tag: string;
+  ctaLabel: string;
 }[] = [
   {
     value: '1v1',
-    title: '1 contra 1',
-    subtitle: 'Tú vs Bot · Pozo de 14 fichas',
-    tag: 'POZO',
+    shortTitle: '1 vs 1',
+    subtitle: 'Pozo · 14',
+    ctaLabel: '1v1 Pozo',
   },
   {
     value: '2v2',
-    title: '2 contra 2',
-    subtitle: 'Tú + Bot Compa vs 2 Bots · 28 fichas',
-    tag: 'PAREJAS',
+    shortTitle: '2 vs 2',
+    subtitle: 'Parejas',
+    ctaLabel: '2v2 Parejas',
   },
   {
     value: '4ffa',
-    title: '4 todos contra todos',
-    subtitle: 'Tú vs 3 Bots · 28 fichas',
-    tag: '4 JUG.',
+    shortTitle: '4 Jug.',
+    subtitle: 'Todos vs todos',
+    ctaLabel: '4 Jugadores',
   },
 ];
 
+/**
+ * Thumb-First Mobile Home Architecture (CRO 60/30/10):
+ * - TOP (Glance zone): Level/XP, Themes, Club Chips, Feedback button, Compact Hero & Daily Challenge.
+ * - MIDDLE (Easy stretch, 0-scroll fit): Compact 1-row Mode pills, 1-row Score chips, Slim OAuth bar.
+ * - BOTTOM STICKY THUMB DOCK (Golden thumb arc): Dominant "Jugar ahora" CTA + Online/Private CTAs.
+ */
 export function SetupView({
   mode,
   targetScore,
@@ -67,7 +73,7 @@ export function SetupView({
   onOpenFeedback,
 }: SetupViewProps) {
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
-  const selectedModeTitle = MODE_OPTIONS.find((m) => m.value === mode)?.title ?? '';
+  const selectedMode = MODE_OPTIONS.find((m) => m.value === mode) ?? MODE_OPTIONS[0];
   const hasDailyBonus = canClaimDailyReward(retention);
   const xpIntoLevel = retention.xp % 100;
 
@@ -76,75 +82,196 @@ export function SetupView({
       colors={[CLUB.roomBgTop, CLUB.roomBgBottom]}
       style={styles.gradient}
     >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Top Economy & Level Strip (Comparative Report O2 + O4 + O5) */}
-        <View style={styles.topStrip}>
-          <View style={styles.levelBadge}>
-            <Text style={styles.levelText}>Nv. {retention.level}</Text>
-            <View style={styles.xpBarBg}>
-              <View style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]} />
+      <View style={styles.shell}>
+        {/* TOP + MIDDLE: Glance Info & Compact Quick-Setup (scrollable only on tiny/landscape screens) */}
+        <ScrollView
+          style={styles.bodyScroll}
+          contentContainerStyle={styles.bodyContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* 1. Top Economy, Level & Utility Strip */}
+          <View style={styles.topStrip}>
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelText}>Nv. {retention.level}</Text>
+              <View style={styles.xpBarBg}>
+                <View style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]} />
+              </View>
+            </View>
+
+            <View style={styles.topRightPills}>
+              <Pressable
+                onPress={() => {
+                  hapticLight();
+                  onOpenThemes();
+                }}
+                accessibilityRole="button"
+                style={styles.themesPill}
+              >
+                <Text style={styles.themesPillText}>Mesas</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  hapticLight();
+                  onOpenDailyRewards();
+                }}
+                accessibilityRole="button"
+                style={[styles.chipsPill, hasDailyBonus && styles.chipsPillReady]}
+              >
+                <Text style={styles.chipsValue}>
+                  {retention.clubChips.toLocaleString('es-ES')}
+                </Text>
+                {hasDailyBonus && <View style={styles.readyDot} />}
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  hapticLight();
+                  onOpenFeedback();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Enviar sugerencia o reportar fallo"
+                style={styles.helpPill}
+              >
+                <Text style={styles.helpPillText}>?</Text>
+              </Pressable>
             </View>
           </View>
 
-          <View style={styles.topRightPills}>
-            <Pressable
-              onPress={() => {
-                hapticLight();
-                onOpenThemes();
-              }}
-              style={styles.themesPill}
-            >
-              <Text style={styles.themesPillText}>Mesas</Text>
-            </Pressable>
+          {/* 2. Compact Club Caribe Hero */}
+          <View style={styles.hero}>
+            <View style={styles.faceoffRow}>
+              <View style={styles.avatarRing}>
+                <AvatarIllustration isBot={false} accentColor={CLUB.emerald} size={38} />
+              </View>
+              <View style={styles.centerTile}>
+                <DominoTile a={6} b={6} orientation="horizontal" unit={20} />
+              </View>
+              <View style={[styles.avatarRing, { borderColor: CLUB.cyan }]}>
+                <AvatarIllustration
+                  isBot
+                  accentColor={CLUB.cyan}
+                  mood="play"
+                  size={38}
+                />
+              </View>
+            </View>
+            <Text style={styles.title}>Dominó Latino</Text>
+          </View>
 
-            <Pressable
-              onPress={() => {
-                hapticLight();
-                onOpenDailyRewards();
-              }}
-              style={[styles.chipsPill, hasDailyBonus && styles.chipsPillReady]}
-            >
-              <Text style={styles.chipsValue}>
-                {retention.clubChips.toLocaleString('es-ES')}
+          {maintenanceBanner && (
+            <View style={styles.maintenanceBanner}>
+              <Text style={styles.maintenanceBannerText}>{maintenanceBanner}</Text>
+            </View>
+          )}
+
+          {/* 3. Compact Daily 3-Star Challenge Strip */}
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              onOpenDailyRewards();
+            }}
+            accessibilityRole="button"
+            style={styles.challengeCard}
+          >
+            <View style={styles.starsRow}>
+              {[0, 1, 2].map((idx) => (
+                <StarIcon
+                  key={idx}
+                  size={17}
+                  color={CLUB.gold}
+                  filled={idx < retention.dailyStars}
+                />
+              ))}
+            </View>
+            <View style={styles.challengeTextCol}>
+              <Text style={styles.challengeTitle} numberOfLines={1}>
+                {remainingStars === 0
+                  ? 'Reto diario completado'
+                  : `Reto diario · ${retention.dailyStars}/3`}
               </Text>
-              {hasDailyBonus && <View style={styles.readyDot} />}
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Club Caribe Hero */}
-        <View style={styles.hero}>
-          <View style={styles.faceoffRow}>
-            <View style={styles.avatarRing}>
-              <AvatarIllustration isBot={false} accentColor={CLUB.emerald} size={48} />
+              <Text style={styles.challengeSub} numberOfLines={1}>
+                {hasDailyBonus
+                  ? 'Bono diario de fichas disponible'
+                  : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
+              </Text>
             </View>
-            <View style={styles.centerTile}>
-              <DominoTile a={6} b={6} orientation="horizontal" unit={24} />
+            <View style={[styles.bonusBadge, hasDailyBonus && styles.bonusBadgeReady]}>
+              <Text
+                style={[styles.bonusBadgeText, hasDailyBonus && styles.bonusBadgeTextReady]}
+              >
+                {hasDailyBonus ? 'Reclamar' : 'Bonos'}
+              </Text>
             </View>
-            <View style={[styles.avatarRing, { borderColor: CLUB.cyan }]}>
-              <AvatarIllustration
-                isBot
-                accentColor={CLUB.cyan}
-                mood="play"
-                size={48}
-              />
+          </Pressable>
+
+          {/* 4. Compact Configuration Card (10% visual weight — clearly selectors, ZERO scroll) */}
+          <View style={styles.setupCard}>
+            <View style={styles.setupGroup}>
+              <Text style={styles.sectionLabel}>Modalidad</Text>
+              <View style={styles.modeSegmentedRow}>
+                {MODE_OPTIONS.map((opt) => {
+                  const active = mode === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => {
+                        hapticLight();
+                        onChangeMode(opt.value);
+                      }}
+                      accessibilityRole="button"
+                      style={[styles.modePill, active && styles.modePillActive]}
+                    >
+                      <Text
+                        style={[styles.modePillTitle, active && styles.modePillTitleActive]}
+                      >
+                        {opt.shortTitle}
+                      </Text>
+                      <Text
+                        style={[styles.modePillSub, active && styles.modePillSubActive]}
+                        numberOfLines={1}
+                      >
+                        {opt.subtitle}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.setupGroup}>
+              <Text style={styles.sectionLabel}>Meta de puntos</Text>
+              <View style={styles.scoreSingleRow}>
+                {TARGET_SCORES.map((pts) => {
+                  const active = targetScore === pts;
+                  return (
+                    <Pressable
+                      key={pts}
+                      onPress={() => {
+                        hapticLight();
+                        onChangeTargetScore(pts);
+                      }}
+                      accessibilityRole="button"
+                      style={[styles.scoreChip, active && styles.scoreChipActive]}
+                    >
+                      <Text
+                        style={[styles.scoreChipText, active && styles.scoreChipTextActive]}
+                      >
+                        {pts}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
           </View>
 
-          <Text style={styles.title}>Dominó Latino</Text>
-        </View>
+          {/* 5. Slim 1-Row Optional OAuth / Cloud Sync Bar */}
+          <AccountCard />
+        </ScrollView>
 
-        {maintenanceBanner && (
-          <View style={styles.maintenanceBanner}>
-            <Text style={styles.maintenanceBannerText}>{maintenanceBanner}</Text>
-          </View>
-        )}
-
-        {/* Dual Play Entry (Screenshot 1: Partida Rápida + Ver Salas Online / Sala Privada) */}
-        <View style={styles.ctaGroup}>
+        {/* BOTTOM STICKY THUMB DOCK (Golden Thumb Arc — 60% Primary CTA + 30% Online CTAs) */}
+        <View style={styles.thumbDock}>
           <Pressable
             onPress={() => {
               hapticSnap();
@@ -157,11 +284,11 @@ export function SetupView({
             ]}
           >
             <View style={styles.primaryBtnTop}>
-              <PlayIcon size={19} color={CLUB.textInk} />
-              <Text style={styles.primaryBtnText}>Partida rápida</Text>
+              <PlayIcon size={20} color={CLUB.textInk} />
+              <Text style={styles.primaryBtnText}>Jugar ahora</Text>
             </View>
             <Text style={styles.primaryBtnSub}>
-              {selectedModeTitle} · Meta {targetScore} pts (Bots)
+              {selectedMode.ctaLabel} · Meta {targetScore} pts (Bots)
             </Text>
           </Pressable>
 
@@ -173,13 +300,14 @@ export function SetupView({
                 onOpenOnlineLobby('public');
               }}
               disabled={!onlineEnabled}
+              accessibilityRole="button"
               style={({ pressed }) => [
                 styles.onlineBtn,
                 !onlineEnabled && styles.onlineBtnDisabled,
                 pressed && onlineEnabled && { opacity: 0.9 },
               ]}
             >
-              <Text style={styles.onlineBtnTitle}>Ver Salas Online</Text>
+              <Text style={styles.onlineBtnTitle}>Salas Online</Text>
               <Text style={styles.onlineBtnSub}>
                 {onlineEnabled ? 'Mesas públicas' : 'En mantenimiento'}
               </Text>
@@ -192,6 +320,7 @@ export function SetupView({
                 onOpenOnlineLobby('private');
               }}
               disabled={!onlineEnabled}
+              accessibilityRole="button"
               style={({ pressed }) => [
                 styles.privateBtn,
                 !onlineEnabled && styles.onlineBtnDisabled,
@@ -200,129 +329,12 @@ export function SetupView({
             >
               <Text style={styles.onlineBtnTitle}>Sala Privada</Text>
               <Text style={styles.onlineBtnSub}>
-                {onlineEnabled ? 'Juega con amigos' : 'En mantenimiento'}
+                {onlineEnabled ? 'Con amigos' : 'En mantenimiento'}
               </Text>
             </Pressable>
           </View>
         </View>
-
-        {/* Retention Hook: 3-Star Daily Challenge + Daily Bonus shortcut */}
-        <Pressable
-          onPress={() => {
-            hapticLight();
-            onOpenDailyRewards();
-          }}
-          style={styles.challengeCard}
-        >
-          <View style={styles.starsRow}>
-            {[0, 1, 2].map((idx) => (
-              <StarIcon
-                key={idx}
-                size={20}
-                color={CLUB.gold}
-                filled={idx < retention.dailyStars}
-              />
-            ))}
-          </View>
-          <View style={styles.challengeTextCol}>
-            <Text style={styles.challengeTitle}>
-              {remainingStars === 0
-                ? 'Reto diario completado'
-                : `Reto diario: ${retention.dailyStars}/3 victorias`}
-            </Text>
-            <Text style={styles.challengeSub}>
-              {hasDailyBonus
-                ? '¡Bono diario de fichas listo para reclamar!'
-                : `Racha: ${retention.winStreak} · Mejor: ${retention.bestStreak}`}
-            </Text>
-          </View>
-        </Pressable>
-
-        {/* Optional Google & Apple OAuth Cloud Sync */}
-        <AccountCard />
-
-        {/* Mode Selector (for Quick Match) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Modalidad (Partida rápida)</Text>
-          <View style={styles.modeList}>
-            {MODE_OPTIONS.map((opt) => {
-              const active = mode === opt.value;
-              return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => {
-                    hapticLight();
-                    onChangeMode(opt.value);
-                  }}
-                  style={[styles.modeCard, active && styles.modeCardActive]}
-                >
-                  <View style={[styles.radioOuter, active && styles.radioOuterActive]}>
-                    {active && <View style={styles.radioInner} />}
-                  </View>
-                  <View style={styles.modeTextCol}>
-                    <View style={styles.modeTitleRow}>
-                      <Text style={styles.modeTitle}>{opt.title}</Text>
-                      <View
-                        style={[
-                          styles.modeTag,
-                          active && { backgroundColor: 'rgba(245, 196, 81, 0.22)' },
-                        ]}
-                      >
-                        <Text
-                          style={[styles.modeTagText, active && { color: CLUB.gold }]}
-                        >
-                          {opt.tag}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text style={styles.modeSub}>{opt.subtitle}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Target Score Selector */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Puntaje objetivo</Text>
-          <View style={styles.scoreGrid}>
-            {TARGET_SCORES.map((pts) => {
-              const active = targetScore === pts;
-              return (
-                <Pressable
-                  key={pts}
-                  onPress={() => {
-                    hapticLight();
-                    onChangeTargetScore(pts);
-                  }}
-                  style={[styles.scoreChip, active && styles.scoreChipActive]}
-                >
-                  <Text
-                    style={[styles.scoreChipText, active && styles.scoreChipTextActive]}
-                  >
-                    {pts}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Independent, always-accessible Feedback link (100% store-policy compliant) */}
-        <Pressable
-          onPress={() => {
-            hapticLight();
-            onOpenFeedback();
-          }}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.feedbackBtn, pressed && { opacity: 0.78 }]}
-        >
-          <Text style={styles.feedbackBtnText}>
-            ¿Sugerencias o algún fallo? Escríbenos
-          </Text>
-        </Pressable>
-      </ScrollView>
+      </View>
     </LinearGradient>
   );
 }
@@ -331,14 +343,20 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
   },
-  container: {
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 32,
-    maxWidth: 480,
+  shell: {
+    flex: 1,
     width: '100%',
+    maxWidth: 480,
     alignSelf: 'center',
-    gap: 14,
+  },
+  bodyScroll: {
+    flex: 1,
+  },
+  bodyContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 14,
+    gap: 11,
   },
   topStrip: {
     flexDirection: 'row',
@@ -349,7 +367,7 @@ const styles = StyleSheet.create({
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
     backgroundColor: CLUB.surfaceCard,
     borderWidth: 1,
     borderColor: CLUB.glassBorder,
@@ -363,7 +381,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   xpBarBg: {
-    width: 54,
+    width: 48,
     height: 6,
     borderRadius: 3,
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -384,7 +402,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: CLUB.glassBorder,
     borderRadius: 999,
-    paddingHorizontal: 11,
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
   themesPillText: {
@@ -395,12 +413,12 @@ const styles = StyleSheet.create({
   chipsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     backgroundColor: CLUB.surfaceCard,
     borderWidth: 1,
     borderColor: 'rgba(245, 196, 81, 0.45)',
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 6,
   },
   chipsPillReady: {
@@ -409,29 +427,45 @@ const styles = StyleSheet.create({
   },
   chipsValue: {
     color: CLUB.gold,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   readyDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
     backgroundColor: CLUB.emerald,
+  },
+  helpPill: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: CLUB.surfaceCard,
+    borderWidth: 1,
+    borderColor: CLUB.glassBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  helpPillText: {
+    color: CLUB.textMuted,
+    fontSize: 13,
+    fontWeight: '900',
   },
   hero: {
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
+    paddingVertical: 2,
   },
   faceoffRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   avatarRing: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 2,
     borderColor: CLUB.emerald,
     alignItems: 'center',
@@ -443,22 +477,175 @@ const styles = StyleSheet.create({
   },
   title: {
     color: CLUB.textPrimary,
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
-  ctaGroup: {
+  maintenanceBanner: {
+    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.45)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  maintenanceBannerText: {
+    color: CLUB.goldSoft,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  challengeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: CLUB.surfaceCard,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.32)',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  challengeTextCol: {
+    flex: 1,
+  },
+  challengeTitle: {
+    color: CLUB.textPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  challengeSub: {
+    color: CLUB.goldSoft,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  bonusBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: CLUB.surfaceCardLight,
+    borderWidth: 1,
+    borderColor: CLUB.glassBorder,
+  },
+  bonusBadgeReady: {
+    backgroundColor: 'rgba(245, 196, 81, 0.18)',
+    borderColor: CLUB.gold,
+  },
+  bonusBadgeText: {
+    color: CLUB.textSecondary,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  bonusBadgeTextReady: {
+    color: CLUB.gold,
+  },
+  setupCard: {
+    backgroundColor: CLUB.surfaceCard,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: CLUB.glassBorder,
+    padding: 12,
+    gap: 11,
+  },
+  setupGroup: {
+    gap: 6,
+  },
+  sectionLabel: {
+    color: CLUB.textMuted,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  modeSegmentedRow: {
+    flexDirection: 'row',
+    gap: 7,
+  },
+  modePill: {
+    flex: 1,
+    minHeight: 52,
+    backgroundColor: 'rgba(11, 20, 36, 0.65)',
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
+  },
+  modePillActive: {
+    backgroundColor: 'rgba(245, 196, 81, 0.15)',
+    borderColor: CLUB.gold,
+  },
+  modePillTitle: {
+    color: CLUB.textPrimary,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  modePillTitleActive: {
+    color: CLUB.gold,
+  },
+  modePillSub: {
+    color: CLUB.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  modePillSubActive: {
+    color: CLUB.goldSoft,
+  },
+  scoreSingleRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  scoreChip: {
+    flex: 1,
+    minHeight: 40,
+    backgroundColor: 'rgba(11, 20, 36, 0.65)',
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scoreChipActive: {
+    backgroundColor: CLUB.gold,
+    borderColor: CLUB.goldSoft,
+  },
+  scoreChipText: {
+    color: CLUB.textSecondary,
+    fontSize: 13,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
+  scoreChipTextActive: {
+    color: CLUB.textInk,
+  },
+  thumbDock: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 12,
     gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(10, 18, 34, 0.92)',
   },
   primaryBtn: {
     backgroundColor: CLUB.emerald,
     borderRadius: 16,
     borderBottomWidth: 5,
     borderBottomColor: CLUB.emeraldDark,
-    paddingVertical: 14,
+    minHeight: 58,
+    paddingVertical: 11,
     paddingHorizontal: 18,
     alignItems: 'center',
-    boxShadow: '0px 8px 20px rgba(46, 209, 138, 0.28)',
+    justifyContent: 'center',
+    boxShadow: '0px 8px 22px rgba(46, 209, 138, 0.32)',
   },
   primaryBtnPressed: {
     transform: [{ translateY: 2 }],
@@ -471,14 +658,15 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: CLUB.textInk,
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: '900',
+    letterSpacing: -0.2,
   },
   primaryBtnSub: {
     color: '#064E3B',
     fontSize: 12,
     fontWeight: '800',
-    marginTop: 2,
+    marginTop: 1,
   },
   onlineRow: {
     flexDirection: 'row',
@@ -490,9 +678,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderBottomWidth: 4,
     borderBottomColor: '#1E3A8A',
-    paddingVertical: 11,
+    minHeight: 48,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   privateBtn: {
     flex: 1,
@@ -500,9 +690,11 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderBottomWidth: 4,
     borderBottomColor: '#4C1D95',
-    paddingVertical: 11,
+    minHeight: 48,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   onlineBtnTitle: {
     color: '#FFFFFF',
@@ -517,165 +709,5 @@ const styles = StyleSheet.create({
   },
   onlineBtnDisabled: {
     opacity: 0.45,
-  },
-  maintenanceBanner: {
-    backgroundColor: 'rgba(245, 196, 81, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.45)',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-  },
-  maintenanceBannerText: {
-    color: CLUB.goldSoft,
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  challengeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.35)',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 3,
-  },
-  challengeTextCol: {
-    flex: 1,
-  },
-  challengeTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  challengeSub: {
-    color: CLUB.goldSoft,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 1,
-  },
-  section: {
-    gap: 8,
-  },
-  sectionLabel: {
-    color: CLUB.textMuted,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.9,
-  },
-  modeList: {
-    gap: 8,
-  },
-  modeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: CLUB.surfaceCard,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-  },
-  modeCardActive: {
-    backgroundColor: CLUB.surfaceCardLight,
-    borderColor: CLUB.gold,
-  },
-  radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: CLUB.textMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioOuterActive: {
-    borderColor: CLUB.gold,
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: CLUB.gold,
-  },
-  modeTextCol: {
-    flex: 1,
-  },
-  modeTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  modeTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  modeTag: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  modeTagText: {
-    color: CLUB.textSecondary,
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  modeSub: {
-    color: CLUB.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  scoreGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  scoreChip: {
-    flexBasis: '31%',
-    flexGrow: 1,
-    minHeight: 44,
-    backgroundColor: CLUB.surfaceCard,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scoreChipActive: {
-    backgroundColor: CLUB.gold,
-    borderColor: CLUB.goldSoft,
-  },
-  scoreChipText: {
-    color: CLUB.textPrimary,
-    fontSize: 16,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
-  },
-  scoreChipTextActive: {
-    color: CLUB.textInk,
-  },
-  feedbackBtn: {
-    alignSelf: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginTop: 2,
-  },
-  feedbackBtnText: {
-    color: CLUB.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
   },
 });

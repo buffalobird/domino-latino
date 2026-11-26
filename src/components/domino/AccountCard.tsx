@@ -14,7 +14,7 @@ import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { hapticLight } from '@/utils/feedback';
 
-function GoogleLogo({ size = 18 }: { size?: number }) {
+function GoogleLogo({ size = 15 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
@@ -37,7 +37,7 @@ function GoogleLogo({ size = 18 }: { size?: number }) {
   );
 }
 
-function AppleLogo({ size = 18, color = '#FFFFFF' }: { size?: number; color?: string }) {
+function AppleLogo({ size = 15, color = '#FFFFFF' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
@@ -49,8 +49,8 @@ function AppleLogo({ size = 18, color = '#FFFFFF' }: { size?: number; color?: st
 }
 
 /**
- * Compact Club Caribe account card for optional Google & Apple OAuth.
- * Keeps guest quick-play instant while letting players sync streaks & history to Supabase.
+ * Slim 1-row Club Caribe account bar for optional Google & Apple OAuth.
+ * Keeps 1-tap cloud sync accessible without competing visually against the Bottom Play Dock.
  */
 export function AccountCard() {
   const {
@@ -98,47 +98,48 @@ export function AccountCard() {
       'Jugador';
 
     return (
-      <View style={styles.card}>
-        <View style={styles.signedRow}>
+      <View style={styles.bar}>
+        <View style={styles.row}>
           <View style={styles.signedInfo}>
-            <View style={styles.syncDotRow}>
-              <View style={styles.syncDot} />
+            <View style={styles.syncDot} />
+            <View style={styles.signedTextCol}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {label}
+              </Text>
               <Text style={styles.syncTag}>Nube sincronizada</Text>
             </View>
-            <Text style={styles.userName} numberOfLines={1}>
-              {label}
-            </Text>
           </View>
 
-          <Pressable
-            onPress={() => {
-              hapticLight();
-              signOut();
-            }}
-            disabled={authBusy !== null}
-            style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.8 }]}
-          >
-            {authBusy === 'signout' ? (
-              <ActivityIndicator size="small" color={CLUB.textSecondary} />
-            ) : (
-              <Text style={styles.signOutText}>Salir</Text>
-            )}
-          </Pressable>
-        </View>
+          <View style={styles.signedActions}>
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                signOut();
+              }}
+              disabled={authBusy !== null}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.8 }]}
+            >
+              {authBusy === 'signout' ? (
+                <ActivityIndicator size="small" color={CLUB.textSecondary} />
+              ) : (
+                <Text style={styles.signOutText}>Salir</Text>
+              )}
+            </Pressable>
 
-        <View style={styles.accountFooterRow}>
-          <Pressable
-            onPress={handleConfirmDeleteAccount}
-            disabled={authBusy !== null}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.deleteAccountBtn, pressed && { opacity: 0.7 }]}
-          >
-            {authBusy === 'delete' ? (
-              <ActivityIndicator size="small" color="#FDA4AF" />
-            ) : (
-              <Text style={styles.deleteAccountText}>Eliminar cuenta</Text>
-            )}
-          </Pressable>
+            <Pressable
+              onPress={handleConfirmDeleteAccount}
+              disabled={authBusy !== null}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.7 }]}
+            >
+              {authBusy === 'delete' ? (
+                <ActivityIndicator size="small" color="#FDA4AF" />
+              ) : (
+                <Text style={styles.deleteText}>Eliminar</Text>
+              )}
+            </Pressable>
+          </View>
         </View>
 
         {authError && <Text style={styles.errorText}>{authError}</Text>}
@@ -147,53 +148,60 @@ export function AccountCard() {
   }
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.headerText}>Guarda tu racha y partidas en la nube</Text>
+    <View style={styles.bar}>
+      <View style={styles.row}>
+        <View style={styles.guestLabelCol}>
+          <Text style={styles.guestTitle}>Guardar progreso</Text>
+          <Text style={styles.guestSub}>Nube y Online</Text>
+        </View>
 
-      <View style={styles.buttonsRow}>
-        <Pressable
-          onPress={() => {
-            hapticLight();
-            signInWithGoogle();
-          }}
-          disabled={authBusy !== null}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.googleBtn,
-            pressed && { opacity: 0.9 },
-          ]}
-        >
-          {authBusy === 'google' ? (
-            <ActivityIndicator size="small" color={CLUB.textInk} />
-          ) : (
-            <>
-              <GoogleLogo size={17} />
-              <Text style={styles.googleText}>Google</Text>
-            </>
-          )}
-        </Pressable>
+        <View style={styles.oauthPills}>
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              signInWithGoogle();
+            }}
+            disabled={authBusy !== null}
+            accessibilityRole="button"
+            accessibilityLabel="Iniciar sesión con Google"
+            style={({ pressed }) => [
+              styles.googlePill,
+              pressed && { opacity: 0.9 },
+            ]}
+          >
+            {authBusy === 'google' ? (
+              <ActivityIndicator size="small" color={CLUB.textInk} />
+            ) : (
+              <>
+                <GoogleLogo size={14} />
+                <Text style={styles.googleText}>Google</Text>
+              </>
+            )}
+          </Pressable>
 
-        <Pressable
-          onPress={() => {
-            hapticLight();
-            signInWithApple();
-          }}
-          disabled={authBusy !== null}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.appleBtn,
-            pressed && { opacity: 0.9 },
-          ]}
-        >
-          {authBusy === 'apple' ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
-          ) : (
-            <>
-              <AppleLogo size={17} color="#FFFFFF" />
-              <Text style={styles.appleText}>Apple</Text>
-            </>
-          )}
-        </Pressable>
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              signInWithApple();
+            }}
+            disabled={authBusy !== null}
+            accessibilityRole="button"
+            accessibilityLabel="Iniciar sesión con Apple"
+            style={({ pressed }) => [
+              styles.applePill,
+              pressed && { opacity: 0.9 },
+            ]}
+          >
+            {authBusy === 'apple' ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <AppleLogo size={14} color="#FFFFFF" />
+                <Text style={styles.appleText}>Apple</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
       </View>
 
       {authError && <Text style={styles.errorText}>{authError}</Text>}
@@ -202,78 +210,77 @@ export function AccountCard() {
 }
 
 const styles = StyleSheet.create({
-  card: {
+  bar: {
     backgroundColor: CLUB.surfaceCard,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: CLUB.glassBorder,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 10,
-  },
-  headerText: {
-    color: CLUB.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  buttonsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  googleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 44,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
   },
-  googleText: {
-    color: CLUB.textInk,
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  appleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 44,
-    backgroundColor: '#000000',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-    paddingHorizontal: 12,
-  },
-  appleText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  errorText: {
-    color: '#FDA4AF',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  signedRow: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
   },
-  signedInfo: {
+  guestLabelCol: {
     flex: 1,
   },
-  syncDotRow: {
+  guestTitle: {
+    color: CLUB.textPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  guestSub: {
+    color: CLUB.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 1,
+  },
+  oauthPills: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+  },
+  googlePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    minHeight: 36,
+    paddingHorizontal: 11,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+  },
+  googleText: {
+    color: CLUB.textInk,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  applePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    minHeight: 36,
+    paddingHorizontal: 11,
+    backgroundColor: '#090D16',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  appleText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  signedInfo: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   syncDot: {
     width: 8,
@@ -281,21 +288,28 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: CLUB.emerald,
   },
-  syncTag: {
-    color: CLUB.emerald,
-    fontSize: 11,
-    fontWeight: '800',
+  signedTextCol: {
+    flex: 1,
   },
   userName: {
     color: CLUB.textPrimary,
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
-    marginTop: 2,
+  },
+  syncTag: {
+    color: CLUB.emerald,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  signedActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   signOutBtn: {
-    minHeight: 38,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    minHeight: 34,
+    paddingHorizontal: 10,
+    borderRadius: 9,
     backgroundColor: CLUB.surfaceCardLight,
     borderWidth: 1,
     borderColor: CLUB.glassBorder,
@@ -304,26 +318,24 @@ const styles = StyleSheet.create({
   },
   signOutText: {
     color: CLUB.textSecondary,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
   },
-  accountFooterRow: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.06)',
-    paddingTop: 8,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  deleteAccountBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    minHeight: 28,
+  deleteBtn: {
+    minHeight: 34,
+    paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteAccountText: {
+  deleteText: {
     color: '#FDA4AF',
     fontSize: 11,
     fontWeight: '700',
+  },
+  errorText: {
+    color: '#FDA4AF',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
