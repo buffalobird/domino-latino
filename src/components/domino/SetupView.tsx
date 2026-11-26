@@ -15,6 +15,8 @@ interface SetupViewProps {
   mode: GameMode;
   targetScore: TargetScore;
   retention: RetentionProgress;
+  onlineEnabled: boolean;
+  maintenanceBanner: string | null;
   onChangeMode: (mode: GameMode) => void;
   onChangeTargetScore: (score: TargetScore) => void;
   onStartQuickMatch: () => void;
@@ -54,6 +56,8 @@ export function SetupView({
   mode,
   targetScore,
   retention,
+  onlineEnabled,
+  maintenanceBanner,
   onChangeMode,
   onChangeTargetScore,
   onStartQuickMatch,
@@ -133,6 +137,12 @@ export function SetupView({
           <Text style={styles.title}>Dominó Latino</Text>
         </View>
 
+        {maintenanceBanner && (
+          <View style={styles.maintenanceBanner}>
+            <Text style={styles.maintenanceBannerText}>{maintenanceBanner}</Text>
+          </View>
+        )}
+
         {/* Dual Play Entry (Screenshot 1: Partida Rápida + Ver Salas Online / Sala Privada) */}
         <View style={styles.ctaGroup}>
           <Pressable
@@ -158,30 +168,40 @@ export function SetupView({
           <View style={styles.onlineRow}>
             <Pressable
               onPress={() => {
+                if (!onlineEnabled) return;
                 hapticSnap();
                 onOpenOnlineLobby('public');
               }}
+              disabled={!onlineEnabled}
               style={({ pressed }) => [
                 styles.onlineBtn,
-                pressed && { opacity: 0.9 },
+                !onlineEnabled && styles.onlineBtnDisabled,
+                pressed && onlineEnabled && { opacity: 0.9 },
               ]}
             >
               <Text style={styles.onlineBtnTitle}>Ver Salas Online</Text>
-              <Text style={styles.onlineBtnSub}>Mesas públicas</Text>
+              <Text style={styles.onlineBtnSub}>
+                {onlineEnabled ? 'Mesas públicas' : 'En mantenimiento'}
+              </Text>
             </Pressable>
 
             <Pressable
               onPress={() => {
+                if (!onlineEnabled) return;
                 hapticSnap();
                 onOpenOnlineLobby('private');
               }}
+              disabled={!onlineEnabled}
               style={({ pressed }) => [
                 styles.privateBtn,
-                pressed && { opacity: 0.9 },
+                !onlineEnabled && styles.onlineBtnDisabled,
+                pressed && onlineEnabled && { opacity: 0.9 },
               ]}
             >
               <Text style={styles.onlineBtnTitle}>Sala Privada</Text>
-              <Text style={styles.onlineBtnSub}>Juega con amigos</Text>
+              <Text style={styles.onlineBtnSub}>
+                {onlineEnabled ? 'Juega con amigos' : 'En mantenimiento'}
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -494,6 +514,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     marginTop: 1,
+  },
+  onlineBtnDisabled: {
+    opacity: 0.45,
+  },
+  maintenanceBanner: {
+    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.45)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  maintenanceBannerText: {
+    color: CLUB.goldSoft,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   challengeCard: {
     flexDirection: 'row',

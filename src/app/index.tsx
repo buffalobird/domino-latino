@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ActivityIndicator,
   BackHandler,
+  Pressable,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -36,6 +38,14 @@ import {
 } from '@/engine/rules';
 import { GameMode, GameState, PlaySide, SortMode, TargetScore, Tile } from '@/engine/types';
 import { trackEvent } from '@/lib/analytics';
+import {
+  APP_VERSION,
+  DEFAULT_REMOTE_CONFIG,
+  fetchRemoteAppConfig,
+  isVersionBelow,
+  loadCachedRemoteConfig,
+  RemoteAppConfig,
+} from '@/lib/remoteConfig';
 import { maybeRequestStoreReview } from '@/lib/storeReview';
 import {
   buildRotatedOnlineGameState,
@@ -132,10 +142,11 @@ export default function DominoAppScreen() {
   const [botSpeed, setBotSpeed] = useState<BotSpeed>('normal');
   const [seatMoods, setSeatMoods] = useState<Record<number, BotMood>>({});
 
-  // Economy & Feedback Modals
+  // Economy & Feedback Modals + Remote Kill-Switch Config
   const [dailyModalOpen, setDailyModalOpen] = useState(false);
   const [themesModalOpen, setThemesModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [remoteConfig, setRemoteConfig] = useState<RemoteAppConfig>(DEFAULT_REMOTE_CONFIG);
 
   // Online Room Realtime State
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoomRow | null>(null);
@@ -156,15 +167,21 @@ export default function DominoAppScreen() {
   // 1. Hydrate local cache immediately (0 ms perceived startup)
   useEffect(() => {
     let active = true;
-    Promise.all([loadGameState(), loadRetentionProgress()]).then(
-      ([savedGame, savedRetention]) => {
+    Promise.all([loadGameState(), loadRetentionProgress(), loadCachedRemoteConfig()]).then(
+      ([savedGame, savedRetention, cachedCfg]) => {
         if (!active) return;
         if (savedGame) setState(savedGame);
         setRetention(savedRetention);
+        setRemoteConfig(cachedCfg);
         setHydrated(true);
         trackEvent('app_open', { level: savedRetention.level });
       }
     );
+    fetchRemoteAppConfig()
+      .then((freshCfg) => {
+        if (active) setRemoteConfig(freshCfg);
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -840,6 +857,36 @@ export default function DominoAppScreen() {
     );
   }
 
+  const requiresForceUpdate = isVersionBelow(
+    APP_VERSION,
+    remoteConfig.minSupportedVersion
+  );
+
+  if (requiresForceUpdate) {
+    return (
+      <SafeAreaView style={styles.loading}>
+        <View style={styles.updateCard}>
+          <Text style={styles.updateKicker}>ACTUALIZACIÓN REQUERIDA</Text>
+          <Text style={styles.updateTitle}>Nueva versión disponible</Text>
+          <Text style={styles.updateBody}>{remoteConfig.forceUpdateMessage}</Text>
+          <Text style={styles.updateMeta}>
+            Tu versión: v{APP_VERSION} · Mínima: v{remoteConfig.minSupportedVersion}
+          </Text>
+          <Pressable
+            onPress={() => {
+              fetchRemoteAppConfig()
+                .then((cfg) => setRemoteConfig(cfg))
+                .catch(() => {});
+            }}
+            style={styles.updateBtn}
+          >
+            <Text style={styles.updateBtnText}>Comprobar de nuevo</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const showLocalTable =
     screenMode === 'local' &&
     (state.phase === 'playing' ||
@@ -855,10 +902,13 @@ export default function DominoAppScreen() {
             mode={state.mode}
             targetScore={state.targetScore}
             retention={retention}
+            onlineEnabled={remoteConfig.onlineEnabled}
+            maintenanceBanner={remoteConfig.maintenanceBanner}
             onChangeMode={handleChangeMode}
             onChangeTargetScore={handleChangeTargetScore}
             onStartQuickMatch={handleStartQuickMatch}
             onOpenOnlineLobby={(tab) => {
+              if (!remoteConfig.onlineEnabled) return;
               setLobbyInitialTab(tab);
               setScreenMode('online_lobby');
             }}
@@ -1004,5 +1054,57 @@ const styles = StyleSheet.create({
     backgroundColor: CLUB.roomBgTop,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: 20,
+  },
+  updateCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: CLUB.surfaceCard,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
+    padding: 22,
+    gap: 10,
+    alignItems: 'center',
+  },
+  updateKicker: {
+    color: CLUB.gold,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+  },
+  updateTitle: {
+    color: CLUB.textPrimary,
+    fontSize: 20,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  updateBody: {
+    color: CLUB.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  updateMeta: {
+    color: CLUB.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  updateBtn: {
+    width: '100%',
+    marginTop: 6,
+    backgroundColor: CLUB.emerald,
+    borderRadius: 14,
+    borderBottomWidth: 4,
+    borderBottomColor: CLUB.emeraldDark,
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  updateBtnText: {
+    color: CLUB.textInk,
+    fontSize: 15,
+    fontWeight: '900',
   },
 });

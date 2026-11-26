@@ -28,6 +28,8 @@ Este documento resume los controles de seguridad implementados (alineados con **
 - **Android backup desactivado:** `android.allowBackup = false` en `app.json`.
 - **Eliminación de cuenta in-app:** `AccountCard.tsx` + `domino-account` (`action: 'delete_account'`) borra permanentemente el usuario en `auth.users` con cascada.
 - **Reseñas y feedback 100 % compliant (Apple HIG 5.6.1 / Google Play In-App Review):** `src/lib/storeReview.ts` dispara `expo-store-review` directamente en momentos de victoria ("Peak Joy", cooldown 60 días, máx. 2/año) sin *review gating*. El buzón `FeedbackModal.tsx` → `public.app_feedback` (RLS solo `INSERT`, 5–500 chars) está siempre disponible e independiente.
+- **Kill Switch remoto y versión mínima:** `public.app_config` (solo lectura pública, editable solo desde servidor/Dashboard) permite apagar el multiplayer (`online_enabled = false`), mostrar avisos (`maintenance_banner`) o exigir actualización (`min_supported_version`) sin esperar revisión de las tiendas.
+- **ErrorBoundary global y registro de crashes:** `GlobalErrorBoundary.tsx` envuelve el árbol raíz y registra fallos en `public.app_error_logs` (RLS solo `INSERT`, con throttling anti-flood); listo para complementarse con Sentry al generar builds nativos EAS.
 - **Secretos fuera del cliente:** `.env*.local` ignorado en `.gitignore`; solo `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` entra al bundle.
 
 ---
