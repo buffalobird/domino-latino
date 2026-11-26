@@ -21,6 +21,7 @@ interface SetupViewProps {
   onOpenOnlineLobby: (tab: 'public' | 'private') => void;
   onOpenDailyRewards: () => void;
   onOpenThemes: () => void;
+  onOpenFeedback: () => void;
 }
 
 const MODE_OPTIONS: {
@@ -59,6 +60,7 @@ export function SetupView({
   onOpenOnlineLobby,
   onOpenDailyRewards,
   onOpenThemes,
+  onOpenFeedback,
 }: SetupViewProps) {
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
   const selectedModeTitle = MODE_OPTIONS.find((m) => m.value === mode)?.title ?? '';
@@ -286,6 +288,20 @@ export function SetupView({
             })}
           </View>
         </View>
+
+        {/* Independent, always-accessible Feedback link (100% store-policy compliant) */}
+        <Pressable
+          onPress={() => {
+            hapticLight();
+            onOpenFeedback();
+          }}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.feedbackBtn, pressed && { opacity: 0.78 }]}
+        >
+          <Text style={styles.feedbackBtnText}>
+            ¿Sugerencias o algún fallo? Escríbenos
+          </Text>
+        </Pressable>
       </ScrollView>
     </LinearGradient>
   );
@@ -612,5 +628,17 @@ const styles = StyleSheet.create({
   },
   scoreChipTextActive: {
     color: CLUB.textInk,
+  },
+  feedbackBtn: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 2,
+  },
+  feedbackBtnText: {
+    color: CLUB.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });

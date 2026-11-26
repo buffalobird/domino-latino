@@ -8,6 +8,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DailyRewardModal } from '@/components/domino/DailyRewardModal';
+import { FeedbackModal } from '@/components/domino/FeedbackModal';
 import { GameTableView } from '@/components/domino/GameTableView';
 import { MatchOverView } from '@/components/domino/MatchOverView';
 import { OnlineLobbyView } from '@/components/domino/OnlineLobbyView';
@@ -35,6 +36,7 @@ import {
 } from '@/engine/rules';
 import { GameMode, GameState, PlaySide, SortMode, TargetScore, Tile } from '@/engine/types';
 import { trackEvent } from '@/lib/analytics';
+import { maybeRequestStoreReview } from '@/lib/storeReview';
 import {
   buildRotatedOnlineGameState,
   fetchRoomSnapshot,
@@ -130,9 +132,10 @@ export default function DominoAppScreen() {
   const [botSpeed, setBotSpeed] = useState<BotSpeed>('normal');
   const [seatMoods, setSeatMoods] = useState<Record<number, BotMood>>({});
 
-  // Economy Modals
+  // Economy & Feedback Modals
   const [dailyModalOpen, setDailyModalOpen] = useState(false);
   const [themesModalOpen, setThemesModalOpen] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
 
   // Online Room Realtime State
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoomRow | null>(null);
@@ -144,6 +147,7 @@ export default function DominoAppScreen() {
   const retentionRef = useRef(retention);
   retentionRef.current = retention;
   const recordedMatchIdRef = useRef<string | null>(null);
+  const reviewedOnlineRoomRef = useRef<string | null>(null);
 
   const setTempMood = useCallback((seat: number, mood: BotMood) => {
     setSeatMoods((prev) => ({ ...prev, [seat]: mood }));
@@ -321,6 +325,40 @@ export default function DominoAppScreen() {
     onlineCurrentTurnSeat,
   ]);
 
+  // 3c. Compliant native In-App Review on Online Match Victory
+  const onlineWinnerIndex = onlineGameState?.matchWinnerIndex ?? null;
+  useEffect(() => {
+    if (
+      screenMode !== 'online_room' ||
+      !activeOnlineRoomId ||
+      onlinePhase !== 'match_over' ||
+      onlineWinnerIndex !== 0
+    ) {
+      return;
+    }
+    const reviewKey = `${activeOnlineRoomId}-${onlineRoom?.public_state?.handNumber ?? 0}`;
+    if (reviewedOnlineRoomRef.current === reviewKey) return;
+    reviewedOnlineRoomRef.current = reviewKey;
+
+    const timer = setTimeout(() => {
+      maybeRequestStoreReview({
+        humanWon: true,
+        totalWins: Math.max(2, retentionRef.current.totalWins + 1),
+        dailyStars: retentionRef.current.dailyStars,
+        userId: user?.id ?? null,
+      }).catch(() => {});
+    }, 950);
+
+    return () => clearTimeout(timer);
+  }, [
+    screenMode,
+    activeOnlineRoomId,
+    onlinePhase,
+    onlineWinnerIndex,
+    onlineRoom?.public_state?.handNumber,
+    user?.id,
+  ]);
+
   // 4. Local Match Completion -> XP + Club Chips + Stars + Cloud Sync
   useEffect(() => {
     if (!hydrated || screenMode !== 'local') return;
@@ -371,6 +409,18 @@ export default function DominoAppScreen() {
             if (authoritative) setRetention(authoritative);
           })
           .catch(() => {});
+
+        // Compliant native In-App Review prompt on genuine Peak Joy victory (no review gating)
+        if (humanWon) {
+          setTimeout(() => {
+            maybeRequestStoreReview({
+              humanWon: true,
+              totalWins: updated.totalWins,
+              dailyStars: updated.dailyStars,
+              userId: user?.id ?? null,
+            }).catch(() => {});
+          }, 950);
+        }
       }
     }
   }, [
@@ -814,6 +864,7 @@ export default function DominoAppScreen() {
             }}
             onOpenDailyRewards={() => setDailyModalOpen(true)}
             onOpenThemes={() => setThemesModalOpen(true)}
+            onOpenFeedback={() => setFeedbackModalOpen(true)}
           />
         )}
 
@@ -833,6 +884,7 @@ export default function DominoAppScreen() {
             onToggleSort={handleToggleSort}
             onToggleSound={handleToggleSound}
             onCycleBotSpeed={handleCycleBotSpeed}
+            onOpenFeedback={() => setFeedbackModalOpen(true)}
             onRestartMatch={handleRematch}
             onExitToHome={handleReturnToSetup}
           />
@@ -890,6 +942,7 @@ export default function DominoAppScreen() {
               onToggleSort={handleToggleSort}
               onToggleSound={handleToggleSound}
               onCycleBotSpeed={handleCycleBotSpeed}
+              onOpenFeedback={() => setFeedbackModalOpen(true)}
               onRestartMatch={handleOnlineRematch}
               onExitToHome={handleLeaveOnlineRoom}
             />
@@ -926,6 +979,12 @@ export default function DominoAppScreen() {
           retention={retention}
           onSelectOrUnlockTheme={handleSelectOrUnlockTheme}
           onClose={() => setThemesModalOpen(false)}
+        />
+
+        <FeedbackModal
+          visible={feedbackModalOpen}
+          userId={user?.id ?? null}
+          onClose={() => setFeedbackModalOpen(false)}
         />
       </View>
     </SafeAreaView>

@@ -27,6 +27,7 @@ Este documento resume los controles de seguridad implementados (alineados con **
 - **OAuth PKCE estricto:** `src/lib/auth.ts` valida que la URL de inicio pertenezca al origen de `EXPO_PUBLIC_SUPABASE_URL`, valida la URL de callback contra `redirectTo` y rechaza tokens implícitos en la URL.
 - **Android backup desactivado:** `android.allowBackup = false` en `app.json`.
 - **Eliminación de cuenta in-app:** `AccountCard.tsx` + `domino-account` (`action: 'delete_account'`) borra permanentemente el usuario en `auth.users` con cascada.
+- **Reseñas y feedback 100 % compliant (Apple HIG 5.6.1 / Google Play In-App Review):** `src/lib/storeReview.ts` dispara `expo-store-review` directamente en momentos de victoria ("Peak Joy", cooldown 60 días, máx. 2/año) sin *review gating*. El buzón `FeedbackModal.tsx` → `public.app_feedback` (RLS solo `INSERT`, 5–500 chars) está siempre disponible e independiente.
 - **Secretos fuera del cliente:** `.env*.local` ignorado en `.gitignore`; solo `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` entra al bundle.
 
 ---

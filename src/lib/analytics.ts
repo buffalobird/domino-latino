@@ -12,7 +12,9 @@ export type AnalyticsEventName =
   | 'theme_unlock'
   | 'room_created'
   | 'room_joined'
-  | 'room_started_with_bots';
+  | 'room_started_with_bots'
+  | 'store_review_requested'
+  | 'feedback_submitted';
 
 /**
  * Lightweight, privacy-first event tracking (Comparative Report O1 / DL-01).

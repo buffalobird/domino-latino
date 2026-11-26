@@ -52,6 +52,7 @@ interface GameTableViewProps {
   onToggleSort: (sortMode: SortMode) => void;
   onToggleSound: () => void;
   onCycleBotSpeed: () => void;
+  onOpenFeedback: () => void;
   onRestartMatch: () => void;
   onExitToHome: () => void;
 }
@@ -198,6 +199,7 @@ export function GameTableView({
   onToggleSort,
   onToggleSound,
   onCycleBotSpeed,
+  onOpenFeedback,
   onRestartMatch,
   onExitToHome,
 }: GameTableViewProps) {
@@ -756,6 +758,10 @@ export function GameTableView({
           }
           onToggleSound={onToggleSound}
           onCycleBotSpeed={onCycleBotSpeed}
+          onOpenFeedback={() => {
+            setPauseOpen(false);
+            onOpenFeedback();
+          }}
           onRestartMatch={() => {
             setPauseOpen(false);
             onRestartMatch();

@@ -19,6 +19,7 @@ interface PauseModalProps {
   onToggleSort: () => void;
   onToggleSound: () => void;
   onCycleBotSpeed: () => void;
+  onOpenFeedback: () => void;
   onRestartMatch: () => void;
   onExitToHome: () => void;
 }
@@ -40,6 +41,7 @@ export function PauseModal({
   onToggleSort,
   onToggleSound,
   onCycleBotSpeed,
+  onOpenFeedback,
   onRestartMatch,
   onExitToHome,
 }: PauseModalProps) {
@@ -111,6 +113,10 @@ export function PauseModal({
           <Pressable onPress={onOpenHistory} style={styles.secondaryBtn}>
             <HistoryIcon size={18} color={CLUB.textPrimary} />
             <Text style={styles.secondaryBtnText}>Historial de la mano</Text>
+          </Pressable>
+
+          <Pressable onPress={onOpenFeedback} style={styles.secondaryBtn}>
+            <Text style={styles.secondaryBtnText}>Enviar sugerencia o fallo</Text>
           </Pressable>
 
           <Pressable onPress={onRestartMatch} style={styles.secondaryBtn}>
