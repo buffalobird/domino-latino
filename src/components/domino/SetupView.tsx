@@ -138,25 +138,28 @@ export function SetupView({
             </View>
           </View>
 
-          {/* 2. Compact Club Caribe Hero */}
-          <View style={styles.hero}>
-            <View style={styles.faceoffRow}>
-              <View style={styles.avatarRing}>
-                <AvatarIllustration isBot={false} accentColor={CLUB.emerald} size={38} />
+          {/* 2. Club Caribe Hero Stage (expands gracefully on tall phones so all controls sit lower in thumb reach) */}
+          <View style={styles.heroStage}>
+            <View style={styles.hero}>
+              <View style={styles.faceoffRow}>
+                <View style={styles.avatarRing}>
+                  <AvatarIllustration isBot={false} accentColor={CLUB.emerald} size={44} />
+                </View>
+                <View style={styles.centerTile}>
+                  <DominoTile a={6} b={6} orientation="horizontal" unit={23} />
+                </View>
+                <View style={[styles.avatarRing, { borderColor: CLUB.cyan }]}>
+                  <AvatarIllustration
+                    isBot
+                    accentColor={CLUB.cyan}
+                    mood="play"
+                    size={44}
+                  />
+                </View>
               </View>
-              <View style={styles.centerTile}>
-                <DominoTile a={6} b={6} orientation="horizontal" unit={20} />
-              </View>
-              <View style={[styles.avatarRing, { borderColor: CLUB.cyan }]}>
-                <AvatarIllustration
-                  isBot
-                  accentColor={CLUB.cyan}
-                  mood="play"
-                  size={38}
-                />
-              </View>
+              <Text style={styles.title}>Dominó Latino</Text>
+              <Text style={styles.heroSub}>Club Caribe · Doble Seis</Text>
             </View>
-            <Text style={styles.title}>Dominó Latino</Text>
           </View>
 
           {maintenanceBanner && (
@@ -165,109 +168,112 @@ export function SetupView({
             </View>
           )}
 
-          {/* 3. Compact Daily 3-Star Challenge Strip */}
-          <Pressable
-            onPress={() => {
-              hapticLight();
-              onOpenDailyRewards();
-            }}
-            accessibilityRole="button"
-            style={styles.challengeCard}
-          >
-            <View style={styles.starsRow}>
-              {[0, 1, 2].map((idx) => (
-                <StarIcon
-                  key={idx}
-                  size={17}
-                  color={CLUB.gold}
-                  filled={idx < retention.dailyStars}
-                />
-              ))}
-            </View>
-            <View style={styles.challengeTextCol}>
-              <Text style={styles.challengeTitle} numberOfLines={1}>
-                {remainingStars === 0
-                  ? 'Reto diario completado'
-                  : `Reto diario · ${retention.dailyStars}/3`}
-              </Text>
-              <Text style={styles.challengeSub} numberOfLines={1}>
-                {hasDailyBonus
-                  ? 'Bono diario de fichas disponible'
-                  : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
-              </Text>
-            </View>
-            <View style={[styles.bonusBadge, hasDailyBonus && styles.bonusBadgeReady]}>
-              <Text
-                style={[styles.bonusBadgeText, hasDailyBonus && styles.bonusBadgeTextReady]}
-              >
-                {hasDailyBonus ? 'Reclamar' : 'Bonos'}
-              </Text>
-            </View>
-          </Pressable>
+          {/* 3–5. Lower Interactive Cluster anchored cleanly right above the Thumb Dock (0 empty void) */}
+          <View style={styles.lowerCluster}>
+            {/* 3. Compact Daily 3-Star Challenge Strip */}
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                onOpenDailyRewards();
+              }}
+              accessibilityRole="button"
+              style={styles.challengeCard}
+            >
+              <View style={styles.starsRow}>
+                {[0, 1, 2].map((idx) => (
+                  <StarIcon
+                    key={idx}
+                    size={17}
+                    color={CLUB.gold}
+                    filled={idx < retention.dailyStars}
+                  />
+                ))}
+              </View>
+              <View style={styles.challengeTextCol}>
+                <Text style={styles.challengeTitle} numberOfLines={1}>
+                  {remainingStars === 0
+                    ? 'Reto diario completado'
+                    : `Reto diario · ${retention.dailyStars}/3`}
+                </Text>
+                <Text style={styles.challengeSub} numberOfLines={1}>
+                  {hasDailyBonus
+                    ? 'Bono diario de fichas disponible'
+                    : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
+                </Text>
+              </View>
+              <View style={[styles.bonusBadge, hasDailyBonus && styles.bonusBadgeReady]}>
+                <Text
+                  style={[styles.bonusBadgeText, hasDailyBonus && styles.bonusBadgeTextReady]}
+                >
+                  {hasDailyBonus ? 'Reclamar' : 'Bonos'}
+                </Text>
+              </View>
+            </Pressable>
 
-          {/* 4. Compact Configuration Card (10% visual weight — clearly selectors, ZERO scroll) */}
-          <View style={styles.setupCard}>
-            <View style={styles.setupGroup}>
-              <Text style={styles.sectionLabel}>Modalidad</Text>
-              <View style={styles.modeSegmentedRow}>
-                {MODE_OPTIONS.map((opt) => {
-                  const active = mode === opt.value;
-                  return (
-                    <Pressable
-                      key={opt.value}
-                      onPress={() => {
-                        hapticLight();
-                        onChangeMode(opt.value);
-                      }}
-                      accessibilityRole="button"
-                      style={[styles.modePill, active && styles.modePillActive]}
-                    >
-                      <Text
-                        style={[styles.modePillTitle, active && styles.modePillTitleActive]}
+            {/* 4. Compact Configuration Card (10% visual weight — clearly selectors, ZERO scroll) */}
+            <View style={styles.setupCard}>
+              <View style={styles.setupGroup}>
+                <Text style={styles.sectionLabel}>Modalidad</Text>
+                <View style={styles.modeSegmentedRow}>
+                  {MODE_OPTIONS.map((opt) => {
+                    const active = mode === opt.value;
+                    return (
+                      <Pressable
+                        key={opt.value}
+                        onPress={() => {
+                          hapticLight();
+                          onChangeMode(opt.value);
+                        }}
+                        accessibilityRole="button"
+                        style={[styles.modePill, active && styles.modePillActive]}
                       >
-                        {opt.shortTitle}
-                      </Text>
-                      <Text
-                        style={[styles.modePillSub, active && styles.modePillSubActive]}
-                        numberOfLines={1}
+                        <Text
+                          style={[styles.modePillTitle, active && styles.modePillTitleActive]}
+                        >
+                          {opt.shortTitle}
+                        </Text>
+                        <Text
+                          style={[styles.modePillSub, active && styles.modePillSubActive]}
+                          numberOfLines={1}
+                        >
+                          {opt.subtitle}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.setupGroup}>
+                <Text style={styles.sectionLabel}>Meta de puntos</Text>
+                <View style={styles.scoreSingleRow}>
+                  {TARGET_SCORES.map((pts) => {
+                    const active = targetScore === pts;
+                    return (
+                      <Pressable
+                        key={pts}
+                        onPress={() => {
+                          hapticLight();
+                          onChangeTargetScore(pts);
+                        }}
+                        accessibilityRole="button"
+                        style={[styles.scoreChip, active && styles.scoreChipActive]}
                       >
-                        {opt.subtitle}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+                        <Text
+                          style={[styles.scoreChipText, active && styles.scoreChipTextActive]}
+                        >
+                          {pts}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
             </View>
 
-            <View style={styles.setupGroup}>
-              <Text style={styles.sectionLabel}>Meta de puntos</Text>
-              <View style={styles.scoreSingleRow}>
-                {TARGET_SCORES.map((pts) => {
-                  const active = targetScore === pts;
-                  return (
-                    <Pressable
-                      key={pts}
-                      onPress={() => {
-                        hapticLight();
-                        onChangeTargetScore(pts);
-                      }}
-                      accessibilityRole="button"
-                      style={[styles.scoreChip, active && styles.scoreChipActive]}
-                    >
-                      <Text
-                        style={[styles.scoreChipText, active && styles.scoreChipTextActive]}
-                      >
-                        {pts}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
+            {/* 5. Slim 1-Row Optional OAuth / Cloud Sync Bar */}
+            <AccountCard />
           </View>
-
-          {/* 5. Slim 1-Row Optional OAuth / Cloud Sync Bar */}
-          <AccountCard />
         </ScrollView>
 
         {/* BOTTOM STICKY THUMB DOCK (Golden Thumb Arc — 60% Primary CTA + 30% Online CTAs) */}
@@ -353,10 +359,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   bodyContent: {
+    flexGrow: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 14,
-    gap: 11,
+    paddingBottom: 10,
+    gap: 10,
   },
   topStrip: {
     flexDirection: 'row',
@@ -452,20 +459,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
   },
+  heroStage: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: 96,
+    paddingVertical: 8,
+  },
   hero: {
     alignItems: 'center',
-    gap: 3,
-    paddingVertical: 2,
+    gap: 4,
   },
   faceoffRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   avatarRing: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 2,
     borderColor: CLUB.emerald,
     alignItems: 'center',
@@ -477,9 +489,19 @@ const styles = StyleSheet.create({
   },
   title: {
     color: CLUB.textPrimary,
-    fontSize: 24,
+    fontSize: 27,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
+    marginTop: 2,
+  },
+  heroSub: {
+    color: CLUB.textMuted,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+  },
+  lowerCluster: {
+    gap: 10,
   },
   maintenanceBanner: {
     backgroundColor: 'rgba(245, 196, 81, 0.14)',
@@ -628,12 +650,12 @@ const styles = StyleSheet.create({
   },
   thumbDock: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 8,
     paddingBottom: 12,
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
-    backgroundColor: 'rgba(10, 18, 34, 0.92)',
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(10, 18, 34, 0.72)',
   },
   primaryBtn: {
     backgroundColor: CLUB.emerald,
