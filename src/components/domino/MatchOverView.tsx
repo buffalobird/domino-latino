@@ -1,0 +1,471 @@
+import React, { useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { getSeatProfile } from '@/constants/seatProfiles';
+import { CLUB } from '@/constants/tokens';
+import { GameState } from '@/engine/types';
+import { RetentionProgress } from '@/storage/gameStorage';
+import { hapticSnap } from '@/utils/feedback';
+import { AvatarIllustration } from './AvatarIllustration';
+import { DominoTile } from './DominoTile';
+import { StarIcon } from './Icons';
+
+interface MatchOverViewProps {
+  state: GameState;
+  retention: RetentionProgress;
+  onRematch: () => void;
+  onChangeMode: () => void;
+}
+
+export function MatchOverView({
+  state,
+  retention,
+  onRematch,
+  onChangeMode,
+}: MatchOverViewProps) {
+  const summary = state.lastHandSummary;
+  const humanWon = state.matchWinnerIndex === 0;
+  const remainingStars = Math.max(0, 3 - retention.dailyStars);
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (countdown <= 0) {
+      onRematch();
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown, onRematch]);
+
+  const winnerDisplayLabel =
+    state.matchWinnerIndex === null
+      ? ''
+      : state.mode === '1v1' && state.matchWinnerIndex === 1
+      ? 'Bot'
+      : state.mode === '4ffa' && state.matchWinnerIndex > 0
+      ? getSeatProfile(state.mode, state.matchWinnerIndex).displayName
+      : state.scoreLabels[state.matchWinnerIndex];
+
+  const renderFinalColumns = () => {
+    if (!summary) return null;
+
+    if (state.mode === '2v2') {
+      const teams = [
+        {
+          teamId: 0,
+          title: 'Nosotros',
+          accent: CLUB.emerald,
+          members: summary.remainingHands.filter((e) => e.teamId === 0),
+        },
+        {
+          teamId: 1,
+          title: 'Rivales',
+          accent: CLUB.coral,
+          members: summary.remainingHands.filter((e) => e.teamId === 1),
+        },
+      ];
+      return (
+        <View style={styles.twoColRow}>
+          {teams.map((team) => {
+            const isWin = state.matchWinnerIndex === team.teamId;
+            return (
+              <View
+                key={team.teamId}
+                style={[styles.colCard, isWin && styles.colCardWin]}
+              >
+                <View style={styles.pairRow}>
+                  {team.members.map((m) => {
+                    const prof = getSeatProfile(state.mode, m.seat);
+                    return (
+                      <View
+                        key={m.seat}
+                        style={[
+                          styles.miniRing,
+                          { borderColor: isWin ? CLUB.gold : team.accent },
+                        ]}
+                      >
+                        <AvatarIllustration
+                          isBot={prof.isBot}
+                          accentColor={prof.accentColor}
+                          mood={isWin ? 'win' : 'lose'}
+                          size={34}
+                        />
+                      </View>
+                    );
+                  })}
+                </View>
+                <Text style={styles.colName}>{team.title}</Text>
+                <Text style={[styles.colScore, isWin && { color: CLUB.gold }]}>
+                  {state.scores[team.teamId]}/{state.targetScore}
+                </Text>
+
+                {team.members.map((m) => {
+                  const prof = getSeatProfile(state.mode, m.seat);
+                  return (
+                    <View key={m.seat} style={styles.subTray}>
+                      <Text style={styles.subLabel}>
+                        {prof.displayName} ({m.pipSum})
+                      </Text>
+                      {m.tiles.length === 0 ? (
+                        <Text style={styles.closedSmall}>¡Se pegó!</Text>
+                      ) : (
+                        <View style={styles.vTilesWrap}>
+                          {m.tiles.map((t) => (
+                            <DominoTile
+                              key={t.id}
+                              a={t.a}
+                              b={t.b}
+                              orientation="vertical"
+                              unit={19}
+                            />
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })}
+        </View>
+      );
+    }
+
+    // 1v1 (2 columns) or 4ffa (2x2 grid)
+    return (
+      <View style={state.mode === '1v1' ? styles.twoColRow : styles.fourGrid}>
+        {summary.remainingHands.map((entry) => {
+          const prof = getSeatProfile(state.mode, entry.seat);
+          const isWin = state.matchWinnerIndex === entry.teamId;
+          const unit = entry.tiles.length > 5 ? 18 : 22;
+          return (
+            <View
+              key={entry.seat}
+              style={[
+                state.mode === '1v1' ? styles.colCard : styles.gridCard,
+                isWin && styles.colCardWin,
+              ]}
+            >
+              <View
+                style={[
+                  styles.avatarRing,
+                  { borderColor: isWin ? CLUB.gold : prof.accentColor },
+                ]}
+              >
+                <AvatarIllustration
+                  isBot={prof.isBot}
+                  accentColor={prof.accentColor}
+                  mood={isWin ? 'win' : 'lose'}
+                  size={state.mode === '1v1' ? 44 : 34}
+                />
+              </View>
+              <Text style={styles.colName} numberOfLines={1}>
+                {prof.displayName}
+              </Text>
+              <Text style={[styles.colScore, isWin && { color: CLUB.gold }]}>
+                {state.scores[entry.teamId]}/{state.targetScore}
+              </Text>
+              {entry.tiles.length === 0 ? (
+                <Text style={styles.closedSmall}>¡Se pegó!</Text>
+              ) : (
+                <View style={styles.vTilesWrap}>
+                  {entry.tiles.map((t) => (
+                    <DominoTile
+                      key={t.id}
+                      a={t.a}
+                      b={t.b}
+                      orientation="vertical"
+                      unit={unit}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.backdrop}>
+      <View style={styles.card}>
+        <View style={[styles.banner, humanWon ? styles.bannerWin : styles.bannerLoss]}>
+          <Text style={styles.headline}>
+            {humanWon ? '¡Victoria!' : `Ganó ${winnerDisplayLabel}`}
+          </Text>
+          <Text style={styles.sub}>
+            Meta de {state.targetScore} pts en {state.handNumber}{' '}
+            {state.handNumber === 1 ? 'mano' : 'manos'}
+          </Text>
+        </View>
+
+        <ScrollView
+          style={styles.scrollBody}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* 3-Star Daily Challenge Retention Hook */}
+          <View style={styles.challengeRow}>
+            <View style={styles.starsRow}>
+              {[0, 1, 2].map((idx) => (
+                <StarIcon
+                  key={idx}
+                  size={19}
+                  color={CLUB.gold}
+                  filled={idx < retention.dailyStars}
+                />
+              ))}
+            </View>
+            <View style={styles.challengeCol}>
+              <Text style={styles.challengeTitle}>
+                {remainingStars === 0
+                  ? 'Reto diario completado'
+                  : `Reto diario: ${retention.dailyStars}/3`}
+              </Text>
+              <Text style={styles.challengeSub}>
+                {humanWon
+                  ? `Racha activa: ${retention.winStreak}`
+                  : 'Revancha rápida para recuperar tu estrella'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Vertical Tiles Under Each Player / Pair */}
+          {renderFinalColumns()}
+        </ScrollView>
+
+        <View style={styles.actions}>
+          <Pressable
+            onPress={() => {
+              hapticSnap();
+              onRematch();
+            }}
+            style={({ pressed }) => [
+              styles.primaryBtn,
+              pressed && { transform: [{ translateY: 2 }] },
+            ]}
+          >
+            <Text style={styles.primaryBtnText}>Revancha ({countdown}s)</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              hapticSnap();
+              onChangeMode();
+            }}
+            style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.secondaryBtnText}>Cambiar modo</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(6, 12, 24, 0.78)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    zIndex: 90,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 460,
+    maxHeight: '90%',
+    backgroundColor: CLUB.surfaceCard,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
+    padding: 14,
+    gap: 10,
+    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.7)',
+  },
+  banner: {
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    gap: 2,
+    borderWidth: 1,
+  },
+  bannerWin: {
+    backgroundColor: 'rgba(46, 209, 138, 0.16)',
+    borderColor: CLUB.emerald,
+  },
+  bannerLoss: {
+    backgroundColor: 'rgba(139, 92, 246, 0.18)',
+    borderColor: CLUB.violet,
+  },
+  headline: {
+    color: CLUB.textPrimary,
+    fontSize: 23,
+    fontWeight: '900',
+  },
+  sub: {
+    color: CLUB.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  scrollBody: {
+    flexGrow: 0,
+  },
+  scrollContent: {
+    gap: 10,
+  },
+  challengeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: CLUB.surfaceCardLight,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.3)',
+    padding: 10,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 3,
+  },
+  challengeCol: {
+    flex: 1,
+  },
+  challengeTitle: {
+    color: CLUB.textPrimary,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  challengeSub: {
+    color: CLUB.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  twoColRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'stretch',
+  },
+  fourGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  colCard: {
+    flex: 1,
+    backgroundColor: CLUB.surfaceCardLight,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
+    padding: 10,
+    alignItems: 'center',
+    gap: 6,
+  },
+  gridCard: {
+    width: '48.5%',
+    backgroundColor: CLUB.surfaceCardLight,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
+    padding: 8,
+    alignItems: 'center',
+    gap: 5,
+  },
+  colCardWin: {
+    borderColor: CLUB.gold,
+    backgroundColor: 'rgba(245, 196, 81, 0.08)',
+  },
+  pairRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  avatarRing: {
+    borderRadius: 999,
+    borderWidth: 2,
+    padding: 2,
+    overflow: 'hidden',
+  },
+  miniRing: {
+    borderRadius: 999,
+    borderWidth: 2,
+    padding: 1,
+    overflow: 'hidden',
+  },
+  colName: {
+    color: CLUB.textPrimary,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  colScore: {
+    color: CLUB.textSecondary,
+    fontSize: 15,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
+  subTray: {
+    width: '100%',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  subLabel: {
+    color: CLUB.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  closedSmall: {
+    color: CLUB.emerald,
+    fontSize: 12,
+    fontWeight: '800',
+    paddingVertical: 6,
+  },
+  vTilesWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(11, 20, 36, 0.45)',
+    borderRadius: 10,
+    padding: 6,
+    width: '100%',
+  },
+  actions: {
+    gap: 8,
+  },
+  primaryBtn: {
+    backgroundColor: CLUB.emerald,
+    borderRadius: 16,
+    borderBottomWidth: 4,
+    borderBottomColor: CLUB.emeraldDark,
+    minHeight: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryBtnText: {
+    color: CLUB.textInk,
+    fontSize: 17,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
+  secondaryBtn: {
+    backgroundColor: CLUB.surfaceCardLight,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: CLUB.glassBorder,
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryBtnText: {
+    color: CLUB.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+});
