@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   BackHandler,
@@ -7,13 +7,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { DailyRewardModal } from '@/components/domino/DailyRewardModal';
 import { GameTableView } from '@/components/domino/GameTableView';
 import { MatchOverView } from '@/components/domino/MatchOverView';
+import { OnlineLobbyView } from '@/components/domino/OnlineLobbyView';
 import { BotSpeed } from '@/components/domino/PauseModal';
 import { RoundSummaryView } from '@/components/domino/RoundSummaryView';
 import { SetupView } from '@/components/domino/SetupView';
+import { ThemesModal } from '@/components/domino/ThemesModal';
+import { WaitingRoomView } from '@/components/domino/WaitingRoomView';
 import { BotMood } from '@/constants/seatProfiles';
+import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { CLUB } from '@/constants/tokens';
+import { useAuth } from '@/context/AuthContext';
 import { chooseAiMove } from '@/engine/ai';
 import {
   applyDraw,
@@ -27,8 +33,25 @@ import {
   sortHand,
   startNewMatch,
 } from '@/engine/rules';
-import { GameMode, GameState, PlaySide, SortMode, TargetScore } from '@/engine/types';
+import { GameMode, GameState, PlaySide, SortMode, TargetScore, Tile } from '@/engine/types';
+import { trackEvent } from '@/lib/analytics';
 import {
+  buildRotatedOnlineGameState,
+  fetchRoomSnapshot,
+  leaveOnlineRoom,
+  OnlineRoomRow,
+  sendOnlineClaimTimeout,
+  sendOnlineDraw,
+  sendOnlineNextHand,
+  sendOnlinePass,
+  sendOnlinePlay,
+  sendOnlineRematch,
+  startOnlineRoomWithBots,
+} from '@/lib/onlineService';
+import { supabase } from '@/lib/supabase';
+import {
+  applyFreeClubRefill,
+  claimDailyRewardLocal,
   createDefaultRetention,
   loadGameState,
   loadRetentionProgress,
@@ -37,6 +60,14 @@ import {
   saveGameState,
   saveRetentionProgress,
 } from '@/storage/gameStorage';
+import {
+  flushPendingAndSyncProgress,
+  queueAndSyncMatch,
+  syncDailyRewardToCloud,
+  syncFreeRefillToCloud,
+  syncThemeToCloud,
+  syncUserPreferences,
+} from '@/storage/syncService';
 import {
   hapticDouble,
   hapticLight,
@@ -49,47 +80,44 @@ import {
 
 const HUMAN_TURN_SECONDS = 20;
 
-/**
- * Situational human-like Bot pacing (never metronomic!):
- * Gives the human player natural breathing room to read played tiles, track passes,
- * and count suits—just like sitting at a real table without ever feeling sluggish.
- */
 function computeHumanLikeBotDelay(
   state: GameState,
   seat: number,
   speed: BotSpeed
 ): number {
   const speedMult = speed === 'fast' ? 0.65 : speed === 'relaxed' ? 1.35 : 1.0;
-  const jitter = Math.floor(Math.random() * 340); // Organic human variance
+  const jitter = Math.floor(Math.random() * 340);
   const legal = getLegalMovesForSeat(state, seat);
   const player = state.players[seat];
 
   let baseMs: number;
   if (legal.length === 0) {
     if (state.boneyard.length > 0) {
-      // First draw has a brief "checking my hand" pause; consecutive draws flow crisply
       const lastEntry = state.history[state.history.length - 1];
       const consecutiveDraw = lastEntry?.type === 'draw' && lastEntry.seat === seat;
       baseMs = consecutiveDraw ? 720 : 1250;
     } else {
-      // Passing: natural pause so the player clearly sees who passed and on which numbers
       baseMs = 1650;
     }
   } else if (player && player.hand.length === 1) {
-    // Closing the hand (¡Dominó!): confident crisp slam
     baseMs = 1150;
   } else if (state.chain.length === 0 || legal.length === 1) {
-    // Forced opening (6-6) or only 1 legal move: quicker confident play
     baseMs = 1300;
   } else {
-    // Genuine 2+ option tactical choice: natural human thinking window so you can count tiles
     baseMs = 1850;
   }
 
   return Math.round((baseMs + jitter) * speedMult);
 }
 
+type AppScreenMode = 'local' | 'online_lobby' | 'online_room';
+
 export default function DominoAppScreen() {
+  const { user, setProfile } = useAuth();
+  const [screenMode, setScreenMode] = useState<AppScreenMode>('local');
+  const [lobbyInitialTab, setLobbyInitialTab] = useState<'public' | 'private'>('public');
+
+  // Local Quick Play State
   const [state, setState] = useState<GameState>(() =>
     createInitialSetupState('1v1', 100, 'value', false)
   );
@@ -102,15 +130,26 @@ export default function DominoAppScreen() {
   const [botSpeed, setBotSpeed] = useState<BotSpeed>('normal');
   const [seatMoods, setSeatMoods] = useState<Record<number, BotMood>>({});
 
+  // Economy Modals
+  const [dailyModalOpen, setDailyModalOpen] = useState(false);
+  const [themesModalOpen, setThemesModalOpen] = useState(false);
+
+  // Online Room Realtime State
+  const [onlineRoom, setOnlineRoom] = useState<OnlineRoomRow | null>(null);
+  const [onlineMyHand, setOnlineMyHand] = useState<Tile[]>([]);
+  const [onlineMySeat, setOnlineMySeat] = useState<number>(0);
+
   const stateRef = useRef(state);
   stateRef.current = state;
+  const retentionRef = useRef(retention);
+  retentionRef.current = retention;
   const recordedMatchIdRef = useRef<string | null>(null);
 
   const setTempMood = useCallback((seat: number, mood: BotMood) => {
     setSeatMoods((prev) => ({ ...prev, [seat]: mood }));
   }, []);
 
-  // Restore saved game state & retention progress on launch
+  // 1. Hydrate local cache immediately (0 ms perceived startup)
   useEffect(() => {
     let active = true;
     Promise.all([loadGameState(), loadRetentionProgress()]).then(
@@ -119,6 +158,7 @@ export default function DominoAppScreen() {
         if (savedGame) setState(savedGame);
         setRetention(savedRetention);
         setHydrated(true);
+        trackEvent('app_open', { level: savedRetention.level });
       }
     );
     return () => {
@@ -126,76 +166,247 @@ export default function DominoAppScreen() {
     };
   }, []);
 
-  // Persist every game state change
+  // Persist local quick-play game state
   useEffect(() => {
     if (!hydrated) return;
     saveGameState(state);
   }, [state, hydrated]);
 
-  // Prevent accidental hardware Back exit on Android during active match (Audit U14)
+  // Prevent accidental Android back button exit during active game
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (stateRef.current.phase === 'playing') {
+      if (screenMode === 'local' && stateRef.current.phase === 'playing') {
+        return true;
+      }
+      if (screenMode === 'online_lobby') {
+        setScreenMode('local');
         return true;
       }
       return false;
     });
     return () => sub.remove();
-  }, []);
+  }, [screenMode]);
 
-  // Record retention & play win cue when a hand or match ends
+  // 2. Background Supabase Sync on sign-in
   useEffect(() => {
-    if (!hydrated) return;
+    if (!hydrated || !user) return;
+    let active = true;
+    flushPendingAndSyncProgress(user.id, retentionRef.current)
+      .then(({ mergedProgress, profile }) => {
+        if (!active) return;
+        setRetention(mergedProgress);
+        if (profile) {
+          setProfile(profile);
+          setBotSpeed(profile.preferredBotSpeed);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [hydrated, user, setProfile]);
+
+  // 3. Realtime Subscription when inside an Online Room
+  const activeOnlineRoomId = screenMode === 'online_room' ? onlineRoom?.id ?? null : null;
+  useEffect(() => {
+    if (!activeOnlineRoomId || !user) return;
+    let mounted = true;
+
+    const refreshSnapshot = async () => {
+      const snap = await fetchRoomSnapshot(activeOnlineRoomId, user.id);
+      if (!mounted || !snap.room) return;
+      setOnlineRoom(snap.room);
+      setOnlineMyHand(snap.myHand);
+      setOnlineMySeat(snap.mySeat);
+
+      // Refresh local progress/chips from cloud whenever an online match finishes
+      if (snap.room.status === 'finished') {
+        flushPendingAndSyncProgress(user.id, retentionRef.current)
+          .then(({ mergedProgress }) => {
+            if (mounted) setRetention(mergedProgress);
+          })
+          .catch(() => {});
+      }
+    };
+
+    refreshSnapshot();
+
+    const channel = supabase
+      .channel(`room-live-${activeOnlineRoomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'game_rooms',
+          filter: `id=eq.${activeOnlineRoomId}`,
+        },
+        () => {
+          refreshSnapshot();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_players',
+          filter: `room_id=eq.${activeOnlineRoomId}`,
+        },
+        () => {
+          refreshSnapshot();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'room_player_hands',
+          filter: `room_id=eq.${activeOnlineRoomId}`,
+        },
+        () => {
+          refreshSnapshot();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, [activeOnlineRoomId, user]);
+
+  // Build rotated local-seat-0 GameState for Online Multiplayer
+  const onlineGameState = useMemo(() => {
+    if (screenMode !== 'online_room' || !onlineRoom?.public_state) return null;
+    return buildRotatedOnlineGameState(
+      onlineRoom.public_state,
+      onlineMyHand,
+      onlineMySeat,
+      state.sortMode,
+      state.soundEnabled
+    );
+  }, [screenMode, onlineRoom, onlineMyHand, onlineMySeat, state.sortMode, state.soundEnabled]);
+
+  // 3b. Server-enforced Online Turn Timeout Watchdog (26s grace over server's 25s limit)
+  const onlineTurnStartedAt = onlineRoom?.turn_started_at ?? null;
+  const onlineCurrentTurnSeat = onlineRoom?.public_state?.currentTurnSeat ?? null;
+  const onlinePhase = onlineRoom?.public_state?.phase ?? null;
+  useEffect(() => {
+    if (
+      screenMode !== 'online_room' ||
+      !activeOnlineRoomId ||
+      onlinePhase !== 'playing' ||
+      !onlineTurnStartedAt
+    ) {
+      return;
+    }
+
+    const startedMs = Date.parse(onlineTurnStartedAt);
+    if (!Number.isFinite(startedMs)) return;
+
+    const elapsed = Date.now() - startedMs;
+    const waitMs = Math.max(1000, 26_000 - elapsed);
+    const timer = setTimeout(() => {
+      sendOnlineClaimTimeout(activeOnlineRoomId).catch(() => {});
+    }, waitMs);
+
+    return () => clearTimeout(timer);
+  }, [
+    screenMode,
+    activeOnlineRoomId,
+    onlinePhase,
+    onlineTurnStartedAt,
+    onlineCurrentTurnSeat,
+  ]);
+
+  // 4. Local Match Completion -> XP + Club Chips + Stars + Cloud Sync
+  useEffect(() => {
+    if (!hydrated || screenMode !== 'local') return;
     if (state.phase === 'round_summary') {
       hapticSuccess();
       playGameSound('win', state.soundEnabled);
     } else if (state.phase === 'match_over') {
       hapticSuccess();
       playGameSound('win', state.soundEnabled);
-      const matchKey = `${state.handNumber}-${state.scores.join('-')}-${state.matchWinnerIndex}`;
+      const matchKey = `${state.mode}-${state.targetScore}-${state.handNumber}-${state.scores.join('-')}-${state.matchWinnerIndex}`;
       if (recordedMatchIdRef.current !== matchKey) {
         recordedMatchIdRef.current = matchKey;
         const humanWon = state.matchWinnerIndex === 0;
-        setRetention((prev) => {
-          const updated = recordMatchResult(prev, humanWon);
-          saveRetentionProgress(updated);
-          return updated;
-        });
+        const { updated, chipsEarned, xpEarned } = recordMatchResult(
+          retentionRef.current,
+          humanWon
+        );
+        setRetention(updated);
+        saveRetentionProgress(updated);
+
+        trackEvent(
+          'match_end',
+          {
+            mode: state.mode,
+            target: state.targetScore,
+            won: humanWon,
+            hands: state.handNumber,
+            chips: chipsEarned,
+            xp: xpEarned,
+          },
+          user?.id
+        );
+
+        queueAndSyncMatch(
+          user?.id ?? null,
+          {
+            clientMatchId: `${matchKey}-${Date.now()}`,
+            mode: state.mode,
+            targetScore: state.targetScore,
+            humanWon,
+            handsPlayed: state.handNumber,
+            finalScores: state.scores,
+            playedAt: new Date().toISOString(),
+          },
+          updated
+        )
+          .then((authoritative) => {
+            if (authoritative) setRetention(authoritative);
+          })
+          .catch(() => {});
       }
     }
   }, [
     hydrated,
+    screenMode,
     state.phase,
+    state.mode,
+    state.targetScore,
     state.handNumber,
     state.scores,
     state.matchWinnerIndex,
     state.soundEnabled,
+    user?.id,
   ]);
 
-  // Centralized clean move dispatchers (ZERO side effects inside setState updaters — fixes T4!)
-  const executeHumanPlay = useCallback(
-    (tileId: string, side: PlaySide) => {
-      const curr = stateRef.current;
-      if (curr.phase !== 'playing' || curr.currentTurnSeat !== 0) return;
-      const tile = curr.players[0]?.hand.find((t) => t.id === tileId);
-      try {
-        const next = applyPlay(curr, 0, tileId, side);
-        setState(next);
-        if (tile && isDouble(tile)) {
-          hapticDouble();
-          playGameSound('double', curr.soundEnabled);
-        } else {
-          hapticSnap();
-          playGameSound('clack', curr.soundEnabled);
-        }
-      } catch {
-        // Ignore illegal action
+  // Local Human Move Dispatchers
+  const executeLocalHumanPlay = useCallback((tileId: string, side: PlaySide) => {
+    const curr = stateRef.current;
+    if (curr.phase !== 'playing' || curr.currentTurnSeat !== 0) return;
+    const tile = curr.players[0]?.hand.find((t) => t.id === tileId);
+    try {
+      const next = applyPlay(curr, 0, tileId, side);
+      setState(next);
+      if (tile && isDouble(tile)) {
+        hapticDouble();
+        playGameSound('double', curr.soundEnabled);
+      } else {
+        hapticSnap();
+        playGameSound('clack', curr.soundEnabled);
       }
-    },
-    []
-  );
+    } catch {
+      // Ignore illegal action
+    }
+  }, []);
 
-  const executeHumanDraw = useCallback((boneyardIndex?: number) => {
+  const executeLocalHumanDraw = useCallback((boneyardIndex?: number) => {
     const curr = stateRef.current;
     if (curr.phase !== 'playing' || curr.currentTurnSeat !== 0) return;
     try {
@@ -213,7 +424,7 @@ export default function DominoAppScreen() {
     }
   }, []);
 
-  const executeHumanPass = useCallback(() => {
+  const executeLocalHumanPass = useCallback(() => {
     const curr = stateRef.current;
     if (curr.phase !== 'playing' || curr.currentTurnSeat !== 0) return;
     try {
@@ -226,9 +437,14 @@ export default function DominoAppScreen() {
     }
   }, []);
 
-  // Human 20s turn timer: drains avatar ring smoothly & shows 5-4-3-2-1 urgent overlay; auto-plays at 0s
+  // Local 20s Human Turn Timer
   useEffect(() => {
-    if (!hydrated || state.phase !== 'playing' || state.currentTurnSeat !== 0) {
+    if (
+      !hydrated ||
+      screenMode !== 'local' ||
+      state.phase !== 'playing' ||
+      state.currentTurnSeat !== 0
+    ) {
       setTurnSecondsLeft(null);
       return;
     }
@@ -245,15 +461,14 @@ export default function DominoAppScreen() {
         if (curr.phase !== 'playing' || curr.currentTurnSeat !== 0) return;
         const legal = getLegalMovesForSeat(curr, 0);
         if (legal.length > 0) {
-          executeHumanPlay(legal[0].tile.id, legal[0].sides[0]);
+          executeLocalHumanPlay(legal[0].tile.id, legal[0].sides[0]);
         } else if (curr.boneyard.length > 0) {
-          executeHumanDraw();
+          executeLocalHumanDraw();
         } else {
-          executeHumanPass();
+          executeLocalHumanPass();
         }
         return;
       }
-
       setTurnSecondsLeft(remaining);
       if (remaining <= 5) {
         hapticSoft();
@@ -264,19 +479,20 @@ export default function DominoAppScreen() {
     return () => clearInterval(interval);
   }, [
     hydrated,
+    screenMode,
     state.phase,
     state.currentTurnSeat,
     state.handNumber,
     state.chain.length,
     state.boneyard.length,
-    executeHumanPlay,
-    executeHumanDraw,
-    executeHumanPass,
+    executeLocalHumanPlay,
+    executeLocalHumanDraw,
+    executeLocalHumanPass,
   ]);
 
-  // Bot turn scheduler: 1050ms thinking rhythm (with visible ring drain) for plays, 520ms for boneyard draws
+  // Local Situational Human-like Bot Loop
   useEffect(() => {
-    if (!hydrated || state.phase !== 'playing') return;
+    if (!hydrated || screenMode !== 'local' || state.phase !== 'playing') return;
     const seat = state.currentTurnSeat;
     const currentPlayer = state.players[seat];
     if (!currentPlayer || currentPlayer.isHuman) {
@@ -285,7 +501,6 @@ export default function DominoAppScreen() {
     }
 
     const totalMs = computeHumanLikeBotDelay(state, seat, botSpeed);
-
     const startedAt = Date.now();
     setBotTimerProgress(1);
     const ringTick = setInterval(() => {
@@ -342,6 +557,7 @@ export default function DominoAppScreen() {
     };
   }, [
     hydrated,
+    screenMode,
     state.phase,
     state.currentTurnSeat,
     state.handNumber,
@@ -352,25 +568,107 @@ export default function DominoAppScreen() {
     setTempMood,
   ]);
 
-  const handleChangeMode = useCallback((mode: GameMode) => {
-    setState((prev) =>
-      createInitialSetupState(mode, prev.targetScore, prev.sortMode, prev.soundEnabled)
-    );
-  }, []);
+  // Economy Actions (Daily 7-day Reward, Free Refill, Cosmetic Table Themes)
+  const handleClaimDailyReward = useCallback(() => {
+    const { updated, awarded } = claimDailyRewardLocal(retentionRef.current);
+    if (awarded <= 0) return;
+    setRetention(updated);
+    saveRetentionProgress(updated);
+    hapticSuccess();
+    trackEvent('daily_claim', { awarded, streak: updated.dailyClaimStreak }, user?.id);
+    syncDailyRewardToCloud(user?.id ?? null, updated)
+      .then((authoritative) => {
+        if (authoritative) setRetention(authoritative);
+      })
+      .catch(() => {});
+  }, [user?.id]);
 
-  const handleChangeTargetScore = useCallback((targetScore: TargetScore) => {
-    setState((prev) =>
-      createInitialSetupState(prev.mode, targetScore, prev.sortMode, prev.soundEnabled)
-    );
-  }, []);
+  const handleClaimFreeRefill = useCallback(() => {
+    const { updated, awarded } = applyFreeClubRefill(retentionRef.current);
+    if (awarded <= 0) return;
+    setRetention(updated);
+    saveRetentionProgress(updated);
+    hapticSuccess();
+    trackEvent('free_refill', { awarded }, user?.id);
+    syncFreeRefillToCloud(user?.id ?? null, updated)
+      .then((authoritative) => {
+        if (authoritative) setRetention(authoritative);
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  const handleSelectOrUnlockTheme = useCallback(
+    (themeId: TableThemeId) => {
+      const curr = retentionRef.current;
+      const cfg = TABLE_THEMES[themeId];
+      if (!cfg) return;
+
+      if (curr.unlockedThemes.includes(themeId)) {
+        const updated: RetentionProgress = { ...curr, equippedTheme: themeId };
+        setRetention(updated);
+        saveRetentionProgress(updated);
+        syncThemeToCloud(user?.id ?? null, themeId, updated)
+          .then((authoritative) => {
+            if (authoritative) setRetention(authoritative);
+          })
+          .catch(() => {});
+        return;
+      }
+
+      if (curr.clubChips < cfg.costChips) return;
+      const updated: RetentionProgress = {
+        ...curr,
+        clubChips: curr.clubChips - cfg.costChips,
+        unlockedThemes: [...curr.unlockedThemes, themeId],
+        equippedTheme: themeId,
+      };
+      setRetention(updated);
+      saveRetentionProgress(updated);
+      hapticSuccess();
+      trackEvent('theme_unlock', { themeId, cost: cfg.costChips }, user?.id);
+      syncThemeToCloud(user?.id ?? null, themeId, updated)
+        .then((authoritative) => {
+          if (authoritative) setRetention(authoritative);
+        })
+        .catch(() => {});
+    },
+    [user?.id]
+  );
+
+  // Setup & Local Controls
+  const handleChangeMode = useCallback(
+    (mode: GameMode) => {
+      setState((prev) =>
+        createInitialSetupState(mode, prev.targetScore, prev.sortMode, prev.soundEnabled)
+      );
+      syncUserPreferences(user?.id ?? null, { mode }).catch(() => {});
+    },
+    [user?.id]
+  );
+
+  const handleChangeTargetScore = useCallback(
+    (targetScore: TargetScore) => {
+      setState((prev) =>
+        createInitialSetupState(prev.mode, targetScore, prev.sortMode, prev.soundEnabled)
+      );
+      syncUserPreferences(user?.id ?? null, { targetScore }).catch(() => {});
+    },
+    [user?.id]
+  );
 
   const handleStartQuickMatch = useCallback(() => {
     recordedMatchIdRef.current = null;
     setSeatMoods({});
+    setScreenMode('local');
+    trackEvent(
+      'match_start',
+      { mode: stateRef.current.mode, target: stateRef.current.targetScore, online: false },
+      user?.id
+    );
     setState((prev) =>
       startNewMatch(prev.mode, prev.targetScore, prev.sortMode, prev.soundEnabled)
     );
-  }, []);
+  }, [user?.id]);
 
   const handleToggleSort = useCallback((sortMode: SortMode) => {
     setState((prev) => ({
@@ -383,17 +681,16 @@ export default function DominoAppScreen() {
   }, []);
 
   const handleToggleSound = useCallback(() => {
-    setState((prev) => ({
-      ...prev,
-      soundEnabled: !prev.soundEnabled,
-    }));
+    setState((prev) => ({ ...prev, soundEnabled: !prev.soundEnabled }));
   }, []);
 
   const handleCycleBotSpeed = useCallback(() => {
-    setBotSpeed((prev) =>
-      prev === 'normal' ? 'relaxed' : prev === 'relaxed' ? 'fast' : 'normal'
-    );
-  }, []);
+    setBotSpeed((prev) => {
+      const next = prev === 'normal' ? 'relaxed' : prev === 'relaxed' ? 'fast' : 'normal';
+      syncUserPreferences(user?.id ?? null, { botSpeed: next }).catch(() => {});
+      return next;
+    });
+  }, [user?.id]);
 
   const handleContinueNextHand = useCallback(() => {
     setSeatMoods({});
@@ -410,10 +707,80 @@ export default function DominoAppScreen() {
 
   const handleReturnToSetup = useCallback(() => {
     setSeatMoods({});
+    setScreenMode('local');
+    setOnlineRoom(null);
     setState((prev) =>
       createInitialSetupState(prev.mode, prev.targetScore, prev.sortMode, prev.soundEnabled)
     );
   }, []);
+
+  // Online Room Action Handlers
+  const handleEnteredOnlineRoom = useCallback(
+    (room: OnlineRoomRow, mySeat: number) => {
+      setOnlineRoom(room);
+      setOnlineMySeat(mySeat);
+      setOnlineMyHand([]);
+      setScreenMode('online_room');
+      trackEvent(
+        'room_joined',
+        { mode: room.mode, isPrivate: room.is_private, buyIn: room.buy_in },
+        user?.id
+      );
+    },
+    [user?.id]
+  );
+
+  const handleLeaveOnlineRoom = useCallback(async () => {
+    if (onlineRoom) {
+      await leaveOnlineRoom(onlineRoom.id).catch(() => {});
+    }
+    setOnlineRoom(null);
+    setOnlineMyHand([]);
+    setScreenMode('online_lobby');
+  }, [onlineRoom]);
+
+  const handleStartOnlineWithBots = useCallback(async () => {
+    if (!onlineRoom) return;
+    await startOnlineRoomWithBots(onlineRoom.id);
+    trackEvent('room_started_with_bots', { mode: onlineRoom.mode }, user?.id);
+  }, [onlineRoom, user?.id]);
+
+  const handleOnlinePlay = useCallback(
+    (tileId: string, side: PlaySide) => {
+      if (!onlineRoom) return;
+      hapticSnap();
+      playGameSound('clack', state.soundEnabled);
+      sendOnlinePlay(onlineRoom.id, tileId, side).catch(() => {});
+    },
+    [onlineRoom, state.soundEnabled]
+  );
+
+  const handleOnlineDraw = useCallback(
+    (boneyardIndex?: number) => {
+      if (!onlineRoom) return;
+      hapticLight();
+      playGameSound('draw', state.soundEnabled);
+      sendOnlineDraw(onlineRoom.id, boneyardIndex).catch(() => {});
+    },
+    [onlineRoom, state.soundEnabled]
+  );
+
+  const handleOnlinePass = useCallback(() => {
+    if (!onlineRoom) return;
+    hapticWarning();
+    playGameSound('pass', state.soundEnabled);
+    sendOnlinePass(onlineRoom.id).catch(() => {});
+  }, [onlineRoom, state.soundEnabled]);
+
+  const handleOnlineNextHand = useCallback(() => {
+    if (!onlineRoom) return;
+    sendOnlineNextHand(onlineRoom.id).catch(() => {});
+  }, [onlineRoom]);
+
+  const handleOnlineRematch = useCallback(() => {
+    if (!onlineRoom) return;
+    sendOnlineRematch(onlineRoom.id).catch(() => {});
+  }, [onlineRoom]);
 
   if (!hydrated) {
     return (
@@ -423,15 +790,17 @@ export default function DominoAppScreen() {
     );
   }
 
-  const showTable =
-    state.phase === 'playing' ||
-    state.phase === 'round_summary' ||
-    state.phase === 'match_over';
+  const showLocalTable =
+    screenMode === 'local' &&
+    (state.phase === 'playing' ||
+      state.phase === 'round_summary' ||
+      state.phase === 'match_over');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
       <View style={styles.flex}>
-        {state.phase === 'setup' && (
+        {/* HOME / SETUP */}
+        {screenMode === 'local' && state.phase === 'setup' && (
           <SetupView
             mode={state.mode}
             targetScore={state.targetScore}
@@ -439,10 +808,17 @@ export default function DominoAppScreen() {
             onChangeMode={handleChangeMode}
             onChangeTargetScore={handleChangeTargetScore}
             onStartQuickMatch={handleStartQuickMatch}
+            onOpenOnlineLobby={(tab) => {
+              setLobbyInitialTab(tab);
+              setScreenMode('online_lobby');
+            }}
+            onOpenDailyRewards={() => setDailyModalOpen(true)}
+            onOpenThemes={() => setThemesModalOpen(true)}
           />
         )}
 
-        {showTable && (
+        {/* LOCAL QUICK PLAY TABLE */}
+        {showLocalTable && (
           <GameTableView
             state={state}
             turnSecondsLeft={turnSecondsLeft}
@@ -450,9 +826,10 @@ export default function DominoAppScreen() {
             botTimerProgress={botTimerProgress}
             botSpeed={botSpeed}
             seatMoods={seatMoods}
-            onHumanPlay={executeHumanPlay}
-            onHumanDraw={executeHumanDraw}
-            onHumanPass={executeHumanPass}
+            themeId={retention.equippedTheme}
+            onHumanPlay={executeLocalHumanPlay}
+            onHumanDraw={executeLocalHumanDraw}
+            onHumanPass={executeLocalHumanPass}
             onToggleSort={handleToggleSort}
             onToggleSound={handleToggleSound}
             onCycleBotSpeed={handleCycleBotSpeed}
@@ -461,11 +838,11 @@ export default function DominoAppScreen() {
           />
         )}
 
-        {state.phase === 'round_summary' && (
+        {screenMode === 'local' && state.phase === 'round_summary' && (
           <RoundSummaryView state={state} onContinue={handleContinueNextHand} />
         )}
 
-        {state.phase === 'match_over' && (
+        {screenMode === 'local' && state.phase === 'match_over' && (
           <MatchOverView
             state={state}
             retention={retention}
@@ -473,6 +850,83 @@ export default function DominoAppScreen() {
             onChangeMode={handleReturnToSetup}
           />
         )}
+
+        {/* ONLINE MULTIPLAYER LOBBY */}
+        {screenMode === 'online_lobby' && (
+          <OnlineLobbyView
+            clubChips={retention.clubChips}
+            defaultMode={state.mode}
+            defaultTargetScore={state.targetScore}
+            initialTab={lobbyInitialTab}
+            onEnteredRoom={handleEnteredOnlineRoom}
+            onBack={() => setScreenMode('local')}
+          />
+        )}
+
+        {/* ONLINE WAITING ROOM */}
+        {screenMode === 'online_room' && onlineRoom && onlineRoom.status === 'waiting' && (
+          <WaitingRoomView
+            room={onlineRoom}
+            isHost={onlineRoom.host_user_id === user?.id}
+            onStartWithBots={handleStartOnlineWithBots}
+            onLeave={handleLeaveOnlineRoom}
+          />
+        )}
+
+        {/* ONLINE ACTIVE TABLE (Authoritative Realtime) */}
+        {screenMode === 'online_room' && onlineGameState && (
+          <>
+            <GameTableView
+              state={onlineGameState}
+              turnSecondsLeft={null}
+              humanTurnTotalSeconds={HUMAN_TURN_SECONDS}
+              botTimerProgress={1}
+              botSpeed={botSpeed}
+              seatMoods={{}}
+              themeId={retention.equippedTheme}
+              onHumanPlay={handleOnlinePlay}
+              onHumanDraw={handleOnlineDraw}
+              onHumanPass={handleOnlinePass}
+              onToggleSort={handleToggleSort}
+              onToggleSound={handleToggleSound}
+              onCycleBotSpeed={handleCycleBotSpeed}
+              onRestartMatch={handleOnlineRematch}
+              onExitToHome={handleLeaveOnlineRoom}
+            />
+
+            {onlineGameState.phase === 'round_summary' && (
+              <RoundSummaryView
+                state={onlineGameState}
+                onContinue={handleOnlineNextHand}
+              />
+            )}
+
+            {onlineGameState.phase === 'match_over' && (
+              <MatchOverView
+                state={onlineGameState}
+                retention={retention}
+                onRematch={handleOnlineRematch}
+                onChangeMode={handleLeaveOnlineRoom}
+              />
+            )}
+          </>
+        )}
+
+        {/* Economy Modals */}
+        <DailyRewardModal
+          visible={dailyModalOpen}
+          retention={retention}
+          onClaimDaily={handleClaimDailyReward}
+          onClaimFreeRefill={handleClaimFreeRefill}
+          onClose={() => setDailyModalOpen(false)}
+        />
+
+        <ThemesModal
+          visible={themesModalOpen}
+          retention={retention}
+          onSelectOrUnlockTheme={handleSelectOrUnlockTheme}
+          onClose={() => setThemesModalOpen(false)}
+        />
       </View>
     </SafeAreaView>
   );

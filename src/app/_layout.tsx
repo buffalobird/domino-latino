@@ -5,18 +5,21 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { CLUB } from '@/constants/tokens';
+import { AuthProvider } from '@/context/AuthContext';
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: CLUB.roomBgTop }}>
       <SafeAreaProvider>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: CLUB.roomBgTop },
-          }}
-        />
+        <AuthProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: CLUB.roomBgTop },
+            }}
+          />
+        </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

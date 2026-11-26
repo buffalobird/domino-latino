@@ -1,0 +1,268 @@
+import React from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { CLUB } from '@/constants/tokens';
+import {
+  canClaimDailyReward,
+  DAILY_REWARD_SCHEDULE,
+  getNextDailyRewardAmount,
+  RetentionProgress,
+} from '@/storage/gameStorage';
+import { hapticSnap } from '@/utils/feedback';
+import { CloseIcon } from './Icons';
+
+interface DailyRewardModalProps {
+  visible: boolean;
+  retention: RetentionProgress;
+  onClaimDaily: () => void;
+  onClaimFreeRefill: () => void;
+  onClose: () => void;
+}
+
+export function DailyRewardModal({
+  visible,
+  retention,
+  onClaimDaily,
+  onClaimFreeRefill,
+  onClose,
+}: DailyRewardModalProps) {
+  const claimable = canClaimDailyReward(retention);
+  const { dayIndex, amount } = getNextDailyRewardAmount(retention);
+  const needsRefill = retention.clubChips < 200;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      statusBarTranslucent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.backdrop}>
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <View>
+              <Text style={styles.title}>Fichas de Club</Text>
+              <Text style={styles.sub}>
+                Saldo actual: {retention.clubChips.toLocaleString('es-ES')} fichas
+              </Text>
+            </View>
+            <Pressable
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel="Cerrar bono diario"
+              style={styles.closeBtn}
+            >
+              <CloseIcon size={18} color={CLUB.textPrimary} />
+            </Pressable>
+          </View>
+
+          <Text style={styles.sectionLabel}>Bono diario de 7 días</Text>
+
+          <View style={styles.daysGrid}>
+            {DAILY_REWARD_SCHEDULE.map((reward, idx) => {
+              const isPast = idx < retention.dailyClaimStreak;
+              const isToday = idx === dayIndex;
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    styles.dayCell,
+                    idx === 6 && styles.dayCellWide,
+                    isPast && styles.dayCellPast,
+                    isToday && claimable && styles.dayCellActive,
+                  ]}
+                >
+                  <Text style={styles.dayNum}>Día {idx + 1}</Text>
+                  <Text
+                    style={[
+                      styles.dayReward,
+                      isToday && claimable && { color: CLUB.gold },
+                    ]}
+                  >
+                    +{reward}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          <Pressable
+            onPress={() => {
+              if (!claimable) return;
+              hapticSnap();
+              onClaimDaily();
+            }}
+            disabled={!claimable}
+            style={({ pressed }) => [
+              styles.claimBtn,
+              !claimable && styles.claimBtnDisabled,
+              pressed && claimable && { opacity: 0.9 },
+            ]}
+          >
+            <Text
+              style={[
+                styles.claimBtnText,
+                !claimable && { color: CLUB.textMuted },
+              ]}
+            >
+              {claimable
+                ? `Reclamar +${amount} fichas`
+                : 'Bono de hoy ya reclamado'}
+            </Text>
+          </Pressable>
+
+          {/* Compliance guarantee: unlimited free refill whenever balance drops below 200 */}
+          {needsRefill && (
+            <Pressable
+              onPress={() => {
+                hapticSnap();
+                onClaimFreeRefill();
+              }}
+              style={styles.refillBtn}
+            >
+              <Text style={styles.refillBtnText}>
+                Recarga gratuita del Club (+300 fichas)
+              </Text>
+            </Pressable>
+          )}
+
+          <Text style={styles.complianceNote}>
+            Las Fichas de Club son moneda virtual de entretenimiento sin valor
+            monetario real y nunca se venden por dinero.
+          </Text>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(6, 12, 24, 0.76)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: CLUB.surfaceCard,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
+    padding: 16,
+    gap: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: {
+    color: CLUB.textPrimary,
+    fontSize: 19,
+    fontWeight: '900',
+  },
+  sub: {
+    color: CLUB.gold,
+    fontSize: 13,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionLabel: {
+    color: CLUB.textMuted,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  daysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayCell: {
+    width: '31%',
+    backgroundColor: CLUB.surfaceCardLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: CLUB.glassBorder,
+    paddingVertical: 10,
+    alignItems: 'center',
+    gap: 2,
+  },
+  dayCellWide: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+  },
+  dayCellPast: {
+    opacity: 0.45,
+  },
+  dayCellActive: {
+    borderColor: CLUB.gold,
+    borderWidth: 2,
+    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+  },
+  dayNum: {
+    color: CLUB.textSecondary,
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  dayReward: {
+    color: CLUB.textPrimary,
+    fontSize: 15,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
+  },
+  claimBtn: {
+    backgroundColor: CLUB.emerald,
+    borderRadius: 14,
+    borderBottomWidth: 4,
+    borderBottomColor: CLUB.emeraldDark,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  claimBtnDisabled: {
+    backgroundColor: CLUB.surfaceCardLight,
+    borderBottomWidth: 0,
+  },
+  claimBtnText: {
+    color: CLUB.textInk,
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  refillBtn: {
+    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+    borderWidth: 1,
+    borderColor: CLUB.cyan,
+    borderRadius: 12,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refillBtnText: {
+    color: CLUB.cyan,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  complianceNote: {
+    color: CLUB.textMuted,
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 15,
+  },
+});

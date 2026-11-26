@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { CLUB } from '@/constants/tokens';
 import { PlacedTile, PlaySide, Tile } from '@/engine/types';
 import { DominoTile } from './DominoTile';
@@ -33,6 +34,7 @@ interface BoardCanvasProps {
   validSides: PlaySide[];
   hoverSide: PlaySide | null;
   numPlayers: number;
+  themeId?: TableThemeId;
   onSelectSide: (side: PlaySide) => void;
   onDropZonesMeasured?: (zones: DropZoneTarget[], boardRect: BoardRect) => void;
 }
@@ -411,9 +413,11 @@ export function BoardCanvas({
   validSides,
   hoverSide,
   numPlayers,
+  themeId = 'caribe',
   onSelectSide,
   onDropZonesMeasured,
 }: BoardCanvasProps) {
+  const theme = TABLE_THEMES[themeId] ?? TABLE_THEMES.caribe;
   const boardRef = useRef<React.ComponentRef<typeof View>>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [highlightOrder, setHighlightOrder] = useState<number>(0);
@@ -499,14 +503,14 @@ export function BoardCanvas({
 
   return (
     <LinearGradient
-      colors={[CLUB.woodLight, CLUB.woodMid, CLUB.woodDark]}
+      colors={[theme.woodLight, theme.woodMid, theme.woodDark]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.woodFrame}
     >
       <View ref={boardRef} style={styles.feltClip} onLayout={handleLayout}>
         <LinearGradient
-          colors={[CLUB.feltCenter, CLUB.feltEdge]}
+          colors={[theme.feltCenter, theme.feltEdge]}
           start={{ x: 0.5, y: 0.35 }}
           end={{ x: 0.5, y: 1 }}
           style={styles.feltGradient}

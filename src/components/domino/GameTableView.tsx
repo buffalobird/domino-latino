@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
+import { TableThemeId } from '@/constants/tableThemes';
 import { CLUB } from '@/constants/tokens';
 import {
   canDrawFromBoneyard,
@@ -44,6 +45,7 @@ interface GameTableViewProps {
   botTimerProgress: number;
   botSpeed: BotSpeed;
   seatMoods: Record<number, BotMood>;
+  themeId?: TableThemeId;
   onHumanPlay: (tileId: string, side: PlaySide) => void;
   onHumanDraw: (boneyardIndex?: number) => void;
   onHumanPass: () => void;
@@ -189,6 +191,7 @@ export function GameTableView({
   botTimerProgress,
   botSpeed,
   seatMoods,
+  themeId = 'caribe',
   onHumanPlay,
   onHumanDraw,
   onHumanPass,
@@ -587,6 +590,7 @@ export function GameTableView({
             validSides={activeMove ? activeMove.sides : []}
             hoverSide={hoverSide}
             numPlayers={state.players.length}
+            themeId={themeId}
             onSelectSide={handleSelectSide}
             onDropZonesMeasured={handleDropZonesMeasured}
           />
