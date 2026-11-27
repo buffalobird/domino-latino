@@ -11,13 +11,18 @@ import {
 
 import {
   AVATAR_COSMETIC_PRICES,
+  AVATAR_EYE_COLORS,
   AVATAR_EYE_OPTIONS,
+  AVATAR_EYEBROW_OPTIONS,
+  AVATAR_FACE_SHAPE_OPTIONS,
   AVATAR_FACIAL_OPTIONS,
   AVATAR_FRAME_OPTIONS,
   AVATAR_GLASSES_OPTIONS,
   AVATAR_HAIR_COLORS,
   AVATAR_HAIR_OPTIONS,
   AVATAR_HAT_OPTIONS,
+  AVATAR_MOUTH_OPTIONS,
+  AVATAR_NOSE_OPTIONS,
   AVATAR_OUTFIT_COLORS,
   AVATAR_OUTFIT_OPTIONS,
   AVATAR_SKIN_TONES,
@@ -33,9 +38,12 @@ import { CheckIcon, ChipIcon, CloseIcon, LockIcon } from './Icons';
 import { ModularAvatar } from './ModularAvatar';
 
 type StudioTab =
-  | 'skin'
-  | 'hair'
+  | 'face'
   | 'eyes'
+  | 'brows'
+  | 'nose'
+  | 'mouth'
+  | 'hair'
   | 'facial'
   | 'outfit'
   | 'glasses'
@@ -43,14 +51,17 @@ type StudioTab =
   | 'frame';
 
 const STUDIO_TABS: { id: StudioTab; label: string }[] = [
-  { id: 'skin', label: 'Piel' },
+  { id: 'face', label: 'Rostro' },
   { id: 'hair', label: 'Cabello' },
   { id: 'eyes', label: 'Ojos' },
-  { id: 'facial', label: 'Rostro' },
+  { id: 'brows', label: 'Cejas' },
+  { id: 'nose', label: 'Nariz' },
+  { id: 'mouth', label: 'Boca' },
+  { id: 'facial', label: 'Barba/Detalles' },
   { id: 'outfit', label: 'Ropa' },
   { id: 'glasses', label: 'Gafas' },
-  { id: 'hat', label: 'Sombrero' },
-  { id: 'frame', label: 'Marco' },
+  { id: 'hat', label: 'Cabeza' },
+  { id: 'frame', label: 'Fondo' },
 ];
 
 interface AvatarStudioModalProps {
@@ -86,7 +97,7 @@ export function AvatarStudioModal({
   onClose,
 }: AvatarStudioModalProps) {
   const [draft, setDraft] = useState<AvatarConfig>(retention.avatarConfig);
-  const [activeTab, setActiveTab] = useState<StudioTab>('hair');
+  const [activeTab, setActiveTab] = useState<StudioTab>('outfit');
 
   useEffect(() => {
     if (visible) {
@@ -129,9 +140,14 @@ export function AvatarStudioModal({
 
     setDraft({
       skinTone: pick(AVATAR_SKIN_TONES).id,
+      faceShape: pick(AVATAR_FACE_SHAPE_OPTIONS).id,
+      eyeStyle: pick(ownedOrFree(AVATAR_EYE_OPTIONS)).id,
+      eyeColor: pick(AVATAR_EYE_COLORS).hex,
+      eyebrows: pick(AVATAR_EYEBROW_OPTIONS).id,
+      nose: pick(AVATAR_NOSE_OPTIONS).id,
+      mouth: pick(AVATAR_MOUTH_OPTIONS).id,
       hair: pick(ownedOrFree(AVATAR_HAIR_OPTIONS)).id,
       hairColor: pick(AVATAR_HAIR_COLORS).hex,
-      eyeStyle: pick(ownedOrFree(AVATAR_EYE_OPTIONS)).id,
       facial: pick(ownedOrFree(AVATAR_FACIAL_OPTIONS)).id,
       outfit: pick(ownedOrFree(AVATAR_OUTFIT_OPTIONS)).id,
       outfitColor: pick(AVATAR_OUTFIT_COLORS).hex,
@@ -181,10 +197,10 @@ export function AvatarStudioModal({
                 <Text style={styles.tagText}>{item.tag}</Text>
               </View>
             )}
-            <View style={styles.thumbWrap}>
+            <View style={styles.thumbWindow}>
               <ModularAvatar
                 config={previewCfg}
-                size={64}
+                size={68}
                 showFrameRing={activeTab === 'frame'}
               />
             </View>
@@ -200,11 +216,11 @@ export function AvatarStudioModal({
             >
               {isOwned ? (
                 <>
-                  {isSelected && <CheckIcon size={11} color={CLUB.textInk} />}
+                  {isSelected && <CheckIcon size={11} color="#FFFFFF" />}
                   <Text
                     style={[
                       styles.priceTextOwned,
-                      isSelected && { color: CLUB.textInk },
+                      isSelected && { color: '#FFFFFF' },
                     ]}
                   >
                     {isSelected ? 'Puesto' : isFree ? 'Gratis' : 'Tuyo'}
@@ -212,8 +228,8 @@ export function AvatarStudioModal({
                 </>
               ) : (
                 <>
-                  <LockIcon size={10} color={CLUB.gold} />
-                  <ChipIcon size={11} color={CLUB.gold} />
+                  <LockIcon size={10} color="#92400E" />
+                  <ChipIcon size={11} color="#D97706" />
                   <Text style={styles.priceTextLocked}>
                     {item.costChips.toLocaleString('es-ES')}
                   </Text>
@@ -239,14 +255,14 @@ export function AvatarStudioModal({
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Tu Identidad del Club</Text>
+              <Text style={styles.title}>Personalizar Avatar</Text>
               <Text style={styles.subtitle}>
-                Pruébate cualquier estilo antes de guardar
+                Crea tu estilo único y pruébalo en vivo
               </Text>
             </View>
             <View style={styles.headerRight}>
               <View style={styles.chipsBadge}>
-                <ChipIcon size={13} color={CLUB.gold} />
+                <ChipIcon size={14} color={CLUB.gold} />
                 <Text style={styles.chipsText}>
                   {retention.clubChips.toLocaleString('es-ES')}
                 </Text>
@@ -262,16 +278,18 @@ export function AvatarStudioModal({
             </View>
           </View>
 
-          {/* Live Avatar Stage + Quick Presets */}
+          {/* BRIGHT Luminous Studio Stage so every facial detail & outfit pops crisply! */}
           <LinearGradient
-            colors={['rgba(24, 52, 92, 0.85)', 'rgba(10, 22, 42, 0.92)']}
+            colors={['#F8FAFC', '#E8F0FB']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
             style={styles.stageCard}
           >
-            <View style={styles.stageLeft}>
-              <ModularAvatar config={draft} size={108} showFrameRing />
+            <View style={styles.stagePortraitHalo}>
+              <ModularAvatar config={draft} size={112} showFrameRing />
             </View>
             <View style={styles.stageRight}>
-              <Text style={styles.presetsLabel}>ESTILOS RÁPIDOS</Text>
+              <Text style={styles.presetsLabel}>ESTILOS BASE</Text>
               <View style={styles.presetsWrap}>
                 {AVATAR_STARTER_PRESETS.map((p) => (
                   <Pressable
@@ -295,7 +313,7 @@ export function AvatarStudioModal({
                     pressed && { opacity: 0.78 },
                   ]}
                 >
-                  <Text style={styles.presetChipRandomText}>Sorpréndeme</Text>
+                  <Text style={styles.presetChipRandomText}>Aleatorio</Text>
                 </Pressable>
               </View>
             </View>
@@ -332,9 +350,65 @@ export function AvatarStudioModal({
             })}
           </ScrollView>
 
-          {/* Dynamic Color Swatches (Hair / Outfit) */}
-          {activeTab === 'hair' && (
+          {/* Color Swatch Strip for Skin / Eyes / Hair / Outfit */}
+          {activeTab === 'face' && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.swatchScroll}
+              contentContainerStyle={styles.swatchRow}
+            >
+              <Text style={styles.swatchLabel}>Piel:</Text>
+              {AVATAR_SKIN_TONES.map((s) => {
+                const active = draft.skinTone === s.id;
+                return (
+                  <Pressable
+                    key={s.id}
+                    onPress={() => {
+                      hapticLight();
+                      setDraft((prev) => ({ ...prev, skinTone: s.id }));
+                    }}
+                    style={[
+                      styles.swatchDot,
+                      { backgroundColor: s.base },
+                      active && styles.swatchDotActive,
+                    ]}
+                  />
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {activeTab === 'eyes' && (
             <View style={styles.swatchRow}>
+              <Text style={styles.swatchLabel}>Color de ojos:</Text>
+              {AVATAR_EYE_COLORS.map((c) => {
+                const active = draft.eyeColor === c.hex;
+                return (
+                  <Pressable
+                    key={c.hex}
+                    onPress={() => {
+                      hapticLight();
+                      setDraft((prev) => ({ ...prev, eyeColor: c.hex }));
+                    }}
+                    style={[
+                      styles.swatchDot,
+                      { backgroundColor: c.hex },
+                      active && styles.swatchDotActive,
+                    ]}
+                  />
+                );
+              })}
+            </View>
+          )}
+
+          {activeTab === 'hair' && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.swatchScroll}
+              contentContainerStyle={styles.swatchRow}
+            >
               <Text style={styles.swatchLabel}>Color:</Text>
               {AVATAR_HAIR_COLORS.map((c) => {
                 const active = draft.hairColor === c.hex;
@@ -353,11 +427,16 @@ export function AvatarStudioModal({
                   />
                 );
               })}
-            </View>
+            </ScrollView>
           )}
 
           {activeTab === 'outfit' && (
-            <View style={styles.swatchRow}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.swatchScroll}
+              contentContainerStyle={styles.swatchRow}
+            >
               <Text style={styles.swatchLabel}>Color:</Text>
               {AVATAR_OUTFIT_COLORS.map((c) => {
                 const active = draft.outfitColor === c.hex;
@@ -376,57 +455,20 @@ export function AvatarStudioModal({
                   />
                 );
               })}
-            </View>
+            </ScrollView>
           )}
 
-          {/* Scrollable Item Catalog */}
+          {/* Scrollable Item Catalog (Light high-contrast tiles so every trait reads clearly!) */}
           <ScrollView
             style={styles.catalogScroll}
             contentContainerStyle={styles.catalogContent}
             showsVerticalScrollIndicator={false}
           >
-            {activeTab === 'skin' && (
-              <View style={styles.grid}>
-                {AVATAR_SKIN_TONES.map((tone) => {
-                  const isSelected = draft.skinTone === tone.id;
-                  const previewCfg = { ...draft, skinTone: tone.id };
-                  return (
-                    <Pressable
-                      key={tone.id}
-                      onPress={() => {
-                        hapticLight();
-                        setDraft(previewCfg);
-                      }}
-                      style={[
-                        styles.itemCard,
-                        isSelected && styles.itemCardSelected,
-                      ]}
-                    >
-                      <View style={styles.thumbWrap}>
-                        <ModularAvatar config={previewCfg} size={64} />
-                      </View>
-                      <Text style={styles.itemName}>{tone.name}</Text>
-                      <View
-                        style={[
-                          styles.pricePill,
-                          styles.pricePillOwned,
-                          isSelected && styles.pricePillSelected,
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.priceTextOwned,
-                            isSelected && { color: CLUB.textInk },
-                          ]}
-                        >
-                          {isSelected ? 'Activo' : 'Gratis'}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
+            {activeTab === 'face' &&
+              renderItemGrid(AVATAR_FACE_SHAPE_OPTIONS, draft.faceShape, (id) => ({
+                ...draft,
+                faceShape: id,
+              }))}
 
             {activeTab === 'hair' &&
               renderItemGrid(AVATAR_HAIR_OPTIONS, draft.hair, (id) => ({
@@ -438,6 +480,24 @@ export function AvatarStudioModal({
               renderItemGrid(AVATAR_EYE_OPTIONS, draft.eyeStyle, (id) => ({
                 ...draft,
                 eyeStyle: id,
+              }))}
+
+            {activeTab === 'brows' &&
+              renderItemGrid(AVATAR_EYEBROW_OPTIONS, draft.eyebrows, (id) => ({
+                ...draft,
+                eyebrows: id,
+              }))}
+
+            {activeTab === 'nose' &&
+              renderItemGrid(AVATAR_NOSE_OPTIONS, draft.nose, (id) => ({
+                ...draft,
+                nose: id,
+              }))}
+
+            {activeTab === 'mouth' &&
+              renderItemGrid(AVATAR_MOUTH_OPTIONS, draft.mouth, (id) => ({
+                ...draft,
+                mouth: id,
               }))}
 
             {activeTab === 'facial' &&
@@ -478,8 +538,8 @@ export function AvatarStudioModal({
                 <Text style={styles.insufficientText}>
                   Te faltan{' '}
                   {(totalCost - retention.clubChips).toLocaleString('es-ES')}{' '}
-                  fichas para esta combinación. Juega partidas o reclama tu bono
-                  diario.
+                  monedas para esta combinación. Juega partidas o reclama tu
+                  bono diario.
                 </Text>
               </View>
             ) : null}
@@ -494,9 +554,9 @@ export function AvatarStudioModal({
               }
               title={
                 totalCost > 0
-                  ? `Desbloquear y usar (${totalCost.toLocaleString('es-ES')} fichas)`
+                  ? `Desbloquear y usar (${totalCost.toLocaleString('es-ES')})`
                   : hasChanges
-                  ? 'Guardar mi Avatar'
+                  ? 'Guardar Avatar'
                   : 'Listo'
               }
               disabled={totalCost > 0 && !canAffordAll}
@@ -516,12 +576,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    height: '90%',
-    backgroundColor: '#0D1B34',
+    height: '92%',
+    backgroundColor: '#0E1C36',
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     borderTopWidth: 1.5,
-    borderColor: 'rgba(148, 190, 255, 0.28)',
+    borderColor: 'rgba(148, 190, 255, 0.3)',
     paddingTop: 14,
     paddingHorizontal: 14,
     paddingBottom: 22,
@@ -553,9 +613,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+    backgroundColor: 'rgba(245, 196, 81, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.4)',
+    borderColor: 'rgba(245, 196, 81, 0.45)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -570,7 +630,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -578,21 +638,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.22)',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
     padding: 12,
+    boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.32)',
   },
-  stageLeft: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  stagePortraitHalo: {
+    padding: 3,
+    borderRadius: 64,
+    backgroundColor: '#FFFFFF',
+    boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.18)',
   },
   stageRight: {
     flex: 1,
     gap: 7,
   },
   presetsLabel: {
-    color: CLUB.textMuted,
+    color: '#475569',
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 1,
@@ -603,28 +666,26 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   presetChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.24)',
+    borderColor: '#CBD5E1',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   presetChipText: {
-    color: CLUB.textPrimary,
+    color: '#0F172A',
     fontSize: 11.5,
     fontWeight: '800',
   },
   presetChipRandom: {
-    backgroundColor: 'rgba(56, 189, 248, 0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(125, 211, 252, 0.45)',
+    backgroundColor: '#2563EB',
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 11,
     paddingVertical: 5,
   },
   presetChipRandomText: {
-    color: '#BAE6FD',
+    color: '#FFFFFF',
     fontSize: 11.5,
     fontWeight: '900',
   },
@@ -636,46 +697,50 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   tabPill: {
-    paddingHorizontal: 13,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.16)',
+    borderColor: 'rgba(148, 190, 255, 0.18)',
   },
   tabPillActive: {
-    backgroundColor: 'rgba(245, 196, 81, 0.2)',
-    borderColor: CLUB.gold,
+    backgroundColor: '#F8FAFC',
+    borderColor: '#FFFFFF',
   },
   tabPillText: {
-    color: CLUB.textSecondary,
-    fontSize: 12.5,
+    color: '#CBD5E1',
+    fontSize: 12,
     fontWeight: '800',
   },
   tabPillTextActive: {
-    color: CLUB.goldSoft,
+    color: '#0F172A',
+  },
+  swatchScroll: {
+    flexGrow: 0,
   },
   swatchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 4,
+    paddingVertical: 2,
   },
   swatchLabel: {
-    color: CLUB.textMuted,
+    color: CLUB.textSecondary,
     fontSize: 11.5,
     fontWeight: '800',
   },
   swatchDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.25)',
+    borderColor: 'rgba(255,255,255,0.45)',
   },
   swatchDotActive: {
     borderColor: CLUB.gold,
-    borderWidth: 2.8,
+    borderWidth: 3,
     transform: [{ scale: 1.14 }],
   },
   catalogScroll: {
@@ -691,10 +756,10 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     width: '31.3%',
-    backgroundColor: 'rgba(18, 36, 66, 0.78)',
+    backgroundColor: '#F1F5F9',
     borderRadius: 16,
-    borderWidth: 1.4,
-    borderColor: 'rgba(148, 190, 255, 0.18)',
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
     paddingVertical: 8,
     paddingHorizontal: 6,
     alignItems: 'center',
@@ -703,32 +768,33 @@ const styles = StyleSheet.create({
   },
   itemCardSelected: {
     borderColor: CLUB.gold,
-    backgroundColor: 'rgba(245, 196, 81, 0.12)',
+    backgroundColor: '#FFFBEB',
+    boxShadow: '0px 4px 12px rgba(245, 196, 81, 0.35)',
   },
   tagBadge: {
     position: 'absolute',
     top: 5,
     right: 5,
-    backgroundColor: 'rgba(245, 196, 81, 0.24)',
-    borderWidth: 0.8,
-    borderColor: CLUB.gold,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
     borderRadius: 6,
     paddingHorizontal: 5,
     paddingVertical: 1,
     zIndex: 4,
   },
   tagText: {
-    color: CLUB.goldSoft,
+    color: '#92400E',
     fontSize: 8.5,
     fontWeight: '900',
   },
-  thumbWrap: {
+  thumbWindow: {
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   itemName: {
-    color: CLUB.textPrimary,
+    color: '#0F172A',
     fontSize: 11,
     fontWeight: '800',
     textAlign: 'center',
@@ -741,22 +807,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 8,
-    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+    backgroundColor: '#FEF3C7',
     minWidth: 62,
   },
   pricePillOwned: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#E2E8F0',
   },
   pricePillSelected: {
-    backgroundColor: CLUB.emerald,
+    backgroundColor: '#10B981',
   },
   priceTextOwned: {
-    color: CLUB.textSecondary,
+    color: '#334155',
     fontSize: 10,
     fontWeight: '900',
   },
   priceTextLocked: {
-    color: CLUB.goldSoft,
+    color: '#92400E',
     fontSize: 10.5,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
@@ -766,9 +832,9 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   insufficientBox: {
-    backgroundColor: 'rgba(244, 63, 94, 0.14)',
+    backgroundColor: 'rgba(244, 63, 94, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(244, 63, 94, 0.36)',
+    borderColor: 'rgba(244, 63, 94, 0.38)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 7,
