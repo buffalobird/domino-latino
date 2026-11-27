@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -91,14 +92,22 @@ import {
 } from '@/utils/feedback';
 
 const HUMAN_TURN_SECONDS = 20;
+const BOT_SPEED_STORAGE_KEY = 'domino_latino_bot_speed_v1';
 
+/**
+ * Distinct, non-overlapping human-like pacing tiers:
+ * - fast ("Rápido"):   ~0.50s – 0.90s (snappy blitz)
+ * - normal ("Humano"): ~1.30s – 2.15s (natural domino table cadence)
+ * - relaxed ("Relajado"): ~2.55s – 3.95s (unhurried tile-counting pace)
+ */
 function computeHumanLikeBotDelay(
   state: GameState,
   seat: number,
   speed: BotSpeed
 ): number {
-  const speedMult = speed === 'fast' ? 0.65 : speed === 'relaxed' ? 1.35 : 1.0;
-  const jitter = Math.floor(Math.random() * 340);
+  const speedMult = speed === 'fast' ? 0.42 : speed === 'relaxed' ? 1.9 : 1.0;
+  const maxJitter = speed === 'fast' ? 120 : speed === 'relaxed' ? 420 : 300;
+  const jitter = Math.floor(Math.random() * maxJitter);
   const legal = getLegalMovesForSeat(state, seat);
   const player = state.players[seat];
 
@@ -107,9 +116,9 @@ function computeHumanLikeBotDelay(
     if (state.boneyard.length > 0) {
       const lastEntry = state.history[state.history.length - 1];
       const consecutiveDraw = lastEntry?.type === 'draw' && lastEntry.seat === seat;
-      baseMs = consecutiveDraw ? 720 : 1250;
+      baseMs = consecutiveDraw ? 700 : 1250;
     } else {
-      baseMs = 1650;
+      baseMs = 1600;
     }
   } else if (player && player.hand.length === 1) {
     baseMs = 1150;
@@ -119,7 +128,7 @@ function computeHumanLikeBotDelay(
     baseMs = 1850;
   }
 
-  return Math.round((baseMs + jitter) * speedMult);
+  return Math.round(baseMs * speedMult + jitter);
 }
 
 type AppScreenMode = 'local' | 'online_lobby' | 'online_room';
@@ -140,6 +149,7 @@ export default function DominoAppScreen() {
   const [turnSecondsLeft, setTurnSecondsLeft] = useState<number | null>(null);
   const [botTimerProgress, setBotTimerProgress] = useState(1);
   const [botSpeed, setBotSpeed] = useState<BotSpeed>('normal');
+  const [isLocalPaused, setIsLocalPaused] = useState(false);
   const [seatMoods, setSeatMoods] = useState<Record<number, BotMood>>({});
 
   // Economy & Feedback Modals + Remote Kill-Switch Config
@@ -167,16 +177,26 @@ export default function DominoAppScreen() {
   // 1. Hydrate local cache immediately (0 ms perceived startup)
   useEffect(() => {
     let active = true;
-    Promise.all([loadGameState(), loadRetentionProgress(), loadCachedRemoteConfig()]).then(
-      ([savedGame, savedRetention, cachedCfg]) => {
-        if (!active) return;
-        if (savedGame) setState(savedGame);
-        setRetention(savedRetention);
-        setRemoteConfig(cachedCfg);
-        setHydrated(true);
-        trackEvent('app_open', { level: savedRetention.level });
+    Promise.all([
+      loadGameState(),
+      loadRetentionProgress(),
+      loadCachedRemoteConfig(),
+      AsyncStorage.getItem(BOT_SPEED_STORAGE_KEY).catch(() => null),
+    ]).then(([savedGame, savedRetention, cachedCfg, savedBotSpeed]) => {
+      if (!active) return;
+      if (savedGame) setState(savedGame);
+      setRetention(savedRetention);
+      setRemoteConfig(cachedCfg);
+      if (
+        savedBotSpeed === 'fast' ||
+        savedBotSpeed === 'normal' ||
+        savedBotSpeed === 'relaxed'
+      ) {
+        setBotSpeed(savedBotSpeed);
       }
-    );
+      setHydrated(true);
+      trackEvent('app_open', { level: savedRetention.level });
+    });
     fetchRemoteAppConfig()
       .then((freshCfg) => {
         if (active) setRemoteConfig(freshCfg);
@@ -504,15 +524,16 @@ export default function DominoAppScreen() {
     }
   }, []);
 
-  // Local 20s Human Turn Timer
+  // Local 20s Human Turn Timer (genuinely pauses while Pause modal is open)
   useEffect(() => {
     if (
       !hydrated ||
       screenMode !== 'local' ||
+      isLocalPaused ||
       state.phase !== 'playing' ||
       state.currentTurnSeat !== 0
     ) {
-      setTurnSecondsLeft(null);
+      if (!isLocalPaused) setTurnSecondsLeft(null);
       return;
     }
 
@@ -547,6 +568,7 @@ export default function DominoAppScreen() {
   }, [
     hydrated,
     screenMode,
+    isLocalPaused,
     state.phase,
     state.currentTurnSeat,
     state.handNumber,
@@ -557,9 +579,9 @@ export default function DominoAppScreen() {
     executeLocalHumanPass,
   ]);
 
-  // Local Situational Human-like Bot Loop
+  // Local Situational Human-like Bot Loop (pauses cleanly while Pause modal is open)
   useEffect(() => {
-    if (!hydrated || screenMode !== 'local' || state.phase !== 'playing') return;
+    if (!hydrated || screenMode !== 'local' || isLocalPaused || state.phase !== 'playing') return;
     const seat = state.currentTurnSeat;
     const currentPlayer = state.players[seat];
     if (!currentPlayer || currentPlayer.isHuman) {
@@ -625,6 +647,7 @@ export default function DominoAppScreen() {
   }, [
     hydrated,
     screenMode,
+    isLocalPaused,
     state.phase,
     state.currentTurnSeat,
     state.handNumber,
@@ -752,8 +775,11 @@ export default function DominoAppScreen() {
   }, []);
 
   const handleCycleBotSpeed = useCallback(() => {
+    hapticLight();
     setBotSpeed((prev) => {
-      const next = prev === 'normal' ? 'relaxed' : prev === 'relaxed' ? 'fast' : 'normal';
+      const next: BotSpeed =
+        prev === 'normal' ? 'relaxed' : prev === 'relaxed' ? 'fast' : 'normal';
+      AsyncStorage.setItem(BOT_SPEED_STORAGE_KEY, next).catch(() => {});
       syncUserPreferences(user?.id ?? null, { botSpeed: next }).catch(() => {});
       return next;
     });
@@ -934,6 +960,7 @@ export default function DominoAppScreen() {
             onToggleSort={handleToggleSort}
             onToggleSound={handleToggleSound}
             onCycleBotSpeed={handleCycleBotSpeed}
+            onPauseChange={setIsLocalPaused}
             onOpenFeedback={() => setFeedbackModalOpen(true)}
             onRestartMatch={handleRematch}
             onExitToHome={handleReturnToSetup}

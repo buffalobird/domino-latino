@@ -52,6 +52,7 @@ interface GameTableViewProps {
   onToggleSort: (sortMode: SortMode) => void;
   onToggleSound: () => void;
   onCycleBotSpeed: () => void;
+  onPauseChange?: (paused: boolean) => void;
   onOpenFeedback: () => void;
   onRestartMatch: () => void;
   onExitToHome: () => void;
@@ -199,6 +200,7 @@ export function GameTableView({
   onToggleSort,
   onToggleSound,
   onCycleBotSpeed,
+  onPauseChange,
   onOpenFeedback,
   onRestartMatch,
   onExitToHome,
@@ -255,6 +257,13 @@ export function GameTableView({
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setToastText(null), 1300);
   }, []);
+
+  useEffect(() => {
+    onPauseChange?.(pauseOpen);
+    return () => {
+      onPauseChange?.(false);
+    };
+  }, [pauseOpen, onPauseChange]);
 
   useEffect(() => {
     return () => {

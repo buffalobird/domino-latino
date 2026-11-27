@@ -58,6 +58,12 @@ export function PauseModal({
       : botSpeed === 'relaxed'
       ? 'Relajado'
       : 'Humano';
+  const speedHint =
+    botSpeed === 'fast'
+      ? '~0.7s'
+      : botSpeed === 'relaxed'
+      ? '~3.2s'
+      : '~1.7s';
   return (
     <Modal
       visible={visible}
@@ -100,7 +106,7 @@ export function PauseModal({
             </Pressable>
 
             <Pressable onPress={onCycleBotSpeed} style={styles.utilityBtn}>
-              <Text style={styles.utilityLabel}>Ritmo Bot</Text>
+              <Text style={styles.utilityLabel}>Ritmo · {speedHint}</Text>
               <Text style={styles.utilityValue}>{speedLabel}</Text>
             </Pressable>
 
