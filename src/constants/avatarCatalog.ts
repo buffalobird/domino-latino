@@ -439,7 +439,7 @@ export const AVATAR_OUTFIT_OPTIONS: AvatarItemOption<AvatarOutfitId>[] = [
 ];
 
 export const AVATAR_GLASSES_OPTIONS: AvatarItemOption<AvatarGlassesId>[] = [
-  { id: 'none', cosmeticKey: null, name: 'Sin gafas', costChips: 0 },
+  { id: 'none', cosmeticKey: null, name: 'Ninguno', costChips: 0 },
   { id: 'round', cosmeticKey: 'glasses:round', name: 'Redondas', costChips: 150 },
   { id: 'square', cosmeticKey: 'glasses:square', name: 'Cuadradas', costChips: 200 },
   { id: 'cat_eye', cosmeticKey: 'glasses:cat_eye', name: 'Ojo de Gato', costChips: 300 },
@@ -585,18 +585,63 @@ export const AVATAR_FRAME_OPTIONS: AvatarFrameOption[] = [
   },
 ];
 
-/** Sort options so items matching the selected Mujer/Hombre base appear first (all remain selectable!) */
+/** Eye styles whose artwork has fixed special colors (no colored iris swatch applies) */
+export const EYE_STYLES_WITHOUT_IRIS_COLOR = new Set<AvatarEyeStyleId>([
+  'hearts',
+  'hero_white',
+  'laser_red',
+  'cat_gold',
+  'closed_calm',
+  'shocked',
+]);
+
+/** Outfits with fixed iconic palettes where the garment color swatch does not tint the main piece */
+export const OUTFITS_WITH_FIXED_COLOR = new Set<AvatarOutfitId>([
+  'flannel',
+  'rock_skull',
+  'pirate',
+  'pharaoh',
+  'royal_tux',
+]);
+
+/**
+ * Studio-grade deterministic sorting for every avatar category:
+ * 1. `none` ("Ninguno") ALWAYS pinned at slot #1 (top-left).
+ * 2. Free & already-owned items next (prioritizing current Mujer/Hombre base affinity).
+ * 3. Locked items last, ordered by affinity and ascending price (150 -> 300 -> 12,000).
+ */
 export function sortOptionsForBodyType<T extends string>(
   items: AvatarItemOption<T>[],
-  bodyType: AvatarBodyType
+  bodyType: AvatarBodyType,
+  ownedSet?: Set<string>
 ): AvatarItemOption<T>[] {
-  const score = (item: AvatarItemOption<T>) => {
+  const affinityRank = (item: AvatarItemOption<T>) => {
     const aff = item.affinity ?? 'unisex';
     if (aff === bodyType) return 0;
     if (aff === 'unisex') return 1;
     return 2;
   };
-  return [...items].sort((a, b) => score(a) - score(b));
+
+  const isOwnedOrFree = (item: AvatarItemOption<T>) =>
+    !item.cosmeticKey || item.costChips === 0 || Boolean(ownedSet?.has(item.cosmeticKey));
+
+  return [...items].sort((a, b) => {
+    if (a.id === 'none' && b.id !== 'none') return -1;
+    if (b.id === 'none' && a.id !== 'none') return 1;
+
+    const aOwned = isOwnedOrFree(a);
+    const bOwned = isOwnedOrFree(b);
+    if (aOwned !== bOwned) return aOwned ? -1 : 1;
+
+    const aAff = affinityRank(a);
+    const bAff = affinityRank(b);
+    if (aAff !== bAff) return aAff - bAff;
+
+    if (!aOwned && !bOwned && a.costChips !== b.costChips) {
+      return a.costChips - b.costChips;
+    }
+    return 0;
+  });
 }
 
 export const AVATAR_STARTER_PRESETS: { label: string; config: AvatarConfig }[] = [

@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -31,6 +31,8 @@ import {
   AvatarItemOption,
   BASE_FEMALE_AVATAR,
   BASE_MALE_AVATAR,
+  EYE_STYLES_WITHOUT_IRIS_COLOR,
+  OUTFITS_WITH_FIXED_COLOR,
   sortOptionsForBodyType,
 } from '@/constants/avatarCatalog';
 import { CLUB } from '@/constants/tokens';
@@ -101,13 +103,22 @@ export function AvatarStudioModal({
   onClose,
 }: AvatarStudioModalProps) {
   const [draft, setDraft] = useState<AvatarConfig>(retention.avatarConfig);
-  const [activeTab, setActiveTab] = useState<StudioTab>('outfit');
+  const [activeTab, setActiveTab] = useState<StudioTab>('face');
+  const catalogScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const tabsScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     if (visible) {
       setDraft(retention.avatarConfig);
+      setActiveTab('face');
+      tabsScrollRef.current?.scrollTo({ x: 0, animated: false });
+      catalogScrollRef.current?.scrollTo({ y: 0, animated: false });
     }
   }, [visible, retention.avatarConfig]);
+
+  useEffect(() => {
+    catalogScrollRef.current?.scrollTo({ y: 0, animated: false });
+  }, [activeTab, draft.bodyType]);
 
   const ownedSet = useMemo(
     () => new Set(retention.unlockedCosmetics),
@@ -180,17 +191,56 @@ export function AvatarStudioModal({
   };
 
   const sortedHairOptions = useMemo(
-    () => sortOptionsForBodyType(AVATAR_HAIR_OPTIONS, draft.bodyType),
-    [draft.bodyType]
+    () => sortOptionsForBodyType(AVATAR_HAIR_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
   );
   const sortedFacialOptions = useMemo(
-    () => sortOptionsForBodyType(AVATAR_FACIAL_OPTIONS, draft.bodyType),
-    [draft.bodyType]
+    () => sortOptionsForBodyType(AVATAR_FACIAL_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
   );
   const sortedOutfitOptions = useMemo(
-    () => sortOptionsForBodyType(AVATAR_OUTFIT_OPTIONS, draft.bodyType),
-    [draft.bodyType]
+    () => sortOptionsForBodyType(AVATAR_OUTFIT_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
   );
+  const sortedEyeOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_EYE_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
+  );
+  const sortedMouthOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_MOUTH_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
+  );
+  const sortedGlassesOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_GLASSES_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
+  );
+  const sortedHatOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_HAT_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
+  );
+  const sortedFrameOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_FRAME_OPTIONS, draft.bodyType, ownedSet),
+    [draft.bodyType, ownedSet]
+  );
+
+  const handleStripLockedItems = () => {
+    hapticLight();
+    const fallback = retention.avatarConfig;
+    const isLocked = (key: string) =>
+      key in AVATAR_COSMETIC_PRICES && !ownedSet.has(key);
+
+    setDraft((prev) => ({
+      ...prev,
+      hair: isLocked(`hair:${prev.hair}`) ? fallback.hair : prev.hair,
+      eyeStyle: isLocked(`eye:${prev.eyeStyle}`) ? fallback.eyeStyle : prev.eyeStyle,
+      mouth: isLocked(`mouth:${prev.mouth}`) ? fallback.mouth : prev.mouth,
+      facial: isLocked(`facial:${prev.facial}`) ? fallback.facial : prev.facial,
+      outfit: isLocked(`outfit:${prev.outfit}`) ? fallback.outfit : prev.outfit,
+      glasses: isLocked(`glasses:${prev.glasses}`) ? fallback.glasses : prev.glasses,
+      hat: isLocked(`hat:${prev.hat}`) ? fallback.hat : prev.hat,
+      frame: isLocked(`frame:${prev.frame}`) ? fallback.frame : prev.frame,
+    }));
+  };
 
   const handleCommit = () => {
     if (totalCost > 0 && !canAffordAll) {
@@ -212,14 +262,21 @@ export function AvatarStudioModal({
         const isFree = !item.cosmeticKey || item.costChips === 0;
         const isOwned = isFree || ownedSet.has(item.cosmeticKey!);
         const isSelected = selectedId === item.id;
-        const previewCfg = applyItem(item.id);
+        const nextCfg = applyItem(item.id);
+        // Unobstructed thumbnail preview: never let sunglasses hide eyes/brows or hats hide hair!
+        const thumbCfg: AvatarConfig =
+          activeTab === 'eyes' || activeTab === 'brows'
+            ? { ...nextCfg, glasses: 'none' }
+            : activeTab === 'hair'
+            ? { ...nextCfg, hat: 'none' }
+            : nextCfg;
 
         return (
           <Pressable
             key={item.id}
             onPress={() => {
               hapticLight();
-              setDraft(previewCfg);
+              setDraft(nextCfg);
             }}
             style={({ pressed }) => [
               styles.itemCard,
@@ -234,7 +291,7 @@ export function AvatarStudioModal({
             )}
             <View style={styles.thumbWindow}>
               <ModularAvatar
-                config={previewCfg}
+                config={thumbCfg}
                 size={68}
                 showFrameRing={activeTab === 'frame'}
               />
@@ -381,6 +438,7 @@ export function AvatarStudioModal({
 
           {/* Category Tabs */}
           <ScrollView
+            ref={tabsScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsRow}
@@ -388,6 +446,12 @@ export function AvatarStudioModal({
           >
             {STUDIO_TABS.map((t) => {
               const active = activeTab === t.id;
+              const tabLabel =
+                t.id === 'facial'
+                  ? draft.bodyType === 'feminine'
+                    ? 'Detalles'
+                    : 'Barba y Extras'
+                  : t.label;
               return (
                 <Pressable
                   key={t.id}
@@ -403,7 +467,7 @@ export function AvatarStudioModal({
                       active && styles.tabPillTextActive,
                     ]}
                   >
-                    {t.label}
+                    {tabLabel}
                   </Text>
                 </Pressable>
               );
@@ -439,30 +503,31 @@ export function AvatarStudioModal({
             </ScrollView>
           )}
 
-          {activeTab === 'eyes' && (
-            <View style={styles.swatchRow}>
-              <Text style={styles.swatchLabel}>Color de ojos:</Text>
-              {AVATAR_EYE_COLORS.map((c) => {
-                const active = draft.eyeColor === c.hex;
-                return (
-                  <Pressable
-                    key={c.hex}
-                    onPress={() => {
-                      hapticLight();
-                      setDraft((prev) => ({ ...prev, eyeColor: c.hex }));
-                    }}
-                    style={[
-                      styles.swatchDot,
-                      { backgroundColor: c.hex },
-                      active && styles.swatchDotActive,
-                    ]}
-                  />
-                );
-              })}
-            </View>
-          )}
+          {activeTab === 'eyes' &&
+            !EYE_STYLES_WITHOUT_IRIS_COLOR.has(draft.eyeStyle) && (
+              <View style={styles.swatchRow}>
+                <Text style={styles.swatchLabel}>Color de ojos:</Text>
+                {AVATAR_EYE_COLORS.map((c) => {
+                  const active = draft.eyeColor === c.hex;
+                  return (
+                    <Pressable
+                      key={c.hex}
+                      onPress={() => {
+                        hapticLight();
+                        setDraft((prev) => ({ ...prev, eyeColor: c.hex }));
+                      }}
+                      style={[
+                        styles.swatchDot,
+                        { backgroundColor: c.hex },
+                        active && styles.swatchDotActive,
+                      ]}
+                    />
+                  );
+                })}
+              </View>
+            )}
 
-          {activeTab === 'hair' && (
+          {activeTab === 'hair' && draft.hair !== 'bald' && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -490,36 +555,38 @@ export function AvatarStudioModal({
             </ScrollView>
           )}
 
-          {activeTab === 'outfit' && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.swatchScroll}
-              contentContainerStyle={styles.swatchRow}
-            >
-              <Text style={styles.swatchLabel}>Color:</Text>
-              {AVATAR_OUTFIT_COLORS.map((c) => {
-                const active = draft.outfitColor === c.hex;
-                return (
-                  <Pressable
-                    key={c.hex}
-                    onPress={() => {
-                      hapticLight();
-                      setDraft((prev) => ({ ...prev, outfitColor: c.hex }));
-                    }}
-                    style={[
-                      styles.swatchDot,
-                      { backgroundColor: c.hex },
-                      active && styles.swatchDotActive,
-                    ]}
-                  />
-                );
-              })}
-            </ScrollView>
-          )}
+          {activeTab === 'outfit' &&
+            !OUTFITS_WITH_FIXED_COLOR.has(draft.outfit) && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.swatchScroll}
+                contentContainerStyle={styles.swatchRow}
+              >
+                <Text style={styles.swatchLabel}>Color:</Text>
+                {AVATAR_OUTFIT_COLORS.map((c) => {
+                  const active = draft.outfitColor === c.hex;
+                  return (
+                    <Pressable
+                      key={c.hex}
+                      onPress={() => {
+                        hapticLight();
+                        setDraft((prev) => ({ ...prev, outfitColor: c.hex }));
+                      }}
+                      style={[
+                        styles.swatchDot,
+                        { backgroundColor: c.hex },
+                        active && styles.swatchDotActive,
+                      ]}
+                    />
+                  );
+                })}
+              </ScrollView>
+            )}
 
           {/* Scrollable Item Catalog (Light high-contrast tiles so every trait reads clearly!) */}
           <ScrollView
+            ref={catalogScrollRef}
             style={styles.catalogScroll}
             contentContainerStyle={styles.catalogContent}
             showsVerticalScrollIndicator={false}
@@ -537,7 +604,7 @@ export function AvatarStudioModal({
               }))}
 
             {activeTab === 'eyes' &&
-              renderItemGrid(AVATAR_EYE_OPTIONS, draft.eyeStyle, (id) => ({
+              renderItemGrid(sortedEyeOptions, draft.eyeStyle, (id) => ({
                 ...draft,
                 eyeStyle: id,
               }))}
@@ -555,7 +622,7 @@ export function AvatarStudioModal({
               }))}
 
             {activeTab === 'mouth' &&
-              renderItemGrid(AVATAR_MOUTH_OPTIONS, draft.mouth, (id) => ({
+              renderItemGrid(sortedMouthOptions, draft.mouth, (id) => ({
                 ...draft,
                 mouth: id,
               }))}
@@ -573,19 +640,19 @@ export function AvatarStudioModal({
               }))}
 
             {activeTab === 'glasses' &&
-              renderItemGrid(AVATAR_GLASSES_OPTIONS, draft.glasses, (id) => ({
+              renderItemGrid(sortedGlassesOptions, draft.glasses, (id) => ({
                 ...draft,
                 glasses: id,
               }))}
 
             {activeTab === 'hat' &&
-              renderItemGrid(AVATAR_HAT_OPTIONS, draft.hat, (id) => ({
+              renderItemGrid(sortedHatOptions, draft.hat, (id) => ({
                 ...draft,
                 hat: id,
               }))}
 
             {activeTab === 'frame' &&
-              renderItemGrid(AVATAR_FRAME_OPTIONS, draft.frame, (id) => ({
+              renderItemGrid(sortedFrameOptions, draft.frame, (id) => ({
                 ...draft,
                 frame: id,
               }))}
@@ -598,9 +665,19 @@ export function AvatarStudioModal({
                 <Text style={styles.insufficientText}>
                   Te faltan{' '}
                   {(totalCost - retention.clubChips).toLocaleString('es-ES')}{' '}
-                  monedas para esta combinación. Juega partidas o reclama tu
-                  bono diario.
+                  monedas para esta combinación.
                 </Text>
+                <Pressable
+                  onPress={handleStripLockedItems}
+                  style={({ pressed }) => [
+                    styles.stripLockedBtn,
+                    pressed && { opacity: 0.8 },
+                  ]}
+                >
+                  <Text style={styles.stripLockedBtnText}>
+                    Quitar bloqueados
+                  </Text>
+                </Pressable>
               </View>
             ) : null}
 
@@ -906,17 +983,34 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   insufficientBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
     backgroundColor: 'rgba(244, 63, 94, 0.16)',
     borderWidth: 1,
     borderColor: 'rgba(244, 63, 94, 0.38)',
     borderRadius: 12,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 7,
   },
   insufficientText: {
+    flex: 1,
     color: '#FDA4AF',
     fontSize: 11.5,
     fontWeight: '700',
-    textAlign: 'center',
+  },
+  stripLockedBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(253, 164, 175, 0.45)',
+    borderRadius: 9,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  stripLockedBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
   },
 });
