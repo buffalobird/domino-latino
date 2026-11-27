@@ -84,8 +84,198 @@ export function ModularAvatar({
     if (config.eyeStyle === 'hearts') {
       return (
         <G>
-          <Path d={`M${lx} ${ey + 4.5}C${lx - 4.2} ${ey + 1} ${lx - 5.5} ${ey - 2} ${lx - 3.5} ${ey - 4}C${lx - 2} ${ey - 5.2} ${lx - 0.5} ${ey - 4} ${lx} ${ey - 2.6}C${lx + 0.5} ${ey - 4} ${lx + 2} ${ey - 5.2} ${lx + 3.5} ${ey - 4}C${lx + 5.5} ${ey - 2} ${lx + 4.2} ${ey + 1} ${lx} ${ey + 4.5}Z`} fill="#F43F5E" />
-          <Path d={`M${rx} ${ey + 4.5}C${rx - 4.2} ${ey + 1} ${rx - 5.5} ${ey - 2} ${rx - 3.5} ${ey - 4}C${rx - 2} ${ey - 5.2} ${rx - 0.5} ${ey - 4} ${rx} ${ey - 2.6}C${rx + 0.5} ${ey - 4} ${rx + 2} ${ey - 5.2} ${rx + 3.5} ${ey - 4}C${rx + 5.5} ${ey - 2} ${rx + 4.2} ${ey + 1} ${rx} ${ey + 4.5}Z`} fill="#F43F5E" />
+          <Path d={`M${lx} ${ey + 4.5}C${lx - 4.2} ${ey + 1} ${lx - 5.5} ${ey - 2} ${lx - 3.5} ${ey - 4}C${lx - 2} ${ey - 5.2} ${lx - 0.5} ${ey - 4} ${lx} ${ey - 2.6}C${lx + 0.5} ${ey - 4} ${lx + 2} ${ey - 5.2} ${lx + 3.5} ${ey - 4}C${lx + 5.5} ${ey - 2} ${lx + 4.2} ${ey + 1} ${lx} ${ey + 4.5}Z`} fill="#F43F5E" stroke="#9F1239" strokeWidth={0.8} />
+          <Path d={`M${rx} ${ey + 4.5}C${rx - 4.2} ${ey + 1} ${rx - 5.5} ${ey - 2} ${rx - 3.5} ${ey - 4}C${rx - 2} ${ey - 5.2} ${rx - 0.5} ${ey - 4} ${rx} ${ey - 2.6}C${rx + 0.5} ${ey - 4} ${rx + 2} ${ey - 5.2} ${rx + 3.5} ${ey - 4}C${rx + 5.5} ${ey - 2} ${rx + 4.2} ${ey + 1} ${rx} ${ey + 4.5}Z`} fill="#F43F5E" stroke="#9F1239" strokeWidth={0.8} />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'hero_white' || config.eyeStyle === 'laser_red') {
+      const fill = config.eyeStyle === 'laser_red' ? '#EF4444' : '#FFFFFF';
+      return (
+        <G>
+          <Path
+            d={`M${lx - 6.2} ${ey - 2.4}L${lx + 5.5} ${ey + 0.8}C${lx + 2.5} ${ey + 3.8} ${lx - 3.2} ${ey + 3.4} ${lx - 6.2} ${ey - 2.4}Z`}
+            fill={fill}
+            stroke="#0F172A"
+            strokeWidth={1.8}
+            strokeLinejoin="round"
+          />
+          <Path
+            d={`M${rx + 6.2} ${ey - 2.4}L${rx - 5.5} ${ey + 0.8}C${rx - 2.5} ${ey + 3.8} ${rx + 3.2} ${ey + 3.4} ${rx + 6.2} ${ey - 2.4}Z`}
+            fill={fill}
+            stroke="#0F172A"
+            strokeWidth={1.8}
+            strokeLinejoin="round"
+          />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'cat_gold') {
+      return (
+        <G>
+          <Path
+            d={`M${lx - 6.2} ${ey - 1.5}Q${lx} ${ey - 3.5} ${lx + 5.6} ${ey + 0.6}Q${lx} ${ey + 3.8} ${lx - 6.2} ${ey - 1.5}Z`}
+            fill="#FACC15"
+            stroke="#7F1D1D"
+            strokeWidth={1.4}
+          />
+          <Path
+            d={`M${rx + 6.2} ${ey - 1.5}Q${rx} ${ey - 3.5} ${rx - 5.6} ${ey + 0.6}Q${rx} ${ey + 3.8} ${rx + 6.2} ${ey - 1.5}Z`}
+            fill="#FACC15"
+            stroke="#7F1D1D"
+            strokeWidth={1.4}
+          />
+          <Ellipse cx={lx} cy={ey + 0.2} rx={1.15} ry={2.7} fill="#0F172A" />
+          <Ellipse cx={rx} cy={ey + 0.2} rx={1.15} ry={2.7} fill="#0F172A" />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'closed_calm') {
+      return (
+        <G>
+          <Path d={`M${lx - 5.2} ${ey + 0.4}Q${lx} ${ey + 3.2} ${lx + 5.2} ${ey + 0.4}`} stroke="#1E1B18" strokeWidth={2.2} strokeLinecap="round" fill="none" />
+          <Path d={`M${rx - 5.2} ${ey + 0.4}Q${rx} ${ey + 3.2} ${rx + 5.2} ${ey + 0.4}`} stroke="#1E1B18" strokeWidth={2.2} strokeLinecap="round" fill="none" />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'shocked') {
+      return (
+        <G>
+          <Circle cx={lx} cy={ey} r={5.6} fill="#FFFFFF" stroke="#181C26" strokeWidth={1.5} />
+          <Circle cx={rx} cy={ey} r={5.6} fill="#FFFFFF" stroke="#181C26" strokeWidth={1.5} />
+          <Circle cx={lx + 0.8} cy={ey} r={1.65} fill="#0B111C" />
+          <Circle cx={rx - 0.8} cy={ey} r={1.65} fill="#0B111C" />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'crazy') {
+      return (
+        <G>
+          {/* Giant wide left eye + smaller goofy right eye */}
+          <Circle cx={lx - 0.5} cy={ey - 0.4} r={6.6} fill="#FFFFFF" stroke="#181C26" strokeWidth={1.6} />
+          <Circle cx={lx + 1.6} cy={ey + 0.6} r={2.3} fill={config.eyeColor} />
+          <Circle cx={lx + 1.6} cy={ey + 0.6} r={1.3} fill="#0B111C" />
+          <Circle cx={lx + 2.3} cy={ey - 0.2} r={0.7} fill="#FFFFFF" />
+
+          <Circle cx={rx + 0.8} cy={ey + 0.6} r={4.3} fill="#FFFFFF" stroke="#181C26" strokeWidth={1.5} />
+          <Circle cx={rx - 0.4} cy={ey + 0.2} r={1.8} fill={config.eyeColor} />
+          <Circle cx={rx - 0.4} cy={ey + 0.2} r={1.0} fill="#0B111C" />
+          <Circle cx={rx + 0.2} cy={ey - 0.3} r={0.6} fill="#FFFFFF" />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'goofy_squint') {
+      return (
+        <G>
+          {/* Narrow suspicious squint left + wide inquisitive right */}
+          <Ellipse cx={lx} cy={ey + 0.6} rx={5.4} ry={2.4} fill="#FFFFFF" stroke="#181C26" strokeWidth={1.6} />
+          <Circle cx={lx + 0.8} cy={ey + 0.7} r={1.9} fill={config.eyeColor} />
+          <Circle cx={lx + 0.8} cy={ey + 0.7} r={1.0} fill="#0B111C" />
+          <Path d={`M${lx - 5.8} ${ey - 1.2}Q${lx} ${ey - 2.6} ${lx + 5.8} ${ey - 0.6}`} stroke="#181C26" strokeWidth={2.2} strokeLinecap="round" fill="none" />
+
+          <Circle cx={rx} cy={ey} r={5.4} fill="#FFFFFF" stroke="#181C26" strokeWidth={1.6} />
+          <Circle cx={rx - 0.4} cy={ey + 0.3} r={2.7} fill={config.eyeColor} />
+          <Circle cx={rx - 0.4} cy={ey + 0.3} r={1.5} fill="#0B111C" />
+          <Circle cx={rx + 0.6} cy={ey - 0.8} r={1.0} fill="#FFFFFF" />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'sleepy' || config.eyeStyle === 'relaxed') {
+      const isSleepy = config.eyeStyle === 'sleepy';
+      return (
+        <G>
+          {[lx, rx].map((cx) => (
+            <G key={cx}>
+              <Ellipse cx={cx} cy={ey + 0.8} rx={5.4} ry={3.4} fill="#FFFFFF" stroke={skin.outline} strokeWidth={1} />
+              <Circle cx={cx} cy={ey + 0.8} r={2.6} fill={config.eyeColor} />
+              <Circle cx={cx} cy={ey + 0.8} r={1.4} fill="#0B111C" />
+              <Circle cx={cx + 0.9} cy={ey} r={0.85} fill="#FFFFFF" />
+              {/* Half-closed heavy upper eyelid */}
+              <Path
+                d={`M${cx - 5.8} ${ey - 0.2}Q${cx} ${ey - 4.4} ${cx + 5.8} ${ey - 0.2}L${cx + 5.8} ${ey + 0.4}L${cx - 5.8} ${ey + 0.4}Z`}
+                fill={skin.base}
+              />
+              <Path
+                d={`M${cx - 5.8} ${ey + 0.2}L${cx + 5.8} ${ey + 0.2}`}
+                stroke="#181C26"
+                strokeWidth={1.9}
+                strokeLinecap="round"
+              />
+              <Path
+                d={`M${cx - 4.4} ${ey - 2.2}Q${cx} ${ey - 3.8} ${cx + 4.4} ${ey - 2.2}`}
+                stroke={skin.outline}
+                strokeWidth={1}
+                fill="none"
+              />
+              {isSleepy && (
+                <Path
+                  d={`M${cx - 4.2} ${ey + 5.2}Q${cx} ${ey + 7.2} ${cx + 4.2} ${ey + 5.2}`}
+                  stroke={skin.outline}
+                  strokeWidth={1.15}
+                  opacity={0.75}
+                  fill="none"
+                />
+              )}
+            </G>
+          ))}
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'sharp' || config.eyeStyle === 'rock_smoky') {
+      const isRock = config.eyeStyle === 'rock_smoky';
+      return (
+        <G>
+          {isRock && (
+            <>
+              <Path d={`M${lx - 7.5} ${ey - 3.5}L${lx + 6.5} ${ey - 0.2}L${lx + 4.5} ${ey + 4.2}L${lx - 6.5} ${ey + 2.8}Z`} fill="#0F172A" />
+              <Path d={`M${rx + 7.5} ${ey - 3.5}L${rx - 6.5} ${ey - 0.2}L${rx - 4.5} ${ey + 4.2}L${rx + 6.5} ${ey + 2.8}Z`} fill="#0F172A" />
+            </>
+          )}
+          <Path
+            d={`M${lx - 6} ${ey - 2}L${lx + 5.4} ${ey + 0.3}C${lx + 3} ${ey + 3.6} ${lx - 3} ${ey + 3.5} ${lx - 6} ${ey - 2}Z`}
+            fill="#FFFFFF"
+            stroke="#0F172A"
+            strokeWidth={isRock ? 1.5 : 2.1}
+            strokeLinejoin="round"
+          />
+          <Path
+            d={`M${rx + 6} ${ey - 2}L${rx - 5.4} ${ey + 0.3}C${rx - 3} ${ey + 3.6} ${rx + 3} ${ey + 3.5} ${rx + 6} ${ey - 2}Z`}
+            fill="#FFFFFF"
+            stroke="#0F172A"
+            strokeWidth={isRock ? 1.5 : 2.1}
+            strokeLinejoin="round"
+          />
+          <Circle cx={lx + 0.3} cy={ey + 0.5} r={2.3} fill={config.eyeColor} />
+          <Circle cx={lx + 0.3} cy={ey + 0.5} r={1.2} fill="#0B111C" />
+          <Circle cx={lx + 1.1} cy={ey - 0.2} r={0.85} fill="#FFFFFF" />
+
+          <Circle cx={rx - 0.3} cy={ey + 0.5} r={2.3} fill={config.eyeColor} />
+          <Circle cx={rx - 0.3} cy={ey + 0.5} r={1.2} fill="#0B111C" />
+          <Circle cx={rx + 0.5} cy={ey - 0.2} r={0.85} fill="#FFFFFF" />
+        </G>
+      );
+    }
+
+    if (config.eyeStyle === 'puppy') {
+      return (
+        <G>
+          {[lx, rx].map((cx) => (
+            <G key={cx}>
+              <Ellipse cx={cx} cy={ey + 0.2} rx={5.6} ry={5.2} fill="#FFFFFF" stroke="#181C26" strokeWidth={1.3} />
+              <Circle cx={cx} cy={ey + 0.5} r={3.9} fill={config.eyeColor} />
+              <Circle cx={cx} cy={ey + 0.5} r={2.3} fill="#0B111C" />
+              <Circle cx={cx - 1.3} cy={ey - 1.1} r={1.55} fill="#FFFFFF" />
+              <Circle cx={cx + 1.4} cy={ey + 1.5} r={0.85} fill="#FFFFFF" opacity={0.88} />
+            </G>
+          ))}
         </G>
       );
     }

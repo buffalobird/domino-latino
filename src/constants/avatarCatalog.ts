@@ -16,7 +16,19 @@ export type AvatarEyeStyleId =
   | 'bright'
   | 'focused'
   | 'wink'
+  | 'relaxed'
+  | 'sleepy'
+  | 'sharp'
+  | 'closed_calm'
+  | 'puppy'
+  | 'shocked'
+  | 'crazy'
+  | 'goofy_squint'
   | 'skeptic'
+  | 'hero_white'
+  | 'rock_smoky'
+  | 'cat_gold'
+  | 'laser_red'
   | 'hearts'
   | 'star';
 
@@ -233,9 +245,21 @@ export const AVATAR_EYE_OPTIONS: AvatarItemOption<AvatarEyeStyleId>[] = [
   { id: 'classic', cosmeticKey: null, name: 'Clásicos', costChips: 0 },
   { id: 'almond', cosmeticKey: null, name: 'Almendrados', costChips: 0 },
   { id: 'bright', cosmeticKey: null, name: 'Expresivos', costChips: 0 },
+  { id: 'puppy', cosmeticKey: null, name: 'Tiernos', costChips: 0 },
+  { id: 'relaxed', cosmeticKey: null, name: 'Tranquilos', costChips: 0 },
+  { id: 'sleepy', cosmeticKey: null, name: 'Desvelado', costChips: 0 },
   { id: 'focused', cosmeticKey: null, name: 'Mirada Fija', costChips: 0 },
+  { id: 'sharp', cosmeticKey: null, name: 'Intensos', costChips: 0 },
   { id: 'wink', cosmeticKey: null, name: 'Guiño', costChips: 0 },
+  { id: 'closed_calm', cosmeticKey: null, name: 'Zen', costChips: 0 },
+  { id: 'shocked', cosmeticKey: null, name: 'Asombrado', costChips: 0 },
+  { id: 'crazy', cosmeticKey: null, name: 'Loco', costChips: 0 },
+  { id: 'goofy_squint', cosmeticKey: 'eye:goofy_squint', name: 'Desconfiado', costChips: 150, tag: 'Humor' },
   { id: 'skeptic', cosmeticKey: 'eye:skeptic', name: 'Sospechoso', costChips: 250, tag: 'Humor' },
+  { id: 'hero_white', cosmeticKey: 'eye:hero_white', name: 'Héroe', costChips: 250, tag: 'Cómic' },
+  { id: 'rock_smoky', cosmeticKey: 'eye:rock_smoky', name: 'Rock', costChips: 350, tag: 'Estilo' },
+  { id: 'cat_gold', cosmeticKey: 'eye:cat_gold', name: 'Felino', costChips: 450, tag: 'Pro' },
+  { id: 'laser_red', cosmeticKey: 'eye:laser_red', name: 'Furia Roja', costChips: 550, tag: 'Cómic' },
   { id: 'hearts', cosmeticKey: 'eye:hearts', name: 'Enamorado', costChips: 600, tag: 'Pop' },
   { id: 'star', cosmeticKey: 'eye:star', name: 'Estrella', costChips: 800, tag: 'VIP' },
 ];
