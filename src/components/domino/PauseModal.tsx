@@ -7,7 +7,6 @@ import { SortMode } from '@/engine/types';
 import { GlossyButton } from './GlossyButton';
 import {
   CloseIcon,
-  HistoryIcon,
   MessageIcon,
   SoundOffIcon,
   SoundOnIcon,
@@ -24,7 +23,6 @@ interface PauseModalProps {
   botSpeed: BotSpeed;
   aiDifficulty?: AiDifficulty;
   onResume: () => void;
-  onOpenHistory: () => void;
   onToggleSort: () => void;
   onToggleSound: () => void;
   onCycleBotSpeed: () => void;
@@ -48,7 +46,6 @@ export function PauseModal({
   botSpeed,
   aiDifficulty = 'normal',
   onResume,
-  onOpenHistory,
   onToggleSort,
   onToggleSound,
   onCycleBotSpeed,
@@ -144,11 +141,6 @@ export function PauseModal({
               </Pressable>
             )}
           </View>
-
-          <Pressable onPress={onOpenHistory} style={styles.secondaryBtn}>
-            <HistoryIcon size={18} color={CLUB.textPrimary} />
-            <Text style={styles.secondaryBtnText}>Historial de la mano</Text>
-          </Pressable>
 
           <Pressable onPress={onOpenFeedback} style={styles.secondaryBtn}>
             <MessageIcon size={16} color={CLUB.textSecondary} />

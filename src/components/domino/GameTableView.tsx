@@ -36,7 +36,6 @@ import { hapticLight, hapticSnap, playGameSound } from '@/utils/feedback';
 import { BoardCanvas, BoardRect, DropZoneTarget } from './BoardCanvas';
 import { BoneyardDrawer } from './BoneyardDrawer';
 import { DominoTile } from './DominoTile';
-import { HistoryModal } from './HistoryModal';
 import { PauseIcon, PlusIcon, SoundOffIcon, SoundOnIcon } from './Icons';
 import { BotSpeed, PauseModal } from './PauseModal';
 import { SeatAvatar } from './SeatAvatar';
@@ -227,7 +226,6 @@ export function GameTableView({
   const [hoverSide, setHoverSide] = useState<PlaySide | null>(null);
   const [boneyardOpen, setBoneyardOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [rackWidth, setRackWidth] = useState<number>(Math.max(300, winW - 24));
 
@@ -785,10 +783,6 @@ export function GameTableView({
           botSpeed={botSpeed}
           aiDifficulty={aiDifficulty}
           onResume={() => setPauseOpen(false)}
-          onOpenHistory={() => {
-            setPauseOpen(false);
-            setHistoryOpen(true);
-          }}
           onToggleSort={() =>
             onToggleSort(state.sortMode === 'value' ? 'doubles' : 'value')
           }
@@ -807,14 +801,6 @@ export function GameTableView({
             setPauseOpen(false);
             onExitToHome();
           }}
-        />
-
-        <HistoryModal
-          visible={historyOpen}
-          mode={state.mode}
-          handNumber={state.handNumber}
-          history={state.history}
-          onClose={() => setHistoryOpen(false)}
         />
       </View>
     </LinearGradient>
