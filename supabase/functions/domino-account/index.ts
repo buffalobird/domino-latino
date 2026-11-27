@@ -562,6 +562,106 @@ Deno.serve(async (req: Request) => {
       return jsonRes({ ok: true, duplicate: false, localChipsCapped, progress });
     }
 
+    if (action === 'list_companions') {
+      const { data: rows, error } = await admin
+        .from('table_companions')
+        .select('companion_user_id, companion_name, companion_avatar, matches_together, last_played_at')
+        .eq('user_id', user.id)
+        .order('last_played_at', { ascending: false })
+        .limit(20);
+      if (error) return jsonRes({ error: error.message }, 400);
+      return jsonRes({ ok: true, companions: rows ?? [] });
+    }
+
+    if (action === 'save_companion') {
+      if (!(await enforceRateLimit('save_companion', 20, 60))) {
+        return jsonRes({ error: 'Demasiadas solicitudes.' }, 429);
+      }
+      const companionUserId = String(body.companionUserId ?? '').trim();
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(companionUserId)) {
+        return jsonRes({ error: 'ID de compañero inválido.' }, 400);
+      }
+      if (companionUserId === user.id) {
+        return jsonRes({ error: 'No puedes agregarte a ti mismo.' }, 400);
+      }
+
+      const [{ data: existing }, { count }, { data: targetProf }, { data: targetProg }] =
+        await Promise.all([
+          admin
+            .from('table_companions')
+            .select('matches_together')
+            .eq('user_id', user.id)
+            .eq('companion_user_id', companionUserId)
+            .maybeSingle(),
+          admin
+            .from('table_companions')
+            .select('companion_user_id', { count: 'exact', head: true })
+            .eq('user_id', user.id),
+          admin.from('profiles').select('display_name').eq('id', companionUserId).maybeSingle(),
+          admin
+            .from('user_progress')
+            .select('avatar_config')
+            .eq('user_id', companionUserId)
+            .maybeSingle(),
+        ]);
+
+      if (!targetProf) {
+        return jsonRes({ error: 'Jugador no encontrado.' }, 404);
+      }
+      if (!existing && (count ?? 0) >= 20) {
+        return jsonRes(
+          { error: 'Tu círculo de compañeros tiene un máximo de 20 personas.' },
+          400
+        );
+      }
+
+      const companionName = (targetProf.display_name || 'Jugador').slice(0, 40);
+      const companionAvatar =
+        targetProg?.avatar_config && typeof targetProg.avatar_config === 'object'
+          ? targetProg.avatar_config
+          : null;
+
+      const { error: upErr } = await admin.from('table_companions').upsert(
+        {
+          user_id: user.id,
+          companion_user_id: companionUserId,
+          companion_name: companionName,
+          companion_avatar: companionAvatar,
+          matches_together: (existing?.matches_together ?? 0) + 1,
+          last_played_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,companion_user_id' }
+      );
+      if (upErr) return jsonRes({ error: upErr.message }, 400);
+
+      const { data: rows } = await admin
+        .from('table_companions')
+        .select('companion_user_id, companion_name, companion_avatar, matches_together, last_played_at')
+        .eq('user_id', user.id)
+        .order('last_played_at', { ascending: false })
+        .limit(20);
+      return jsonRes({ ok: true, companions: rows ?? [] });
+    }
+
+    if (action === 'remove_companion') {
+      if (!(await enforceRateLimit('remove_companion', 20, 60))) {
+        return jsonRes({ error: 'Demasiadas solicitudes.' }, 429);
+      }
+      const companionUserId = String(body.companionUserId ?? '').trim();
+      await admin
+        .from('table_companions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('companion_user_id', companionUserId);
+      const { data: rows } = await admin
+        .from('table_companions')
+        .select('companion_user_id, companion_name, companion_avatar, matches_together, last_played_at')
+        .eq('user_id', user.id)
+        .order('last_played_at', { ascending: false })
+        .limit(20);
+      return jsonRes({ ok: true, companions: rows ?? [] });
+    }
+
     if (action === 'delete_account') {
       if (!(await enforceRateLimit('delete_account', 3, 300))) {
         return jsonRes({ error: 'Demasiados intentos. Espera unos minutos.' }, 429);

@@ -45,6 +45,14 @@ const VALID_MODES: GameMode[] = ['1v1', '2v2', '4ffa'];
 const VALID_TARGETS: TargetScore[] = [50, 100, 150, 200, 250, 300];
 const VALID_BUYINS = [0, 100, 500, 1000];
 const VALID_SIDES: PlaySide[] = ['left', 'right', 'start'];
+const VALID_REACTIONS: Record<string, string> = {
+  hola: '¡Hola!',
+  buena: '¡Buena jugada!',
+  uff: '¡Uff, por poco!',
+  tranca: '¡Se trancó!',
+  compa: '¡Bien, compa!',
+  buen_juego: '¡Buen juego!',
+};
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TILE_ID_RE = /^[0-6]-[0-6]$/;
 const ROOM_CODE_RE = /^[A-Z0-9]{6}$/;
@@ -98,12 +106,15 @@ Deno.serve(async (req: Request) => {
       return Boolean(allowed);
     }
 
-    const { data: profileRow } = await admin
-      .from('profiles')
-      .select('display_name')
-      .eq('id', user.id)
-      .maybeSingle();
+    const [{ data: profileRow }, { data: callerProgRow }] = await Promise.all([
+      admin.from('profiles').select('display_name').eq('id', user.id).maybeSingle(),
+      admin.from('user_progress').select('avatar_config').eq('user_id', user.id).maybeSingle(),
+    ]);
     const displayName = (profileRow?.display_name || 'Jugador').slice(0, 40);
+    const callerAvatarConfig =
+      callerProgRow?.avatar_config && typeof callerProgRow.avatar_config === 'object'
+        ? (callerProgRow.avatar_config as Record<string, unknown>)
+        : null;
 
     async function persistRoomGame(roomId: string, nextState: RoomGameState) {
       let finalState = nextState;
@@ -310,6 +321,7 @@ Deno.serve(async (req: Request) => {
         user_id: user.id,
         display_name: displayName,
         is_bot: false,
+        avatar_config: callerAvatarConfig,
       });
       if (seatErr) {
         return { ok: false, error: 'Ese asiento ya fue ocupado. Intenta de nuevo.', status: 409 };
@@ -325,8 +337,15 @@ Deno.serve(async (req: Request) => {
             userId: s.user_id,
             displayName: s.display_name,
             isBot: s.is_bot,
+            avatarConfig: (s.avatar_config as Record<string, unknown> | null) ?? null,
           })),
-          { seat: openSeat, userId: user.id, displayName, isBot: false },
+          {
+            seat: openSeat,
+            userId: user.id,
+            displayName,
+            isBot: false,
+            avatarConfig: callerAvatarConfig,
+          },
         ].sort((a, b) => a.seat - b.seat);
 
         await escrowBuyIn(roomId, allSeats, buyIn);
@@ -429,6 +448,7 @@ Deno.serve(async (req: Request) => {
         user_id: user.id,
         display_name: displayName,
         is_bot: false,
+        avatar_config: callerAvatarConfig,
       });
 
       return jsonRes({ room: created, mySeat: 0, matched: false });
@@ -498,6 +518,7 @@ Deno.serve(async (req: Request) => {
         user_id: user.id,
         display_name: displayName,
         is_bot: false,
+        avatar_config: callerAvatarConfig,
       });
 
       return jsonRes({ room, mySeat: 0 });
@@ -585,6 +606,7 @@ Deno.serve(async (req: Request) => {
         userId: s.user_id,
         displayName: s.display_name,
         isBot: s.is_bot,
+        avatarConfig: (s.avatar_config as Record<string, unknown> | null) ?? null,
       }));
 
       for (let s = 0; s < room.max_players; s++) {
@@ -725,6 +747,46 @@ Deno.serve(async (req: Request) => {
       return jsonRes({ ok: true });
     }
 
+    if (action === 'send_reaction') {
+      if (!(await enforceRateLimit('send_reaction', 12, 60))) {
+        return jsonRes({ error: 'Un momento antes de enviar otra reacción.' }, 429);
+      }
+      const code = String(body.code ?? '').trim();
+      const text = VALID_REACTIONS[code];
+      if (!text) {
+        return jsonRes({ error: 'Reacción no válida.' }, 400);
+      }
+      const { data: stRow } = await admin
+        .from('room_states')
+        .select('full_state')
+        .eq('room_id', roomId)
+        .maybeSingle();
+      if (!stRow?.full_state) {
+        return jsonRes({ error: 'Mesa no activa.' }, 404);
+      }
+      const curState = stRow.full_state as RoomGameState;
+      const actor = curState.players.find((p) => p.isHuman && p.userId === user.id);
+      if (!actor) {
+        return jsonRes({ error: 'No estás sentado en esta mesa.' }, 403);
+      }
+      const nextWithReaction: RoomGameState = {
+        ...curState,
+        lastReaction: {
+          seat: actor.seat,
+          code,
+          text,
+          at: Date.now(),
+        },
+      };
+      await admin
+        .from('room_states')
+        .upsert({ room_id: roomId, full_state: nextWithReaction }, { onConflict: 'room_id' });
+      const pub = buildSanitizedPublicState(nextWithReaction);
+      // Update public_state WITHOUT touching turn_started_at so reactions never reset turn timer
+      await admin.from('game_rooms').update({ public_state: pub }).eq('id', roomId);
+      return jsonRes({ ok: true, publicState: pub });
+    }
+
     if (action === 'claim_timeout') {
       if (!(await enforceRateLimit('claim_timeout', 15, 60))) {
         return jsonRes({ error: 'Demasiadas solicitudes de tiempo.' }, 429);
@@ -803,6 +865,7 @@ Deno.serve(async (req: Request) => {
         userId: p.userId ?? null,
         displayName: p.name,
         isBot: !p.isHuman,
+        avatarConfig: p.avatarConfig ?? null,
       }));
       // Never allow buy-in escrow on a rematch that includes any substitute Bot
       const hasBots = seats.some((s) => s.isBot);

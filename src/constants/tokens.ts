@@ -4,21 +4,22 @@
  * lacquered mahogany/walnut rails, engraved porcelain ivory & sculpted ebony tiles, brushed brass inlays.
  */
 export const CLUB = {
-  // Room & Ambient Surfaces (Unified Midnight Starfield + Frosted Glass matching Mockup)
-  roomBgTop: '#071124',
-  roomBgBottom: '#060E1F',
-  surfaceDeep: 'rgba(10, 20, 38, 0.72)',
-  surfaceCard: '#11223D',
-  surfaceCardLight: '#1A3154',
-  surfaceElevated: '#233F69',
+  // Room & Ambient Surfaces (Unified Warm Nocturnal Sobremesa Club — see DESIGN_LANGUAGE.md)
+  roomBgTop: '#071419',
+  roomBgMid: '#0B2027',
+  roomBgBottom: '#061116',
+  surfaceDeep: 'rgba(8, 22, 28, 0.78)',
+  surfaceCard: '#0F252E',
+  surfaceCardLight: '#163340',
+  surfaceElevated: '#1F4454',
 
-  // Frosted Glass Hairlines & Specular Top Highlights
-  glassBg: 'rgba(20, 38, 68, 0.72)',
-  glassBgStrong: 'rgba(13, 26, 48, 0.94)',
-  glassBorder: 'rgba(148, 190, 255, 0.22)',
-  borderSubtle: 'rgba(148, 190, 255, 0.16)',
-  borderWarm: 'rgba(245, 196, 81, 0.55)',
-  surfaceHighlight: 'rgba(186, 218, 255, 0.28)',
+  // Smoked Glass Hairlines & Warm Brass Highlights
+  glassBg: 'rgba(13, 32, 40, 0.78)',
+  glassBgStrong: 'rgba(9, 22, 28, 0.95)',
+  glassBorder: 'rgba(245, 214, 138, 0.20)',
+  borderSubtle: 'rgba(226, 232, 240, 0.14)',
+  borderWarm: 'rgba(245, 196, 81, 0.56)',
+  surfaceHighlight: 'rgba(255, 243, 214, 0.22)',
 
   // Default Table Felt
   feltCenter: '#14626A',

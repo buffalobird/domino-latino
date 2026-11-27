@@ -22,6 +22,7 @@ export interface Player {
   name: string;
   isHuman: boolean;
   userId?: string | null;
+  avatarConfig?: Record<string, unknown> | null;
   teamId: number;
   hand: Tile[];
   lastAction: string | null;
@@ -83,6 +84,12 @@ export interface RoomGameState {
   buyIn: number;
   escrowedPool?: number;
   settled?: boolean;
+  lastReaction?: {
+    seat: number;
+    code: string;
+    text: string;
+    at: number;
+  } | null;
 }
 
 export interface SeatAssignment {
@@ -90,6 +97,7 @@ export interface SeatAssignment {
   userId: string | null;
   displayName: string;
   isBot: boolean;
+  avatarConfig?: Record<string, unknown> | null;
 }
 
 function createFullDeck(): Tile[] {
@@ -224,6 +232,7 @@ export function startOnlineMatch(
       name: s.displayName,
       isHuman: !s.isBot,
       userId: s.userId,
+      avatarConfig: s.avatarConfig ?? null,
       teamId: getTeamId(mode, s.seat),
       hand: [],
       lastAction: null,
@@ -629,11 +638,13 @@ export function buildSanitizedPublicState(state: RoomGameState) {
     matchWinnerIndex: state.matchWinnerIndex,
     matchWinnerLabel: state.matchWinnerLabel,
     buyIn: state.buyIn,
+    lastReaction: state.lastReaction ?? null,
     players: state.players.map((p) => ({
       seat: p.seat,
       name: p.name,
       isHuman: p.isHuman,
       userId: p.userId ?? null,
+      avatarConfig: p.avatarConfig ?? null,
       teamId: p.teamId,
       tileCount: p.hand.length,
       lastAction: p.lastAction,

@@ -15,6 +15,9 @@ import { CrownIcon } from './Icons';
 interface RoundSummaryViewProps {
   state: GameState;
   playerAvatarConfig?: AvatarConfig;
+  seatAvatars?: Record<number, AvatarConfig | undefined>;
+  seatIsHuman?: Record<number, boolean>;
+  seatNames?: Record<number, string>;
   tileStyleId?: TileStyleId;
   onContinue: () => void;
 }
@@ -64,11 +67,22 @@ function VerticalTilesStrip({
 export function RoundSummaryView({
   state,
   playerAvatarConfig,
+  seatAvatars,
+  seatIsHuman,
+  seatNames,
   tileStyleId = 'marfil',
   onContinue,
 }: RoundSummaryViewProps) {
   const summary = state.lastHandSummary;
   if (!summary) return null;
+
+  const resolveSeat = (seat: number) => {
+    const base = getSeatProfile(state.mode, seat);
+    const isBot = seatIsHuman ? !seatIsHuman[seat] : base.isBot;
+    const displayName = seatNames?.[seat] ?? base.displayName;
+    const avatarConfig = seat === 0 ? playerAvatarConfig : seatAvatars?.[seat];
+    return { ...base, isBot, displayName, avatarConfig };
+  };
 
   const winnerDisplayName =
     summary.winnerSeat !== null
@@ -76,7 +90,7 @@ export function RoundSummaryView({
         ? summary.winnerScoreIndex === 0
           ? 'Nosotros'
           : 'Rivales'
-        : getSeatProfile(state.mode, summary.winnerSeat).displayName
+        : resolveSeat(summary.winnerSeat).displayName
       : null;
 
   const headline =
@@ -91,7 +105,7 @@ export function RoundSummaryView({
     return (
       <View style={styles.twoColRow}>
         {entries.map((entry) => {
-          const prof = getSeatProfile(state.mode, entry.seat);
+          const prof = resolveSeat(entry.seat);
           const isWinner = summary.winnerSeat === entry.seat;
           const ptsThisRound = isWinner ? summary.pointsAwarded : 0;
           const total = summary.scoresAfter[entry.teamId] ?? 0;
@@ -118,7 +132,7 @@ export function RoundSummaryView({
                       : 'lose'
                   }
                   size={48}
-                  avatarConfig={entry.seat === 0 ? playerAvatarConfig : undefined}
+                  avatarConfig={prof.avatarConfig}
                 />
               </View>
 
@@ -181,7 +195,7 @@ export function RoundSummaryView({
               {/* Paired avatars */}
               <View style={styles.pairAvatarsRow}>
                 {team.members.map((m) => {
-                  const prof = getSeatProfile(state.mode, m.seat);
+                  const prof = resolveSeat(m.seat);
                   return (
                     <View
                       key={m.seat}
@@ -201,7 +215,7 @@ export function RoundSummaryView({
                             : 'lose'
                         }
                         size={36}
-                        avatarConfig={m.seat === 0 ? playerAvatarConfig : undefined}
+                        avatarConfig={prof.avatarConfig}
                       />
                     </View>
                   );
@@ -219,7 +233,7 @@ export function RoundSummaryView({
               {/* Vertical remaining tiles grouped cleanly per partner */}
               <View style={styles.pairMembersList}>
                 {team.members.map((m) => {
-                  const prof = getSeatProfile(state.mode, m.seat);
+                  const prof = resolveSeat(m.seat);
                   return (
                     <View key={m.seat} style={styles.memberSubBlock}>
                       <Text style={styles.memberSubLabel}>
@@ -249,7 +263,7 @@ export function RoundSummaryView({
     return (
       <View style={styles.fourGrid}>
         {summary.remainingHands.map((entry) => {
-          const prof = getSeatProfile(state.mode, entry.seat);
+          const prof = resolveSeat(entry.seat);
           const isWinner = summary.winnerSeat === entry.seat;
           const ptsThisRound = isWinner ? summary.pointsAwarded : 0;
           const total = summary.scoresAfter[entry.teamId] ?? 0;
@@ -277,7 +291,7 @@ export function RoundSummaryView({
                         : 'lose'
                     }
                     size={34}
-                    avatarConfig={entry.seat === 0 ? playerAvatarConfig : undefined}
+                    avatarConfig={prof.avatarConfig}
                   />
                 </View>
                 <View style={styles.gridNameCol}>

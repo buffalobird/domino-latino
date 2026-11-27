@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,14 +8,18 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
+import { getWarmHostGreeting } from '@/constants/socialReactions';
 import { CLUB } from '@/constants/tokens';
+import { useAuth } from '@/context/AuthContext';
 import { GameMode, TARGET_SCORES, TargetScore } from '@/engine/types';
 import { canClaimDailyReward, RetentionProgress } from '@/storage/gameStorage';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AccountCard } from './AccountCard';
+import { DominoTile } from './DominoTile';
 import {
+  ChipIcon,
   DuoSoloSilhouetteIcon,
   GearIcon,
   GlobeIcon,
@@ -27,9 +30,6 @@ import {
   UserSilhouetteIcon,
 } from './Icons';
 import { ModularAvatar } from './ModularAvatar';
-
-const TITLE_LOGO_IMG = require('@/assets/images/domino-title-logo.webp');
-const HERO_CHARACTERS_IMG = require('@/assets/images/home-hero-characters.webp');
 
 interface SetupViewProps {
   mode: GameMode;
@@ -74,51 +74,35 @@ const MODE_OPTIONS: {
   },
 ];
 
-const STARFIELD_DOTS: { cx: number; cy: number; r: number; fill: string; o: number }[] = [
-  { cx: 14, cy: 16, r: 1.3, fill: '#93C5FD', o: 0.5 },
-  { cx: 82, cy: 14, r: 1.1, fill: '#FDE68A', o: 0.45 },
-  { cx: 26, cy: 28, r: 1.5, fill: '#67E8F9', o: 0.4 },
-  { cx: 89, cy: 26, r: 1.4, fill: '#93C5FD', o: 0.5 },
-  { cx: 9, cy: 36, r: 1.1, fill: '#FFFFFF', o: 0.35 },
-  { cx: 74, cy: 34, r: 1.0, fill: '#FDE68A', o: 0.4 },
-  { cx: 18, cy: 84, r: 1.8, fill: '#4ADE80', o: 0.55 },
-  { cx: 84, cy: 83, r: 1.6, fill: '#4ADE80', o: 0.5 },
-  { cx: 77, cy: 80, r: 2.2, fill: '#86EFAC', o: 0.45 },
-  { cx: 24, cy: 90, r: 1.3, fill: '#60A5FA', o: 0.45 },
-  { cx: 90, cy: 88, r: 1.4, fill: '#C084FC', o: 0.45 },
-];
-
-function AmbientStarfieldBackdrop() {
+/** Warm overhead parlor lamp glow matching the active nocturnal domino table */
+function WarmParlorBackdrop() {
   return (
     <View style={styles.backdropLayer} pointerEvents="none">
       <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
         <Defs>
-          <RadialGradient id="heroGlow" cx="50%" cy="24%" r="48%">
-            <Stop offset="0%" stopColor="#1A4278" stopOpacity={0.48} />
-            <Stop offset="60%" stopColor="#0C1E3B" stopOpacity={0.18} />
-            <Stop offset="100%" stopColor="#081327" stopOpacity={0} />
+          <RadialGradient id="parlorLamp" cx="50%" cy="18%" r="54%">
+            <Stop offset="0%" stopColor="#F5C451" stopOpacity={0.14} />
+            <Stop offset="45%" stopColor="#14626A" stopOpacity={0.22} />
+            <Stop offset="100%" stopColor="#071419" stopOpacity={0} />
           </RadialGradient>
-          <RadialGradient id="dockGlow" cx="50%" cy="86%" r="44%">
-            <Stop offset="0%" stopColor="#22C55E" stopOpacity={0.22} />
-            <Stop offset="65%" stopColor="#16A34A" stopOpacity={0.05} />
-            <Stop offset="100%" stopColor="#081327" stopOpacity={0} />
+          <RadialGradient id="feltWarmth" cx="50%" cy="88%" r="46%">
+            <Stop offset="0%" stopColor="#1A6E56" stopOpacity={0.22} />
+            <Stop offset="60%" stopColor="#0C353C" stopOpacity={0.08} />
+            <Stop offset="100%" stopColor="#061116" stopOpacity={0} />
           </RadialGradient>
         </Defs>
-        <Rect x={0} y={0} width={100} height={100} fill="url(#heroGlow)" />
-        <Rect x={0} y={0} width={100} height={100} fill="url(#dockGlow)" />
-        {STARFIELD_DOTS.map((d, i) => (
-          <Circle key={i} cx={d.cx} cy={d.cy} r={d.r * 0.45} fill={d.fill} opacity={d.o} />
-        ))}
+        <Rect x={0} y={0} width={100} height={100} fill="url(#parlorLamp)" />
+        <Rect x={0} y={0} width={100} height={100} fill="url(#feltWarmth)" />
       </Svg>
     </View>
   );
 }
 
 /**
- * Glossy 3D Arcade Club Caribe Home Screen:
- * - Midnight starfield canvas + 3D "DOMINÓ LATINO" logo & Pixar-style faceoff artwork.
- * - Golden-glow Daily Challenge card + frosted-glass 0-scroll Setup card with luminous gold chips.
- * - Sticky bottom thumb dock with glossy specular emerald Play CTA + Cobalt/Purple Online CTAs.
+ * Unified "La Sobremesa" Nocturnal Domino Club Home Screen (see DESIGN_LANGUAGE.md):
+ * - Same warm obsidian-teal atmosphere, brass hairlines, porcelain domino tiles, and live 2.5D avatar
+ *   as the active table — zero 3D-arcade visual mismatch in the first 50 ms.
+ * - Warm time-of-day host greeting designed for players seeking calm company around the table.
  */
 export function SetupView({
   mode,
@@ -136,70 +120,48 @@ export function SetupView({
   onOpenFeedback,
   onOpenAuth,
 }: SetupViewProps) {
+  const { profile } = useAuth();
   const { height: winH } = useWindowDimensions();
   const isCompactH = winH < 780;
-  // Dynamically size 3D hero artwork so the ENTIRE Home screen fits 0-scroll on every portrait phone
-  const logoH = Math.round(Math.max(66, Math.min(104, winH * 0.112)));
-  const charsH = Math.round(Math.max(76, Math.min(120, winH * 0.132)));
 
+  const { greeting, inviteLine } = getWarmHostGreeting(profile?.displayName);
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
   const selectedMode = MODE_OPTIONS.find((m) => m.value === mode) ?? MODE_OPTIONS[0];
   const hasDailyBonus = canClaimDailyReward(retention);
   const xpIntoLevel = Math.max(8, retention.xp % 100);
+  const emblemTileUnit = isCompactH ? 24 : 27;
 
   return (
     <LinearGradient
-      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
-      locations={[0, 0.35, 0.72, 1]}
+      colors={[CLUB.roomBgTop, CLUB.roomBgMid, '#091A21', CLUB.roomBgBottom]}
+      locations={[0, 0.36, 0.74, 1]}
       style={styles.gradient}
     >
-      <AmbientStarfieldBackdrop />
+      <WarmParlorBackdrop />
 
       <View style={styles.shell}>
-        {/* TOP + MIDDLE: 0-scroll fit on all portrait phones; scrolls gracefully only on tiny/landscape */}
         <ScrollView
           style={styles.bodyScroll}
           contentContainerStyle={[
             styles.bodyContent,
-            isCompactH && { gap: 7, paddingTop: 4, paddingBottom: 6 },
+            isCompactH && { gap: 8, paddingTop: 6, paddingBottom: 6 },
           ]}
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Top Frosted HUD Bar (Live Tappable Modular Avatar + Level + Mesas/Fichas + Chips) */}
+          {/* 1. Top Club Bar (Level + Boutique + Club Chips + Feedback) */}
           <View style={styles.topStrip}>
-            <Pressable
-              onPress={() => {
-                hapticLight();
-                onOpenAvatarStudio();
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Personalizar mi avatar"
-              style={({ pressed }) => [
-                styles.levelBadge,
-                pressed && { opacity: 0.86, transform: [{ scale: 0.97 }] },
-              ]}
-            >
-              <View style={styles.avatarMiniWrap}>
-                <ModularAvatar
-                  config={retention.avatarConfig}
-                  size={30}
-                  showFrameRing
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelText}>Nivel {retention.level}</Text>
+              <View style={styles.xpBarBg}>
+                <LinearGradient
+                  colors={[CLUB.goldSoft, CLUB.gold]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]}
                 />
-                <View style={styles.avatarEditDot} />
               </View>
-              <View style={styles.levelMetaCol}>
-                <Text style={styles.levelText}>Nv. {retention.level}</Text>
-                <View style={styles.xpBarBg}>
-                  <LinearGradient
-                    colors={['#67E8F9', '#38BDF8']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]}
-                  />
-                </View>
-              </View>
-            </Pressable>
+            </View>
 
             <View style={styles.topRightPills}>
               <Pressable
@@ -225,6 +187,7 @@ export function SetupView({
                   pressed && { opacity: 0.85 },
                 ]}
               >
+                <ChipIcon size={14} color={CLUB.gold} />
                 <Text style={styles.chipsValue}>
                   {retention.clubChips.toLocaleString('es-ES')}
                 </Text>
@@ -239,42 +202,80 @@ export function SetupView({
                 accessibilityRole="button"
                 accessibilityLabel="Sugerencias y soporte"
                 style={({ pressed }) => [
-                  styles.gearOrbWrap,
-                  pressed && { transform: [{ scale: 0.94 }] },
+                  styles.gearBtn,
+                  pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
                 ]}
               >
-                <LinearGradient
-                  colors={['#60A5FA', '#2563EB', '#1D4ED8']}
-                  start={{ x: 0.2, y: 0 }}
-                  end={{ x: 0.8, y: 1 }}
-                  style={styles.gearOrb}
-                >
-                  <View style={styles.orbGloss} pointerEvents="none" />
-                  <GearIcon size={19} color="#FFFFFF" />
-                </LinearGradient>
+                <GearIcon size={18} color={CLUB.textSecondary} />
               </Pressable>
             </View>
           </View>
 
-          {/* 2. 3D Illustrated Hero Stage (Height-scaled for 0-scroll portrait fit) */}
-          <View style={styles.heroStage}>
-            <Image
-              source={TITLE_LOGO_IMG}
-              style={[styles.logoImage, { height: logoH, width: Math.round(logoH * (880 / 453)) }]}
-              resizeMode="contain"
-              accessibilityLabel="Dominó Latino"
-            />
-            <Text style={styles.heroSub}>Club Caribe · Doble Seis</Text>
-            <Image
-              source={HERO_CHARACTERS_IMG}
-              style={[
-                styles.charactersImage,
-                { height: charsH, width: Math.round(charsH * (960 / 431)) },
-              ]}
-              resizeMode="contain"
-              accessibilityLabel="Jugador y Bot frente a frente con fichas de dominó"
-            />
+          {/* 2. Unified Sobremesa Brand Header + Live Companion Host Card */}
+          <View style={[styles.brandBlock, isCompactH && { paddingVertical: 2 }]}>
+            <Text style={styles.brandKicker}>LA SOBREMESA · DOBLE SEIS</Text>
+            <Text style={[styles.brandTitle, isCompactH && { fontSize: 28 }]}>
+              DOMINÓ <Text style={styles.brandTitleAccent}>LATINO</Text>
+            </Text>
+            <View style={styles.brassRule} />
           </View>
+
+          {/* Signature Tactile Card: Your live 2.5D Avatar + Warm Greeting + Real Porcelain Tiles */}
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              onOpenAvatarStudio();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Personalizar mi avatar"
+            style={({ pressed }) => [
+              styles.hostCard,
+              isCompactH && { paddingVertical: 10, paddingHorizontal: 12 },
+              pressed && { opacity: 0.94 },
+            ]}
+          >
+            <View style={styles.hostAvatarWrap}>
+              <ModularAvatar
+                config={retention.avatarConfig}
+                size={isCompactH ? 54 : 62}
+                showFrameRing
+              />
+              <View style={styles.avatarEditPill}>
+                <Text style={styles.avatarEditPillText}>Editar</Text>
+              </View>
+            </View>
+
+            <View style={styles.hostCopyCol}>
+              <Text style={styles.hostGreeting} numberOfLines={1}>
+                {greeting}
+              </Text>
+              <Text style={styles.hostInvite} numberOfLines={2}>
+                {inviteLine}
+              </Text>
+            </View>
+
+            {/* Real tactile domino pieces in user's equipped tile style */}
+            <View style={styles.emblemTiles} pointerEvents="none">
+              <View style={styles.emblemTileBack}>
+                <DominoTile
+                  a={5}
+                  b={3}
+                  orientation="vertical"
+                  unit={emblemTileUnit}
+                  tileStyleId={retention.equippedTileStyle}
+                />
+              </View>
+              <View style={styles.emblemTileFront}>
+                <DominoTile
+                  a={6}
+                  b={6}
+                  orientation="vertical"
+                  unit={emblemTileUnit}
+                  tileStyleId={retention.equippedTileStyle}
+                />
+              </View>
+            </View>
+          </Pressable>
 
           {maintenanceBanner && (
             <View style={styles.maintenanceBanner}>
@@ -282,9 +283,9 @@ export function SetupView({
             </View>
           )}
 
-          {/* 3–5. Lower Interactive Cluster anchored seamlessly above Thumb Dock */}
+          {/* 3–5. Lower Interactive Cluster */}
           <View style={styles.lowerCluster}>
-            {/* 3. Golden-Glow Daily Challenge Card */}
+            {/* 3. Warm Daily Challenge Card */}
             <Pressable
               onPress={() => {
                 hapticLight();
@@ -300,8 +301,8 @@ export function SetupView({
                 {[0, 1, 2].map((idx) => (
                   <StarIcon
                     key={idx}
-                    size={18}
-                    color={idx < retention.dailyStars ? '#F5C451' : 'rgba(245,196,81,0.35)'}
+                    size={17}
+                    color={idx < retention.dailyStars ? CLUB.gold : 'rgba(245,196,81,0.32)'}
                     filled={idx < retention.dailyStars}
                   />
                 ))}
@@ -314,7 +315,7 @@ export function SetupView({
                 </Text>
                 <Text style={styles.challengeSub} numberOfLines={1}>
                   {hasDailyBonus
-                    ? 'Bono diario de fichas listo'
+                    ? 'Tu bono de bienvenida de hoy está listo'
                     : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
                 </Text>
               </View>
@@ -330,14 +331,14 @@ export function SetupView({
               </View>
             </Pressable>
 
-            {/* 4. Frosted Glass Configuration Card */}
+            {/* 4. Smoked-Glass Table Setup Card */}
             <View style={styles.setupCard}>
               <View style={styles.setupGroup}>
                 <Text style={styles.sectionLabel}>MODALIDAD</Text>
                 <View style={styles.modeSegmentedRow}>
                   {MODE_OPTIONS.map((opt) => {
                     const active = mode === opt.value;
-                    const silColor = active ? '#F5C451' : 'rgba(148, 178, 214, 0.45)';
+                    const silColor = active ? CLUB.gold : 'rgba(185, 200, 217, 0.45)';
                     const renderSideIcon = () =>
                       opt.value === '1v1' ? (
                         <UserSilhouetteIcon size={14} color={silColor} />
@@ -347,33 +348,6 @@ export function SetupView({
                         <DuoSoloSilhouetteIcon size={15} color={silColor} />
                       );
 
-                    const pillContent = (
-                      <View style={styles.modePillInner}>
-                        {renderSideIcon()}
-                        <View style={styles.modeTextCenter}>
-                          <Text
-                            style={[
-                              styles.modePillTitle,
-                              active && styles.modePillTitleActive,
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {opt.shortTitle}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.modePillSub,
-                              active && styles.modePillSubActive,
-                            ]}
-                            numberOfLines={1}
-                          >
-                            {opt.subtitle}
-                          </Text>
-                        </View>
-                        {renderSideIcon()}
-                      </View>
-                    );
-
                     return (
                       <Pressable
                         key={opt.value}
@@ -382,25 +356,31 @@ export function SetupView({
                           onChangeMode(opt.value);
                         }}
                         accessibilityRole="button"
-                        style={[styles.modePillWrap, active && styles.modePillWrapActive]}
+                        style={[styles.modePill, active && styles.modePillActive]}
                       >
-                        {active ? (
-                          <LinearGradient
-                            colors={[
-                              'rgba(245, 196, 81, 0.28)',
-                              'rgba(136, 92, 22, 0.44)',
-                              'rgba(62, 42, 14, 0.66)',
-                            ]}
-                            start={{ x: 0.5, y: 0 }}
-                            end={{ x: 0.5, y: 1 }}
-                            style={styles.modePillActiveGrad}
-                          >
-                            <View style={styles.modeActiveGloss} pointerEvents="none" />
-                            {pillContent}
-                          </LinearGradient>
-                        ) : (
-                          <View style={styles.modePill}>{pillContent}</View>
-                        )}
+                        <View style={styles.modePillInner}>
+                          {renderSideIcon()}
+                          <View style={styles.modeTextCenter}>
+                            <Text
+                              style={[
+                                styles.modePillTitle,
+                                active && styles.modePillTitleActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {opt.shortTitle}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.modePillSub,
+                                active && styles.modePillSubActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {opt.subtitle}
+                            </Text>
+                          </View>
+                        </View>
                       </Pressable>
                     );
                   })}
@@ -420,22 +400,16 @@ export function SetupView({
                           onChangeTargetScore(pts);
                         }}
                         accessibilityRole="button"
-                        style={[styles.scoreChipWrap, active && styles.scoreChipGlow]}
+                        style={[styles.scoreChip, active && styles.scoreChipActive]}
                       >
-                        {active ? (
-                          <LinearGradient
-                            colors={['#FFF2A6', '#F7C948', '#E39D1E']}
-                            start={{ x: 0.2, y: 0 }}
-                            end={{ x: 0.8, y: 1 }}
-                            style={styles.scoreChipActiveGrad}
-                          >
-                            <Text style={styles.scoreChipTextActive}>{pts}</Text>
-                          </LinearGradient>
-                        ) : (
-                          <View style={styles.scoreChip}>
-                            <Text style={styles.scoreChipText}>{pts}</Text>
-                          </View>
-                        )}
+                        <Text
+                          style={[
+                            styles.scoreChipText,
+                            active && styles.scoreChipTextActive,
+                          ]}
+                        >
+                          {pts}
+                        </Text>
                       </Pressable>
                     );
                   })}
@@ -443,12 +417,12 @@ export function SetupView({
               </View>
             </View>
 
-            {/* 5. Clean Account / Sign-in Trigger (opens full-size AuthModal) */}
+            {/* 5. Account / Profile Sign-in Card */}
             <AccountCard onOpenAuth={onOpenAuth} />
           </View>
         </ScrollView>
 
-        {/* BOTTOM STICKY THUMB DOCK (Glossy Candy-Glass Arcade CTAs) */}
+        {/* BOTTOM STICKY THUMB DOCK (Single Emerald Primary CTA + Calm Parlor Online CTAs) */}
         <View style={styles.thumbDock}>
           <Pressable
             onPress={() => {
@@ -462,15 +436,13 @@ export function SetupView({
             ]}
           >
             <LinearGradient
-              colors={['#7DF6B6', '#33D982', '#17A459']}
+              colors={['#38DF96', '#21BA77', '#138956']}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
               style={styles.primaryBtnGrad}
             >
-              {/* Glossy top-half specular glass highlight */}
-              <View style={styles.btnGlossTop} pointerEvents="none" />
               <View style={styles.primaryBtnTop}>
-                <PlayIcon size={20} color="#06311B" />
+                <PlayIcon size={19} color="#06291A" />
                 <Text style={styles.primaryBtnText}>Jugar ahora</Text>
               </View>
               <Text style={styles.primaryBtnSub}>
@@ -489,29 +461,21 @@ export function SetupView({
               disabled={!onlineEnabled}
               accessibilityRole="button"
               style={({ pressed }) => [
-                styles.secondaryBtnOuter,
-                styles.onlineShadow,
+                styles.secondaryBtn,
+                styles.secondaryBtnWarm,
                 !onlineEnabled && styles.onlineBtnDisabled,
                 pressed && onlineEnabled && styles.secondaryBtnPressed,
               ]}
             >
-              <LinearGradient
-                colors={['#4393FF', '#2264DF', '#1646A8']}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.secondaryBtnGrad}
-              >
-                <View style={styles.secondaryGlossTop} pointerEvents="none" />
-                <GlobeIcon size={21} color="#E0F2FE" />
-                <View style={styles.secondaryTextCol}>
-                  <Text style={styles.onlineBtnTitle} numberOfLines={1}>
-                    Salas Online
-                  </Text>
-                  <Text style={styles.onlineBtnSub} numberOfLines={1}>
-                    {onlineEnabled ? 'Mesas públicas' : 'Mantenimiento'}
-                  </Text>
-                </View>
-              </LinearGradient>
+              <GlobeIcon size={19} color={CLUB.gold} />
+              <View style={styles.secondaryTextCol}>
+                <Text style={styles.onlineBtnTitle} numberOfLines={1}>
+                  Salas Online
+                </Text>
+                <Text style={styles.onlineBtnSub} numberOfLines={1}>
+                  {onlineEnabled ? 'Juega con otros' : 'Mantenimiento'}
+                </Text>
+              </View>
             </Pressable>
 
             <Pressable
@@ -523,29 +487,20 @@ export function SetupView({
               disabled={!onlineEnabled}
               accessibilityRole="button"
               style={({ pressed }) => [
-                styles.secondaryBtnOuter,
-                styles.privateShadow,
+                styles.secondaryBtn,
                 !onlineEnabled && styles.onlineBtnDisabled,
                 pressed && onlineEnabled && styles.secondaryBtnPressed,
               ]}
             >
-              <LinearGradient
-                colors={['#B35CFF', '#8A2EE5', '#6418B5']}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.secondaryBtnGrad}
-              >
-                <View style={styles.secondaryGlossTop} pointerEvents="none" />
-                <KeyIcon size={20} color="#F5E8FF" />
-                <View style={styles.secondaryTextCol}>
-                  <Text style={styles.onlineBtnTitle} numberOfLines={1}>
-                    Sala Privada
-                  </Text>
-                  <Text style={styles.onlineBtnSub} numberOfLines={1}>
-                    {onlineEnabled ? 'Con amigos' : 'Mantenimiento'}
-                  </Text>
-                </View>
-              </LinearGradient>
+              <KeyIcon size={18} color={CLUB.emerald} />
+              <View style={styles.secondaryTextCol}>
+                <Text style={styles.onlineBtnTitle} numberOfLines={1}>
+                  Sala Privada
+                </Text>
+                <Text style={styles.onlineBtnSub} numberOfLines={1}>
+                  {onlineEnabled ? 'Con amigos' : 'Mantenimiento'}
+                </Text>
+              </View>
             </Pressable>
           </View>
         </View>
@@ -577,10 +532,10 @@ const styles = StyleSheet.create({
   },
   bodyContent: {
     flexGrow: 1,
-    paddingHorizontal: 15,
-    paddingTop: 5,
-    paddingBottom: 7,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+    gap: 10,
   },
   topStrip: {
     flexDirection: 'row',
@@ -592,49 +547,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(26, 46, 78, 0.68)',
+    backgroundColor: CLUB.glassBg,
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.28)',
+    borderColor: CLUB.glassBorder,
     borderRadius: 999,
-    paddingLeft: 4,
-    paddingRight: 11,
-    paddingVertical: 4,
-  },
-  avatarMiniWrap: {
-    position: 'relative',
-  },
-  avatarEditDot: {
-    position: 'absolute',
-    right: -1,
-    bottom: -1,
-    width: 9,
-    height: 9,
-    borderRadius: 4.5,
-    backgroundColor: '#F5C451',
-    borderWidth: 1.5,
-    borderColor: '#0D1B34',
-  },
-  levelMetaCol: {
-    gap: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   levelText: {
-    color: '#F8FAFC',
+    color: CLUB.ivoryTop,
     fontSize: 12,
-    fontWeight: '900',
-    lineHeight: 13,
+    fontWeight: '800',
   },
   xpBarBg: {
-    width: 48,
-    height: 5.5,
-    borderRadius: 3,
-    backgroundColor: 'rgba(7, 15, 29, 0.65)',
-    borderWidth: 0.75,
-    borderColor: 'rgba(148, 190, 255, 0.16)',
+    width: 46,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     overflow: 'hidden',
   },
   xpBarFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 999,
   },
   topRightPills: {
     flexDirection: 'row',
@@ -642,35 +576,35 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   themesPill: {
-    backgroundColor: 'rgba(26, 46, 78, 0.62)',
+    backgroundColor: CLUB.glassBg,
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.24)',
+    borderColor: CLUB.glassBorder,
     borderRadius: 999,
-    paddingHorizontal: 13,
+    paddingHorizontal: 12,
     paddingVertical: 7,
   },
   themesPillText: {
-    color: '#E2ECF8',
-    fontSize: 13,
+    color: CLUB.ivoryTop,
+    fontSize: 12,
     fontWeight: '800',
   },
   chipsPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(34, 28, 16, 0.72)',
-    borderWidth: 1.25,
-    borderColor: 'rgba(245, 196, 81, 0.65)',
+    backgroundColor: 'rgba(34, 27, 14, 0.78)',
+    borderWidth: 1,
+    borderColor: CLUB.borderWarm,
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 6,
+    position: 'relative',
   },
   chipsPillReady: {
-    borderColor: '#F5C451',
-    boxShadow: '0px 0px 12px rgba(245, 196, 81, 0.35)',
+    borderColor: CLUB.gold,
   },
   chipsValue: {
-    color: '#F5C451',
+    color: CLUB.gold,
     fontSize: 13,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
@@ -679,58 +613,119 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#34D399',
+    backgroundColor: CLUB.emerald,
   },
-  gearOrbWrap: {
+  gearBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: CLUB.glassBg,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandBlock: {
+    alignItems: 'center',
+    paddingVertical: 4,
+    gap: 3,
+  },
+  brandKicker: {
+    color: CLUB.goldSoft,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2.2,
+    opacity: 0.85,
+  },
+  brandTitle: {
+    color: CLUB.ivoryTop,
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 1.4,
+  },
+  brandTitleAccent: {
+    color: CLUB.gold,
+  },
+  brassRule: {
+    width: 48,
+    height: 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(245, 196, 81, 0.55)',
+    marginTop: 2,
+  },
+  hostCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(15, 38, 46, 0.86)',
     borderRadius: 20,
-    boxShadow: '0px 0px 16px rgba(56, 189, 248, 0.55)',
+    borderWidth: 1.25,
+    borderColor: 'rgba(245, 214, 138, 0.28)',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    boxShadow: '0px 10px 26px rgba(0, 0, 0, 0.42)',
   },
-  gearOrb: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+  hostAvatarWrap: {
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(147, 213, 255, 0.65)',
-    overflow: 'hidden',
+    position: 'relative',
   },
-  orbGloss: {
-    position: 'absolute',
-    top: 2,
-    left: 5,
-    right: 5,
-    height: 13,
-    borderRadius: 99,
-    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+  avatarEditPill: {
+    marginTop: -8,
+    backgroundColor: '#1E3D49',
+    borderWidth: 1,
+    borderColor: CLUB.borderWarm,
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
   },
-  heroStage: {
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 0,
-  },
-  logoImage: {
-    maxWidth: '72%',
-  },
-  heroSub: {
-    color: '#D5E3F5',
-    fontSize: 12,
-    fontWeight: '700',
+  avatarEditPillText: {
+    color: CLUB.goldSoft,
+    fontSize: 9,
+    fontWeight: '800',
     letterSpacing: 0.3,
-    marginTop: -3,
-    marginBottom: 1,
   },
-  charactersImage: {
-    maxWidth: '92%',
+  hostCopyCol: {
+    flex: 1,
+    gap: 3,
+  },
+  hostGreeting: {
+    color: CLUB.ivoryTop,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  hostInvite: {
+    color: CLUB.textSecondary,
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 17,
+  },
+  emblemTiles: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 66,
+    height: 60,
+    position: 'relative',
+  },
+  emblemTileBack: {
+    position: 'absolute',
+    left: 2,
+    top: 4,
+    transform: [{ rotate: '-12deg' }],
+    opacity: 0.88,
+  },
+  emblemTileFront: {
+    position: 'absolute',
+    right: 2,
+    top: 2,
+    transform: [{ rotate: '8deg' }],
   },
   maintenanceBanner: {
     backgroundColor: 'rgba(245, 196, 81, 0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.45)',
+    borderColor: CLUB.borderWarm,
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   maintenanceBannerText: {
     color: CLUB.goldSoft,
@@ -739,19 +734,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   lowerCluster: {
-    gap: 8,
+    gap: 10,
   },
   challengeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: 'rgba(34, 27, 16, 0.66)',
-    borderRadius: 15,
-    borderWidth: 1.25,
-    borderColor: 'rgba(245, 196, 81, 0.72)',
+    backgroundColor: 'rgba(24, 34, 34, 0.78)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.32)',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    boxShadow: '0px 0px 20px rgba(245, 196, 81, 0.22)',
+    paddingVertical: 10,
   },
   starsRow: {
     flexDirection: 'row',
@@ -759,198 +753,151 @@ const styles = StyleSheet.create({
   },
   challengeTextCol: {
     flex: 1,
+    gap: 1,
   },
   challengeTitle: {
-    color: '#FFFFFF',
+    color: CLUB.ivoryTop,
     fontSize: 13,
     fontWeight: '800',
   },
   challengeSub: {
-    color: '#E5C67E',
-    fontSize: 11,
+    color: CLUB.textSecondary,
+    fontSize: 11.5,
     fontWeight: '600',
-    marginTop: 1,
   },
   bonusBadge: {
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245, 196, 81, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.58)',
+    borderColor: CLUB.borderSubtle,
   },
   bonusBadgeReady: {
-    backgroundColor: 'rgba(245, 196, 81, 0.24)',
-    borderColor: '#F5C451',
+    backgroundColor: CLUB.gold,
+    borderColor: CLUB.goldSoft,
   },
   bonusBadgeText: {
-    color: '#FDE68A',
-    fontSize: 12,
+    color: CLUB.textSecondary,
+    fontSize: 11,
     fontWeight: '800',
   },
   bonusBadgeTextReady: {
-    color: '#FFE699',
+    color: CLUB.textInk,
   },
   setupCard: {
-    backgroundColor: 'rgba(22, 42, 72, 0.52)',
-    borderRadius: 16,
+    backgroundColor: CLUB.glassBg,
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.22)',
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    gap: 8,
+    borderColor: CLUB.glassBorder,
+    padding: 12,
+    gap: 11,
   },
   setupGroup: {
-    gap: 5,
+    gap: 6,
   },
   sectionLabel: {
-    color: '#8EA6C6',
+    color: CLUB.textMuted,
     fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.9,
+    letterSpacing: 1,
   },
   modeSegmentedRow: {
     flexDirection: 'row',
-    gap: 6,
-  },
-  modePillWrap: {
-    flex: 1,
-    borderRadius: 12,
-  },
-  modePillWrapActive: {
-    boxShadow: '0px 0px 16px rgba(245, 196, 81, 0.28)',
+    gap: 7,
   },
   modePill: {
-    minHeight: 46,
-    backgroundColor: 'rgba(38, 62, 96, 0.44)',
+    flex: 1,
+    backgroundColor: CLUB.surfaceCardLight,
+    borderRadius: 13,
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.18)',
-    borderRadius: 12,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    justifyContent: 'center',
+    borderColor: CLUB.borderSubtle,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    alignItems: 'center',
   },
-  modePillActiveGrad: {
-    minHeight: 46,
-    borderColor: '#F5C451',
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  modeActiveGloss: {
-    position: 'absolute',
-    top: 1,
-    left: 4,
-    right: 4,
-    height: '42%',
-    borderRadius: 9,
-    backgroundColor: 'rgba(255, 245, 200, 0.12)',
+  modePillActive: {
+    backgroundColor: 'rgba(245, 196, 81, 0.16)',
+    borderColor: CLUB.gold,
   },
   modePillInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 2,
+    justifyContent: 'center',
+    gap: 5,
   },
   modeTextCenter: {
-    flex: 1,
     alignItems: 'center',
   },
   modePillTitle: {
-    color: '#CBD9EC',
+    color: CLUB.textPrimary,
     fontSize: 13,
     fontWeight: '900',
   },
   modePillTitleActive: {
-    color: '#F5C451',
+    color: CLUB.goldSoft,
   },
   modePillSub: {
-    color: '#8098B8',
-    fontSize: 9.5,
+    color: CLUB.textMuted,
+    fontSize: 10,
     fontWeight: '700',
-    marginTop: 1,
   },
   modePillSubActive: {
-    color: '#E9CFA0',
+    color: CLUB.gold,
   },
   scoreSingleRow: {
     flexDirection: 'row',
     gap: 6,
   },
-  scoreChipWrap: {
-    flex: 1,
-    borderRadius: 11,
-  },
-  scoreChipGlow: {
-    boxShadow: '0px 0px 16px rgba(245, 196, 81, 0.5)',
-  },
-  scoreChipActiveGrad: {
-    minHeight: 37,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FFF7CC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   scoreChip: {
-    minHeight: 37,
-    backgroundColor: 'rgba(42, 68, 104, 0.45)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.22)',
+    flex: 1,
+    minHeight: 36,
     borderRadius: 10,
+    backgroundColor: CLUB.surfaceCardLight,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scoreChipActive: {
+    backgroundColor: CLUB.gold,
+    borderColor: CLUB.goldSoft,
   },
   scoreChipText: {
-    color: '#D3E1F2',
+    color: CLUB.textSecondary,
     fontSize: 13,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   scoreChipTextActive: {
-    color: '#1A1405',
-    fontSize: 14,
+    color: CLUB.textInk,
     fontWeight: '900',
-    fontVariant: ['tabular-nums'],
   },
   thumbDock: {
-    paddingHorizontal: 15,
-    paddingTop: 4,
-    paddingBottom: 10,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(245, 214, 138, 0.12)',
+    backgroundColor: 'rgba(6, 17, 22, 0.92)',
   },
   primaryBtnOuter: {
-    borderRadius: 22,
-    borderBottomWidth: 4,
-    borderBottomColor: '#0E733E',
-    boxShadow: '0px 6px 24px rgba(41, 214, 127, 0.44)',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderBottomWidth: 3.5,
+    borderBottomColor: '#0D6840',
+    boxShadow: '0px 8px 22px rgba(39, 209, 136, 0.28)',
   },
   primaryBtnPressed: {
-    transform: [{ translateY: 2 }],
-    opacity: 0.95,
+    opacity: 0.9,
+    transform: [{ scale: 0.985 }],
   },
   primaryBtnGrad: {
-    minHeight: 54,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 18,
+    paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(187, 247, 208, 0.65)',
-  },
-  btnGlossTop: {
-    position: 'absolute',
-    top: 2,
-    left: 10,
-    right: 10,
-    height: '44%',
-    borderRadius: 99,
-    backgroundColor: 'rgba(255, 255, 255, 0.28)',
+    gap: 2,
   },
   primaryBtnTop: {
     flexDirection: 'row',
@@ -958,74 +905,53 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   primaryBtnText: {
-    color: '#06311B',
-    fontSize: 20,
+    color: '#06291A',
+    fontSize: 17,
     fontWeight: '900',
-    letterSpacing: -0.2,
   },
   primaryBtnSub: {
-    color: '#0B4D2B',
+    color: 'rgba(6, 41, 26, 0.80)',
     fontSize: 11.5,
     fontWeight: '800',
-    marginTop: 0,
   },
   onlineRow: {
     flexDirection: 'row',
     gap: 8,
   },
-  secondaryBtnOuter: {
+  secondaryBtn: {
     flex: 1,
-    borderRadius: 15,
-    borderBottomWidth: 3.5,
-  },
-  onlineShadow: {
-    borderBottomColor: '#10317A',
-    boxShadow: '0px 4px 16px rgba(37, 99, 235, 0.34)',
-  },
-  privateShadow: {
-    borderBottomColor: '#480E87',
-    boxShadow: '0px 4px 16px rgba(139, 92, 246, 0.34)',
-  },
-  secondaryBtnPressed: {
-    transform: [{ translateY: 2 }],
-    opacity: 0.94,
-  },
-  secondaryBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 46,
+    gap: 9,
+    backgroundColor: CLUB.surfaceCard,
     borderRadius: 14,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.24)',
+    borderColor: CLUB.glassBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
-  secondaryGlossTop: {
-    position: 'absolute',
-    top: 1.5,
-    left: 6,
-    right: 6,
-    height: '42%',
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+  secondaryBtnWarm: {
+    borderColor: 'rgba(245, 196, 81, 0.36)',
+    backgroundColor: 'rgba(22, 42, 46, 0.92)',
   },
-  secondaryTextCol: {
-    alignItems: 'flex-start',
-  },
-  onlineBtnTitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  onlineBtnSub: {
-    color: 'rgba(255, 255, 255, 0.82)',
-    fontSize: 11,
-    fontWeight: '700',
+  secondaryBtnPressed: {
+    opacity: 0.86,
+    transform: [{ scale: 0.985 }],
   },
   onlineBtnDisabled: {
     opacity: 0.45,
+  },
+  secondaryTextCol: {
+    flex: 1,
+  },
+  onlineBtnTitle: {
+    color: CLUB.ivoryTop,
+    fontSize: 13.5,
+    fontWeight: '900',
+  },
+  onlineBtnSub: {
+    color: CLUB.textSecondary,
+    fontSize: 10.5,
+    fontWeight: '600',
   },
 });

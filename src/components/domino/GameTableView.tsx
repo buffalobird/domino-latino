@@ -21,6 +21,7 @@ import Animated, {
 
 import { AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
+import { TABLE_REACTIONS, TableReactionCode } from '@/constants/socialReactions';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
@@ -33,12 +34,22 @@ import {
 } from '@/engine/rules';
 import { GameState, PlaySide, SortMode, Tile } from '@/engine/types';
 import { hapticLight, hapticSnap, playGameSound } from '@/utils/feedback';
+import { AvatarIllustration } from './AvatarIllustration';
 import { BoardCanvas, BoardRect, DropZoneTarget } from './BoardCanvas';
 import { BoneyardDrawer } from './BoneyardDrawer';
 import { DominoTile } from './DominoTile';
-import { PauseIcon, PlusIcon, SoundOffIcon, SoundOnIcon } from './Icons';
+import { MessageIcon, PauseIcon, PlusIcon, SoundOffIcon, SoundOnIcon } from './Icons';
 import { BotSpeed, PauseModal } from './PauseModal';
 import { SeatAvatar } from './SeatAvatar';
+
+export interface HandEndMomentData {
+  reason: 'domino' | 'tranca' | 'tranca_tie';
+  winnerName: string | null;
+  points: number;
+  winnerAvatar?: AvatarConfig;
+  isWinnerBot: boolean;
+  accentColor: string;
+}
 
 interface GameTableViewProps {
   state: GameState;
@@ -48,12 +59,18 @@ interface GameTableViewProps {
   botSpeed: BotSpeed;
   aiDifficulty?: AiDifficulty;
   seatMoods: Record<number, BotMood>;
+  seatAvatars?: Record<number, AvatarConfig | undefined>;
+  seatIsHuman?: Record<number, boolean>;
+  seatNames?: Record<number, string>;
+  seatReactions?: Record<number, string | null>;
+  handEndMoment?: HandEndMomentData | null;
   themeId?: TableThemeId;
   tileStyleId?: TileStyleId;
   playerAvatarConfig?: AvatarConfig;
   onHumanPlay: (tileId: string, side: PlaySide) => void;
   onHumanDraw: (boneyardIndex?: number) => void;
   onHumanPass: () => void;
+  onSendReaction?: (code: TableReactionCode) => void;
   onToggleSort: (sortMode: SortMode) => void;
   onToggleSound: () => void;
   onCycleBotSpeed: () => void;
@@ -203,12 +220,18 @@ export function GameTableView({
   botSpeed,
   aiDifficulty = 'normal',
   seatMoods,
+  seatAvatars,
+  seatIsHuman,
+  seatNames,
+  seatReactions,
+  handEndMoment = null,
   themeId = 'caribe',
   tileStyleId = 'marfil',
   playerAvatarConfig,
   onHumanPlay,
   onHumanDraw,
   onHumanPass,
+  onSendReaction,
   onToggleSort,
   onToggleSound,
   onCycleBotSpeed,
@@ -226,6 +249,7 @@ export function GameTableView({
   const [hoverSide, setHoverSide] = useState<PlaySide | null>(null);
   const [boneyardOpen, setBoneyardOpen] = useState(false);
   const [pauseOpen, setPauseOpen] = useState(false);
+  const [reactionsOpen, setReactionsOpen] = useState(false);
   const [toastText, setToastText] = useState<string | null>(null);
   const [rackWidth, setRackWidth] = useState<number>(Math.max(300, winW - 24));
 
@@ -500,6 +524,14 @@ export function GameTableView({
   const activeTheme = TABLE_THEMES[themeId] ?? TABLE_THEMES.caribe;
 
   const humanProfile = getSeatProfile(state.mode, 0);
+  const resolveSeatProfile = (seatIdx: number) => {
+    const base = getSeatProfile(state.mode, seatIdx);
+    const isBot = seatIsHuman ? !seatIsHuman[seatIdx] : base.isBot;
+    const displayName = seatNames?.[seatIdx] ?? base.displayName;
+    const avatarConfig =
+      seatIdx === 0 ? playerAvatarConfig : seatAvatars?.[seatIdx];
+    return { profile: { ...base, isBot, displayName }, avatarConfig };
+  };
   const humanTimerProgress =
     isHumanTurn && turnSecondsLeft !== null
       ? turnSecondsLeft / humanTurnTotalSeconds
@@ -510,9 +542,11 @@ export function GameTableView({
     if (Math.abs(w - rackWidth) > 2) setRackWidth(w);
   };
 
+  const opponent1 = !isFourPlayers ? resolveSeatProfile(1) : null;
+
   return (
     <LinearGradient
-      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
+      colors={[CLUB.roomBgTop, CLUB.roomBgMid, '#091A21', CLUB.roomBgBottom]}
       locations={[0, 0.35, 0.72, 1]}
       style={styles.root}
       onLayout={measureRootOrigin}
@@ -563,16 +597,18 @@ export function GameTableView({
             </View>
           )}
 
-          {!isFourPlayers && (
+          {!isFourPlayers && opponent1 && (
             <SeatAvatar
-              profile={getSeatProfile(state.mode, 1)}
+              profile={opponent1.profile}
               tileCount={state.players[1].hand.length}
               score={state.scores[1] ?? 0}
               targetScore={state.targetScore}
               isActiveTurn={state.currentTurnSeat === 1}
               timerProgress={botTimerProgress}
               lastAction={state.players[1].lastAction}
+              reactionText={seatReactions?.[1] ?? null}
               mood={seatMoods[1] ?? 'idle'}
+              avatarConfig={opponent1.avatarConfig}
               layout="horizontal"
               bubbleAnchor="below"
             />
@@ -584,11 +620,11 @@ export function GameTableView({
           <View style={styles.fourPlayerArc}>
             {[1, 2, 3].map((seatIdx) => {
               const p = state.players[seatIdx];
-              const prof = getSeatProfile(state.mode, seatIdx);
+              const resolved = resolveSeatProfile(seatIdx);
               return (
                 <SeatAvatar
                   key={seatIdx}
-                  profile={prof}
+                  profile={resolved.profile}
                   tileCount={p.hand.length}
                   score={state.scores[p.teamId] ?? 0}
                   targetScore={state.targetScore}
@@ -596,7 +632,9 @@ export function GameTableView({
                   isActiveTurn={state.currentTurnSeat === seatIdx}
                   timerProgress={botTimerProgress}
                   lastAction={p.lastAction}
+                  reactionText={seatReactions?.[seatIdx] ?? null}
                   mood={seatMoods[seatIdx] ?? 'idle'}
+                  avatarConfig={resolved.avatarConfig}
                   layout="stacked"
                   bubbleAnchor="below"
                 />
@@ -653,9 +691,66 @@ export function GameTableView({
               </View>
             </View>
           )}
+
+          {/* Signature Moment Overlay (~0.95s dramatic celebration over live board before RoundSummary) */}
+          {handEndMoment && (
+            <View style={styles.signatureOverlay} pointerEvents="none">
+              <View style={styles.signatureCard}>
+                <View
+                  style={[
+                    styles.signatureAvatarRing,
+                    { borderColor: handEndMoment.reason === 'tranca_tie' ? CLUB.textSecondary : CLUB.gold },
+                  ]}
+                >
+                  <AvatarIllustration
+                    isBot={handEndMoment.isWinnerBot}
+                    accentColor={handEndMoment.accentColor}
+                    mood={handEndMoment.reason === 'tranca_tie' ? 'idle' : 'win'}
+                    size={54}
+                    avatarConfig={handEndMoment.winnerAvatar}
+                  />
+                </View>
+                <Text style={styles.signatureTitle}>
+                  {handEndMoment.reason === 'domino'
+                    ? '¡DOMINÓ!'
+                    : handEndMoment.reason === 'tranca'
+                    ? '¡TRANCA!'
+                    : '¡EMPATE!'}
+                </Text>
+                <Text style={styles.signatureSub}>
+                  {handEndMoment.reason === 'tranca_tie'
+                    ? 'Mano nula · Siguiente reparto'
+                    : `${handEndMoment.winnerName ?? 'Ganador'} · +${handEndMoment.points} pts`}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
 
-        {/* Bottom HUD: Human Seat Avatar + Compact Tactical Pip Sum / Pass CTA */}
+        {/* Floating 6-Reaction Sobremesa Tray (zero toxic free-text chat, pure table warmth) */}
+        {reactionsOpen && onSendReaction && (
+          <View style={styles.reactionTray}>
+            {TABLE_REACTIONS.map((item) => (
+              <Pressable
+                key={item.code}
+                onPress={() => {
+                  hapticLight();
+                  playGameSound('pickup', state.soundEnabled);
+                  setReactionsOpen(false);
+                  onSendReaction(item.code);
+                }}
+                style={({ pressed }) => [
+                  styles.reactionChip,
+                  pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
+                ]}
+              >
+                <Text style={styles.reactionChipText}>{item.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* Bottom HUD: Human Seat Avatar + Compact Sobremesa Reactions + Tactical Pip Sum / Pass CTA */}
         <View style={styles.bottomHudRow}>
           <SeatAvatar
             profile={humanProfile}
@@ -667,6 +762,7 @@ export function GameTableView({
             timerProgress={humanTimerProgress}
             secondsLeft={turnSecondsLeft}
             lastAction={human.lastAction}
+            reactionText={seatReactions?.[0] ?? null}
             mood={seatMoods[0] ?? 'idle'}
             avatarConfig={playerAvatarConfig}
             layout="horizontal"
@@ -682,6 +778,25 @@ export function GameTableView({
             </Pressable>
           ) : (
             <View style={styles.tacticalChips}>
+              {onSendReaction && (
+                <Pressable
+                  onPress={() => {
+                    hapticLight();
+                    setReactionsOpen((v) => !v);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Enviar saludo o reacción de mesa"
+                  style={[
+                    styles.reactToggleBtn,
+                    reactionsOpen && styles.reactToggleBtnActive,
+                  ]}
+                >
+                  <MessageIcon
+                    size={16}
+                    color={reactionsOpen ? CLUB.textInk : CLUB.goldSoft}
+                  />
+                </Pressable>
+              )}
               <View style={styles.pipSumChip}>
                 <Text style={styles.pipSumText}>{myPipSum} pts</Text>
               </View>
@@ -1060,5 +1175,88 @@ const styles = StyleSheet.create({
     left: 0,
     zIndex: 120,
     elevation: 24,
+  },
+  reactToggleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: CLUB.glassBg,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reactToggleBtnActive: {
+    backgroundColor: CLUB.gold,
+    borderColor: CLUB.goldSoft,
+  },
+  reactionTray: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    backgroundColor: CLUB.glassBgStrong,
+    borderWidth: 1,
+    borderColor: CLUB.borderWarm,
+    borderRadius: 16,
+    padding: 8,
+    marginBottom: 4,
+    zIndex: 35,
+    boxShadow: '0px 10px 26px rgba(0, 0, 0, 0.55)',
+  },
+  reactionChip: {
+    width: '31.5%',
+    minHeight: 36,
+    backgroundColor: CLUB.surfaceCardLight,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: CLUB.glassBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  reactionChipText: {
+    color: CLUB.ivoryTop,
+    fontSize: 11.5,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  signatureOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(6, 17, 22, 0.52)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 60,
+  },
+  signatureCard: {
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(11, 29, 36, 0.96)',
+    borderWidth: 2,
+    borderColor: CLUB.gold,
+    borderRadius: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 18,
+    boxShadow: '0px 0px 44px rgba(245, 196, 81, 0.42)',
+  },
+  signatureAvatarRing: {
+    padding: 3,
+    borderRadius: 999,
+    borderWidth: 2.5,
+    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+  },
+  signatureTitle: {
+    color: CLUB.gold,
+    fontSize: 26,
+    fontWeight: '900',
+    letterSpacing: 1.8,
+  },
+  signatureSub: {
+    color: CLUB.ivoryTop,
+    fontSize: 13.5,
+    fontWeight: '800',
   },
 });

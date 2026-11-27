@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AvatarConfig } from '@/constants/avatarCatalog';
 import { getSeatProfile } from '@/constants/seatProfiles';
 import { CLUB } from '@/constants/tokens';
 import { GameState } from '@/engine/types';
 import { RetentionProgress } from '@/storage/gameStorage';
-import { hapticSnap } from '@/utils/feedback';
+import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
 import { DominoTile } from './DominoTile';
 import { GlossyButton } from './GlossyButton';
@@ -14,6 +15,12 @@ import { StarIcon, TrophyIcon } from './Icons';
 interface MatchOverViewProps {
   state: GameState;
   retention: RetentionProgress;
+  seatAvatars?: Record<number, AvatarConfig | undefined>;
+  seatIsHuman?: Record<number, boolean>;
+  seatNames?: Record<number, string>;
+  seatUserIds?: Record<number, string | null>;
+  savedCompanionIds?: string[];
+  onSaveCompanion?: (companionUserId: string) => Promise<void>;
   onRematch: () => void;
   onChangeMode: () => void;
 }
@@ -21,6 +28,12 @@ interface MatchOverViewProps {
 export function MatchOverView({
   state,
   retention,
+  seatAvatars,
+  seatIsHuman,
+  seatNames,
+  seatUserIds,
+  savedCompanionIds = [],
+  onSaveCompanion,
   onRematch,
   onChangeMode,
 }: MatchOverViewProps) {
@@ -28,6 +41,20 @@ export function MatchOverView({
   const humanWon = state.matchWinnerIndex === 0;
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
   const [countdown, setCountdown] = useState(10);
+  const [localSaved, setLocalSaved] = useState<string[]>(savedCompanionIds);
+
+  const resolveSeat = (seat: number) => {
+    const base = getSeatProfile(state.mode, seat);
+    const isBot = seatIsHuman ? !seatIsHuman[seat] : base.isBot;
+    const displayName = seatNames?.[seat] ?? base.displayName;
+    const avatarConfig = seat === 0 ? retention.avatarConfig : seatAvatars?.[seat];
+    const userId = seatUserIds?.[seat] ?? null;
+    return { ...base, isBot, displayName, avatarConfig, userId };
+  };
+
+  const humanCoPlayers = (summary?.remainingHands ?? [])
+    .map((m) => resolveSeat(m.seat))
+    .filter((p) => p.seat !== 0 && !p.isBot && Boolean(p.userId));
 
   useEffect(() => {
     if (countdown <= 0) {
@@ -41,11 +68,9 @@ export function MatchOverView({
   const winnerDisplayLabel =
     state.matchWinnerIndex === null
       ? ''
-      : state.mode === '1v1' && state.matchWinnerIndex === 1
-      ? 'Bot'
-      : state.mode === '4ffa' && state.matchWinnerIndex > 0
-      ? getSeatProfile(state.mode, state.matchWinnerIndex).displayName
-      : state.scoreLabels[state.matchWinnerIndex];
+      : state.mode === '2v2'
+      ? state.scoreLabels[state.matchWinnerIndex]
+      : resolveSeat(state.matchWinnerIndex).displayName;
 
   const renderFinalColumns = () => {
     if (!summary) return null;
@@ -76,7 +101,7 @@ export function MatchOverView({
               >
                 <View style={styles.pairRow}>
                   {team.members.map((m) => {
-                    const prof = getSeatProfile(state.mode, m.seat);
+                    const prof = resolveSeat(m.seat);
                     return (
                       <View
                         key={m.seat}
@@ -90,7 +115,7 @@ export function MatchOverView({
                           accentColor={prof.accentColor}
                           mood={isWin ? 'win' : 'lose'}
                           size={34}
-                          avatarConfig={m.seat === 0 ? retention.avatarConfig : undefined}
+                          avatarConfig={prof.avatarConfig}
                         />
                       </View>
                     );
@@ -102,7 +127,7 @@ export function MatchOverView({
                 </Text>
 
                 {team.members.map((m) => {
-                  const prof = getSeatProfile(state.mode, m.seat);
+                  const prof = resolveSeat(m.seat);
                   return (
                     <View key={m.seat} style={styles.subTray}>
                       <Text style={styles.subLabel}>
@@ -138,7 +163,7 @@ export function MatchOverView({
     return (
       <View style={state.mode === '1v1' ? styles.twoColRow : styles.fourGrid}>
         {summary.remainingHands.map((entry) => {
-          const prof = getSeatProfile(state.mode, entry.seat);
+          const prof = resolveSeat(entry.seat);
           const isWin = state.matchWinnerIndex === entry.teamId;
           const unit = entry.tiles.length > 5 ? 18 : 22;
           return (
@@ -160,7 +185,7 @@ export function MatchOverView({
                   accentColor={prof.accentColor}
                   mood={isWin ? 'win' : 'lose'}
                   size={state.mode === '1v1' ? 44 : 34}
-                  avatarConfig={entry.seat === 0 ? retention.avatarConfig : undefined}
+                  avatarConfig={prof.avatarConfig}
                 />
               </View>
               <Text style={styles.colName} numberOfLines={1}>
@@ -241,6 +266,58 @@ export function MatchOverView({
 
           {/* Vertical Tiles Under Each Player / Pair */}
           {renderFinalColumns()}
+
+          {/* Intimate Table Companions Circle (Online humans only) */}
+          {humanCoPlayers.length > 0 && onSaveCompanion && (
+            <View style={styles.companionsCard}>
+              <Text style={styles.companionsTitle}>¿Te gustó jugar con ellos?</Text>
+              <Text style={styles.companionsSub}>
+                Guárdalos en tu círculo de Compañeros para invitarlos en 1 toque.
+              </Text>
+              <View style={styles.companionsList}>
+                {humanCoPlayers.map((p) => {
+                  const uid = p.userId!;
+                  const isSaved = localSaved.includes(uid);
+                  return (
+                    <View key={uid} style={styles.companionRow}>
+                      <AvatarIllustration
+                        isBot={false}
+                        accentColor={p.accentColor}
+                        size={32}
+                        avatarConfig={p.avatarConfig}
+                      />
+                      <Text style={styles.companionName} numberOfLines={1}>
+                        {p.displayName}
+                      </Text>
+                      <Pressable
+                        disabled={isSaved}
+                        onPress={() => {
+                          hapticLight();
+                          setLocalSaved((prev) =>
+                            prev.includes(uid) ? prev : [...prev, uid]
+                          );
+                          onSaveCompanion(uid).catch(() => {});
+                        }}
+                        style={[
+                          styles.companionBtn,
+                          isSaved && styles.companionBtnSaved,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.companionBtnText,
+                            isSaved && styles.companionBtnTextSaved,
+                          ]}
+                        >
+                          {isSaved ? 'En tu mesa ✓' : '+ Compañero'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
         </ScrollView>
 
         <View style={styles.actions}>
@@ -285,13 +362,66 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 460,
     maxHeight: '90%',
-    backgroundColor: 'rgba(14, 28, 52, 0.96)',
+    backgroundColor: CLUB.glassBgStrong,
     borderRadius: 24,
     borderWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.26)',
+    borderColor: CLUB.glassBorder,
     padding: 15,
     gap: 10,
     boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.76)',
+  },
+  companionsCard: {
+    backgroundColor: 'rgba(19, 44, 52, 0.85)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.30)',
+    padding: 12,
+    gap: 6,
+  },
+  companionsTitle: {
+    color: CLUB.ivoryTop,
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  companionsSub: {
+    color: CLUB.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  companionsList: {
+    gap: 7,
+    marginTop: 4,
+  },
+  companionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  companionName: {
+    flex: 1,
+    color: CLUB.ivoryTop,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  companionBtn: {
+    backgroundColor: 'rgba(245, 196, 81, 0.16)',
+    borderWidth: 1,
+    borderColor: CLUB.gold,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
+  },
+  companionBtnSaved: {
+    backgroundColor: 'rgba(39, 209, 136, 0.16)',
+    borderColor: CLUB.emerald,
+  },
+  companionBtnText: {
+    color: CLUB.goldSoft,
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  companionBtnTextSaved: {
+    color: CLUB.emerald,
   },
   headlineRow: {
     flexDirection: 'row',

@@ -14,7 +14,7 @@ import { AuthModal, AuthModalReason } from '@/components/domino/AuthModal';
 import { AvatarStudioModal } from '@/components/domino/AvatarStudioModal';
 import { DailyRewardModal } from '@/components/domino/DailyRewardModal';
 import { FeedbackModal } from '@/components/domino/FeedbackModal';
-import { GameTableView } from '@/components/domino/GameTableView';
+import { GameTableView, HandEndMomentData } from '@/components/domino/GameTableView';
 import { MatchOverView } from '@/components/domino/MatchOverView';
 import { OnlineLobbyView } from '@/components/domino/OnlineLobbyView';
 import { BotSpeed } from '@/components/domino/PauseModal';
@@ -23,7 +23,12 @@ import { SetupView } from '@/components/domino/SetupView';
 import { ThemesModal } from '@/components/domino/ThemesModal';
 import { WaitingRoomView } from '@/components/domino/WaitingRoomView';
 import { AVATAR_COSMETIC_PRICES, AvatarConfig } from '@/constants/avatarCatalog';
-import { BotMood } from '@/constants/seatProfiles';
+import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
+import {
+  pickBotTablePhrase,
+  REACTION_BY_CODE,
+  TableReactionCode,
+} from '@/constants/socialReactions';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
@@ -44,6 +49,11 @@ import {
 import { GameMode, GameState, PlaySide, SortMode, TargetScore, Tile } from '@/engine/types';
 import { trackEvent } from '@/lib/analytics';
 import {
+  fetchTableCompanions,
+  saveTableCompanion,
+  TableCompanion,
+} from '@/lib/companionsService';
+import {
   APP_VERSION,
   DEFAULT_REMOTE_CONFIG,
   fetchRemoteAppConfig,
@@ -54,6 +64,7 @@ import {
 import { maybeRequestStoreReview } from '@/lib/storeReview';
 import {
   buildRotatedOnlineGameState,
+  buildRotatedOnlineSeatMeta,
   fetchRoomSnapshot,
   leaveOnlineRoom,
   OnlineRoomRow,
@@ -62,6 +73,7 @@ import {
   sendOnlineNextHand,
   sendOnlinePass,
   sendOnlinePlay,
+  sendOnlineReaction,
   sendOnlineRematch,
   startOnlineRoomWithBots,
 } from '@/lib/onlineService';
@@ -162,6 +174,10 @@ export default function DominoAppScreen() {
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('normal');
   const [isLocalPaused, setIsLocalPaused] = useState(false);
   const [seatMoods, setSeatMoods] = useState<Record<number, BotMood>>({});
+  const [seatReactions, setSeatReactions] = useState<Record<number, string | null>>({});
+  const [handEndMoment, setHandEndMoment] = useState<HandEndMomentData | null>(null);
+  const [summaryRevealReady, setSummaryRevealReady] = useState(true);
+  const [companions, setCompanions] = useState<TableCompanion[]>([]);
 
   // Economy, Auth & Feedback Modals + Remote Kill-Switch Config
   const [dailyModalOpen, setDailyModalOpen] = useState(false);
@@ -186,9 +202,23 @@ export default function DominoAppScreen() {
   retentionRef.current = retention;
   const recordedMatchIdRef = useRef<string | null>(null);
   const reviewedOnlineRoomRef = useRef<string | null>(null);
+  const reactionTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+  const lastOnlineReactionAtRef = useRef<number>(0);
+  const lastSignatureKeyRef = useRef<string | null>(null);
 
   const setTempMood = useCallback((seat: number, mood: BotMood) => {
     setSeatMoods((prev) => ({ ...prev, [seat]: mood }));
+  }, []);
+
+  const flashSeatReaction = useCallback((visualSeat: number, text: string, durationMs = 2600) => {
+    const existing = reactionTimersRef.current.get(visualSeat);
+    if (existing) clearTimeout(existing);
+    setSeatReactions((prev) => ({ ...prev, [visualSeat]: text }));
+    const t = setTimeout(() => {
+      reactionTimersRef.current.delete(visualSeat);
+      setSeatReactions((prev) => ({ ...prev, [visualSeat]: null }));
+    }, durationMs);
+    reactionTimersRef.current.set(visualSeat, t);
   }, []);
 
   // 1. Hydrate local cache immediately (0 ms perceived startup) & warm up native SFX
@@ -282,6 +312,12 @@ export default function DominoAppScreen() {
         }
       })
       .catch(() => {});
+
+    fetchTableCompanions()
+      .then((list) => {
+        if (active) setCompanions(list);
+      })
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -358,7 +394,7 @@ export default function DominoAppScreen() {
     };
   }, [activeOnlineRoomId, user]);
 
-  // Build rotated local-seat-0 GameState for Online Multiplayer
+  // Build rotated local-seat-0 GameState & real human avatar metadata for Online Multiplayer
   const onlineGameState = useMemo(() => {
     if (screenMode !== 'online_room' || !onlineRoom?.public_state) return null;
     return buildRotatedOnlineGameState(
@@ -369,6 +405,110 @@ export default function DominoAppScreen() {
       state.soundEnabled
     );
   }, [screenMode, onlineRoom, onlineMyHand, onlineMySeat, state.sortMode, state.soundEnabled]);
+
+  const onlineSeatMeta = useMemo(() => {
+    if (screenMode !== 'online_room' || !onlineRoom?.public_state) return null;
+    return buildRotatedOnlineSeatMeta(onlineRoom.public_state, onlineMySeat);
+  }, [screenMode, onlineRoom, onlineMySeat]);
+
+  // Display incoming Online Sobremesa reactions on the rotated visual seat
+  const onlineLastReaction = onlineRoom?.public_state?.lastReaction ?? null;
+  useEffect(() => {
+    if (
+      screenMode !== 'online_room' ||
+      !onlineLastReaction ||
+      !onlineRoom?.public_state
+    ) {
+      return;
+    }
+    if (onlineLastReaction.at <= lastOnlineReactionAtRef.current) return;
+    lastOnlineReactionAtRef.current = onlineLastReaction.at;
+
+    const n = onlineRoom.public_state.players.length || 2;
+    const visualSeat = (onlineLastReaction.seat - onlineMySeat + n) % n;
+    flashSeatReaction(visualSeat, onlineLastReaction.text);
+    if (visualSeat !== 0) {
+      playGameSound('pickup', stateRef.current.soundEnabled);
+    }
+  }, [screenMode, onlineLastReaction, onlineRoom?.public_state, onlineMySeat, flashSeatReaction]);
+
+  // Signature Moment (~0.95s warm celebration over the live table before showing RoundSummary / MatchOver)
+  const activeTableState = screenMode === 'online_room' ? onlineGameState : state;
+  const activeTablePhase = activeTableState?.phase ?? 'setup';
+  const activeTableHandNum = activeTableState?.handNumber ?? 0;
+  const activeSummary = activeTableState?.lastHandSummary ?? null;
+  useEffect(() => {
+    if (!activeTableState || (activeTablePhase !== 'round_summary' && activeTablePhase !== 'match_over')) {
+      setHandEndMoment(null);
+      setSummaryRevealReady(true);
+      lastSignatureKeyRef.current = null;
+      return;
+    }
+
+    const sigKey = `${screenMode}-${activeOnlineRoomId ?? 'local'}-${activeTableHandNum}-${activeTablePhase}`;
+    if (lastSignatureKeyRef.current === sigKey) return;
+    lastSignatureKeyRef.current = sigKey;
+
+    if (!activeSummary) {
+      setSummaryRevealReady(true);
+      return;
+    }
+
+    const wSeat = activeSummary.winnerSeat;
+    const isOnline = screenMode === 'online_room' && Boolean(onlineSeatMeta);
+    const prof = wSeat !== null ? getSeatProfile(activeTableState.mode, wSeat) : null;
+    const isWinnerBot =
+      wSeat === null
+        ? false
+        : isOnline && onlineSeatMeta
+        ? !onlineSeatMeta.seatIsHuman[wSeat]
+        : prof?.isBot ?? false;
+    const winnerName =
+      wSeat === null
+        ? null
+        : activeTableState.mode === '2v2'
+        ? activeSummary.winnerScoreIndex === 0
+          ? 'Nosotros'
+          : 'Rivales'
+        : isOnline && onlineSeatMeta
+        ? onlineSeatMeta.seatNames[wSeat]
+        : prof?.displayName ?? 'Ganador';
+    const winnerAvatar =
+      wSeat === 0
+        ? retentionRef.current.avatarConfig
+        : wSeat !== null && isOnline && onlineSeatMeta
+        ? onlineSeatMeta.seatAvatars[wSeat]
+        : undefined;
+
+    setSummaryRevealReady(false);
+    setHandEndMoment({
+      reason: activeSummary.reason,
+      winnerName,
+      points: activeSummary.pointsAwarded,
+      winnerAvatar,
+      isWinnerBot,
+      accentColor: prof?.accentColor ?? CLUB.gold,
+    });
+    if (screenMode === 'online_room') {
+      hapticSuccess();
+      playGameSound('win', stateRef.current.soundEnabled);
+    }
+
+    const timer = setTimeout(() => {
+      setHandEndMoment(null);
+      setSummaryRevealReady(true);
+    }, 950);
+
+    return () => clearTimeout(timer);
+  }, [
+    screenMode,
+    activeOnlineRoomId,
+    activeTableState,
+    activeTablePhase,
+    activeTableHandNum,
+    activeSummary,
+    onlineSeatMeta,
+  ]);
 
   // 3b. Server-enforced Online Turn Timeout Watchdog (26s grace over server's 25s limit)
   const onlineTurnStartedAt = onlineRoom?.turn_started_at ?? null;
@@ -524,6 +664,14 @@ export default function DominoAppScreen() {
       if (tile && isDouble(tile)) {
         hapticDouble();
         playGameSound('double', curr.soundEnabled);
+        // Subtle warm Bot reaction when human drops a double
+        if (next.phase === 'playing') {
+          const reactorSeat = curr.mode === '2v2' ? 2 : 1;
+          const phrase = pickBotTablePhrase('human_double', curr.mode === '2v2', 0.42);
+          if (phrase) {
+            setTimeout(() => flashSeatReaction(reactorSeat, phrase), 450);
+          }
+        }
       } else {
         hapticSnap();
         playGameSound('clack', curr.soundEnabled);
@@ -531,7 +679,7 @@ export default function DominoAppScreen() {
     } catch {
       // Ignore illegal action
     }
-  }, []);
+  }, [flashSeatReaction]);
 
   const executeLocalHumanDraw = useCallback((boneyardIndex?: number) => {
     const curr = stateRef.current;
@@ -559,10 +707,16 @@ export default function DominoAppScreen() {
       setState(next);
       hapticWarning();
       playGameSound('pass', curr.soundEnabled);
+      if (next.phase === 'playing' && curr.mode === '2v2') {
+        const phrase = pickBotTablePhrase('human_pass', true, 0.48);
+        if (phrase) {
+          setTimeout(() => flashSeatReaction(2, phrase), 500);
+        }
+      }
     } catch {
       // Ignore
     }
-  }, []);
+  }, [flashSeatReaction]);
 
   // Local 20s Human Turn Timer (genuinely pauses while Pause modal is open)
   useEffect(() => {
@@ -655,6 +809,10 @@ export default function DominoAppScreen() {
             setTempMood(seat, 'double');
             hapticDouble();
             playGameSound('double', curr.soundEnabled);
+            if (next.phase === 'playing') {
+              const phrase = pickBotTablePhrase('bot_double', curr.mode === '2v2' && seat === 2, 0.34);
+              if (phrase) flashSeatReaction(seat, phrase);
+            }
           } else {
             setTempMood(seat, 'play');
             hapticSnap();
@@ -1041,6 +1199,46 @@ export default function DominoAppScreen() {
     sendOnlineRematch(onlineRoom.id).catch(() => {});
   }, [onlineRoom]);
 
+  const handleLocalSendReaction = useCallback(
+    (code: TableReactionCode) => {
+      const item = REACTION_BY_CODE[code];
+      if (!item) return;
+      flashSeatReaction(0, item.label);
+      const curr = stateRef.current;
+      if (curr.phase !== 'playing') return;
+      const responderSeat = curr.mode === '2v2' ? 2 : 1;
+      const reply =
+        code === 'hola'
+          ? '¡Hola! ¡Buena partida!'
+          : code === 'buena'
+          ? '¡Gracias!'
+          : code === 'compa' && curr.mode === '2v2'
+          ? '¡Eso es, equipo!'
+          : code === 'buen_juego'
+          ? '¡Igual para ti!'
+          : pickBotTablePhrase('partner_good_play', curr.mode === '2v2', 0.55);
+      if (reply) {
+        setTimeout(() => flashSeatReaction(responderSeat, reply), 650);
+      }
+    },
+    [flashSeatReaction]
+  );
+
+  const handleOnlineSendReaction = useCallback(
+    (code: TableReactionCode) => {
+      if (!onlineRoom) return;
+      const item = REACTION_BY_CODE[code];
+      if (item) flashSeatReaction(0, item.label);
+      sendOnlineReaction(onlineRoom.id, code).catch(() => {});
+    },
+    [onlineRoom, flashSeatReaction]
+  );
+
+  const handleSaveCompanion = useCallback(async (companionUserId: string) => {
+    const updated = await saveTableCompanion(companionUserId);
+    if (updated) setCompanions(updated);
+  }, []);
+
   if (!hydrated) {
     return (
       <SafeAreaView style={styles.loading}>
@@ -1133,12 +1331,15 @@ export default function DominoAppScreen() {
             botSpeed={botSpeed}
             aiDifficulty={aiDifficulty}
             seatMoods={seatMoods}
+            seatReactions={seatReactions}
+            handEndMoment={handEndMoment}
             themeId={retention.equippedTheme}
             tileStyleId={retention.equippedTileStyle}
             playerAvatarConfig={retention.avatarConfig}
             onHumanPlay={executeLocalHumanPlay}
             onHumanDraw={executeLocalHumanDraw}
             onHumanPass={executeLocalHumanPass}
+            onSendReaction={handleLocalSendReaction}
             onToggleSort={handleToggleSort}
             onToggleSound={handleToggleSound}
             onCycleBotSpeed={handleCycleBotSpeed}
@@ -1150,7 +1351,7 @@ export default function DominoAppScreen() {
           />
         )}
 
-        {screenMode === 'local' && state.phase === 'round_summary' && (
+        {screenMode === 'local' && state.phase === 'round_summary' && summaryRevealReady && (
           <RoundSummaryView
             state={state}
             playerAvatarConfig={retention.avatarConfig}
@@ -1159,7 +1360,7 @@ export default function DominoAppScreen() {
           />
         )}
 
-        {screenMode === 'local' && state.phase === 'match_over' && (
+        {screenMode === 'local' && state.phase === 'match_over' && summaryRevealReady && (
           <MatchOverView
             state={state}
             retention={retention}
@@ -1175,6 +1376,7 @@ export default function DominoAppScreen() {
             defaultMode={state.mode}
             defaultTargetScore={state.targetScore}
             initialTab={lobbyInitialTab}
+            companions={companions}
             onEnteredRoom={handleEnteredOnlineRoom}
             onRequestAuth={() => setAuthModal({ open: true, reason: 'online_public' })}
             onBack={() => setScreenMode('local')}
@@ -1201,12 +1403,18 @@ export default function DominoAppScreen() {
               botTimerProgress={1}
               botSpeed={botSpeed}
               seatMoods={{}}
+              seatAvatars={onlineSeatMeta?.seatAvatars}
+              seatIsHuman={onlineSeatMeta?.seatIsHuman}
+              seatNames={onlineSeatMeta?.seatNames}
+              seatReactions={seatReactions}
+              handEndMoment={handEndMoment}
               themeId={retention.equippedTheme}
               tileStyleId={retention.equippedTileStyle}
               playerAvatarConfig={retention.avatarConfig}
               onHumanPlay={handleOnlinePlay}
               onHumanDraw={handleOnlineDraw}
               onHumanPass={handleOnlinePass}
+              onSendReaction={handleOnlineSendReaction}
               onToggleSort={handleToggleSort}
               onToggleSound={handleToggleSound}
               onCycleBotSpeed={handleCycleBotSpeed}
@@ -1215,19 +1423,28 @@ export default function DominoAppScreen() {
               onExitToHome={handleLeaveOnlineRoom}
             />
 
-            {onlineGameState.phase === 'round_summary' && (
+            {onlineGameState.phase === 'round_summary' && summaryRevealReady && (
               <RoundSummaryView
                 state={onlineGameState}
                 playerAvatarConfig={retention.avatarConfig}
+                seatAvatars={onlineSeatMeta?.seatAvatars}
+                seatIsHuman={onlineSeatMeta?.seatIsHuman}
+                seatNames={onlineSeatMeta?.seatNames}
                 tileStyleId={retention.equippedTileStyle}
                 onContinue={handleOnlineNextHand}
               />
             )}
 
-            {onlineGameState.phase === 'match_over' && (
+            {onlineGameState.phase === 'match_over' && summaryRevealReady && (
               <MatchOverView
                 state={onlineGameState}
                 retention={retention}
+                seatAvatars={onlineSeatMeta?.seatAvatars}
+                seatIsHuman={onlineSeatMeta?.seatIsHuman}
+                seatNames={onlineSeatMeta?.seatNames}
+                seatUserIds={onlineSeatMeta?.seatUserIds}
+                savedCompanionIds={companions.map((c) => c.companion_user_id)}
+                onSaveCompanion={handleSaveCompanion}
                 onRematch={handleOnlineRematch}
                 onChangeMode={handleLeaveOnlineRoom}
               />

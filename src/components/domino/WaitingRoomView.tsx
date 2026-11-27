@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { sanitizeAvatarConfig } from '@/constants/avatarCatalog';
 import { CLUB } from '@/constants/tokens';
 import { OnlineRoomRow } from '@/lib/onlineService';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
@@ -72,7 +73,7 @@ export function WaitingRoomView({
 
   return (
     <LinearGradient
-      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
+      colors={[CLUB.roomBgTop, CLUB.roomBgMid, '#091A21', CLUB.roomBgBottom]}
       locations={[0, 0.35, 0.72, 1]}
       style={styles.root}
     >
@@ -88,7 +89,7 @@ export function WaitingRoomView({
           </Text>
         </View>
         <Text style={styles.headline}>
-          Esperando jugadores ({seats.length}/{room.max_players})
+          La mesa te espera ({seats.length}/{room.max_players})
         </Text>
         <Text style={styles.sub}>
           Meta {room.target_score} pts ·{' '}
@@ -116,8 +117,13 @@ export function WaitingRoomView({
               {occupant ? (
                 <AvatarIllustration
                   isBot={occupant.is_bot}
-                  accentColor={idx % 2 === 0 ? CLUB.emerald : CLUB.cyan}
-                  size={44}
+                  accentColor={idx % 2 === 0 ? CLUB.emerald : CLUB.gold}
+                  size={46}
+                  avatarConfig={
+                    !occupant.is_bot && occupant.avatar_config
+                      ? sanitizeAvatarConfig(occupant.avatar_config)
+                      : undefined
+                  }
                 />
               ) : (
                 <View style={styles.emptyCircle}>
@@ -191,10 +197,10 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: 'rgba(14, 28, 52, 0.92)',
+    backgroundColor: CLUB.glassBgStrong,
     borderRadius: 24,
     borderWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.24)',
+    borderColor: CLUB.glassBorder,
     padding: 20,
     alignItems: 'center',
     gap: 12,

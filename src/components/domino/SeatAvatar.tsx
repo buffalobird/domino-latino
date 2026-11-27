@@ -24,6 +24,8 @@ interface SeatAvatarProps {
   timerProgress?: number;
   secondsLeft?: number | null;
   lastAction?: string | null;
+  /** Warm sobremesa reaction bubble (takes visual priority over mechanical lastAction while active) */
+  reactionText?: string | null;
   mood?: BotMood;
   avatarConfig?: AvatarConfig;
   /** Vertical stacked pill for 4-player top arc (takes minimal horizontal width) */
@@ -42,6 +44,7 @@ export function SeatAvatar({
   timerProgress = 1,
   secondsLeft = null,
   lastAction = null,
+  reactionText = null,
   mood = 'idle',
   avatarConfig,
   layout = 'horizontal',
@@ -65,16 +68,19 @@ export function SeatAvatar({
     ? CLUB.gold
     : CLUB.emerald;
 
+  const activeBubble = reactionText ?? lastAction;
+  const isReactionBubble = Boolean(reactionText);
+
   // Crisp non-bouncy fade/scale for speech bubble (zero rubbery overshoot)
-  const bubbleProgress = useSharedValue(lastAction ? 1 : 0);
+  const bubbleProgress = useSharedValue(activeBubble ? 1 : 0);
   useEffect(() => {
-    if (lastAction) {
+    if (activeBubble) {
       bubbleProgress.value = 0.85;
       bubbleProgress.value = withTiming(1, { duration: 150 });
     } else {
       bubbleProgress.value = withTiming(0, { duration: 120 });
     }
-  }, [lastAction, bubbleProgress]);
+  }, [activeBubble, bubbleProgress]);
 
   // Subtle horizontal shake only on pass
   const shakeX = useSharedValue(0);
@@ -223,26 +229,28 @@ export function SeatAvatar({
       )}
 
       {/* Floating speech bubble — never pushes or clips HUD controls */}
-      {lastAction && (
+      {activeBubble && (
         <Animated.View
           pointerEvents="none"
           style={[
             styles.bubbleBase,
             bubblePosStyle,
-            isPassBubble && styles.bubblePass,
-            isDrawBubble && styles.bubbleDraw,
-            isWinBubble && styles.bubbleWin,
+            !isReactionBubble && isPassBubble && styles.bubblePass,
+            !isReactionBubble && isDrawBubble && styles.bubbleDraw,
+            !isReactionBubble && isWinBubble && styles.bubbleWin,
+            isReactionBubble && styles.bubbleReaction,
             bubbleAnimStyle,
           ]}
         >
           <Text
             style={[
               styles.bubbleText,
-              (isPassBubble || isWinBubble) && styles.bubbleTextLight,
+              !isReactionBubble && (isPassBubble || isWinBubble) && styles.bubbleTextLight,
+              isReactionBubble && styles.bubbleReactionText,
             ]}
             numberOfLines={1}
           >
-            {lastAction.toUpperCase()}
+            {isReactionBubble ? activeBubble : activeBubble.toUpperCase()}
           </Text>
         </Animated.View>
       )}
@@ -399,11 +407,25 @@ const styles = StyleSheet.create({
     backgroundColor: CLUB.emerald,
     borderColor: CLUB.emeraldDark,
   },
+  bubbleReaction: {
+    backgroundColor: '#FFF9EC',
+    borderColor: CLUB.gold,
+    borderWidth: 1.5,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   bubbleText: {
     color: CLUB.textInk,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.25,
+  },
+  bubbleReactionText: {
+    color: '#1E293B',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.1,
   },
   bubbleTextLight: {
     color: '#FFFFFF',

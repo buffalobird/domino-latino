@@ -1,3 +1,5 @@
+import { AvatarConfig, sanitizeAvatarConfig } from '@/constants/avatarCatalog';
+import { TableReactionCode } from '@/constants/socialReactions';
 import { ENGINE_STATE_VERSION, sortHand } from '@/engine/rules';
 import {
   GameMode,
@@ -17,6 +19,14 @@ export interface OnlineSeatInfo {
   user_id: string | null;
   display_name: string;
   is_bot: boolean;
+  avatar_config?: Record<string, unknown> | null;
+}
+
+export interface OnlineReactionPayload {
+  seat: number;
+  code: string;
+  text: string;
+  at: number;
 }
 
 export interface OnlineRoomRow {
@@ -57,11 +67,13 @@ export interface SanitizedRoomPublicState {
   matchWinnerIndex: number | null;
   matchWinnerLabel: string | null;
   buyIn: number;
+  lastReaction?: OnlineReactionPayload | null;
   players: {
     seat: number;
     name: string;
     isHuman: boolean;
     userId: string | null;
+    avatarConfig?: Record<string, unknown> | null;
     teamId: number;
     tileCount: number;
     lastAction: string | null;
@@ -87,7 +99,7 @@ export async function listOpenPublicRooms(
   let query = supabase
     .from('game_rooms')
     .select(
-      'id, code, host_user_id, mode, target_score, is_private, buy_in, status, max_players, player_count, public_state, turn_started_at, created_at, room_players(seat, user_id, display_name, is_bot)'
+      'id, code, host_user_id, mode, target_score, is_private, buy_in, status, max_players, player_count, public_state, turn_started_at, created_at, room_players(seat, user_id, display_name, is_bot, avatar_config)'
     )
     .eq('status', 'waiting')
     .eq('is_private', false);
@@ -114,7 +126,7 @@ export async function fetchRoomSnapshot(
     supabase
       .from('game_rooms')
       .select(
-        'id, code, host_user_id, mode, target_score, is_private, buy_in, status, max_players, player_count, public_state, turn_started_at, created_at, room_players(seat, user_id, display_name, is_bot)'
+        'id, code, host_user_id, mode, target_score, is_private, buy_in, status, max_players, player_count, public_state, turn_started_at, created_at, room_players(seat, user_id, display_name, is_bot, avatar_config)'
       )
       .eq('id', roomId)
       .maybeSingle(),
@@ -228,6 +240,45 @@ export function sendOnlineClaimTimeout(roomId: string) {
     action: 'claim_timeout',
     roomId,
   });
+}
+
+export function sendOnlineReaction(roomId: string, code: TableReactionCode) {
+  return invokeOnlineFn<{ ok: boolean }>({
+    action: 'send_reaction',
+    roomId,
+    code,
+  });
+}
+
+export interface RotatedSeatMeta {
+  seatAvatars: Record<number, AvatarConfig | undefined>;
+  seatIsHuman: Record<number, boolean>;
+  seatNames: Record<number, string>;
+  seatUserIds: Record<number, string | null>;
+}
+
+export function buildRotatedOnlineSeatMeta(
+  pub: SanitizedRoomPublicState,
+  myServerSeat: number
+): RotatedSeatMeta {
+  const n = pub.players.length;
+  const seatAvatars: Record<number, AvatarConfig | undefined> = {};
+  const seatIsHuman: Record<number, boolean> = {};
+  const seatNames: Record<number, string> = {};
+  const seatUserIds: Record<number, string | null> = {};
+
+  for (let visualSeat = 0; visualSeat < n; visualSeat++) {
+    const serverSeat = (myServerSeat + visualSeat) % n;
+    const sp = pub.players[serverSeat];
+    if (!sp) continue;
+    seatIsHuman[visualSeat] = sp.isHuman;
+    seatNames[visualSeat] = visualSeat === 0 ? 'Tú' : sp.name;
+    seatUserIds[visualSeat] = sp.userId ?? null;
+    seatAvatars[visualSeat] =
+      sp.isHuman && sp.avatarConfig ? sanitizeAvatarConfig(sp.avatarConfig) : undefined;
+  }
+
+  return { seatAvatars, seatIsHuman, seatNames, seatUserIds };
 }
 
 /**

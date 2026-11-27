@@ -4,15 +4,18 @@ import {
   ActivityIndicator,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 
+import { sanitizeAvatarConfig } from '@/constants/avatarCatalog';
 import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { GameMode, TARGET_SCORES, TargetScore } from '@/engine/types';
+import { TableCompanion } from '@/lib/companionsService';
 import {
   createOnlineRoom,
   joinOnlineRoom,
@@ -37,6 +40,7 @@ interface OnlineLobbyViewProps {
   defaultMode: GameMode;
   defaultTargetScore: TargetScore;
   initialTab?: 'public' | 'private';
+  companions?: TableCompanion[];
   onEnteredRoom: (room: OnlineRoomRow, mySeat: number) => void;
   onRequestAuth?: () => void;
   onBack: () => void;
@@ -54,6 +58,7 @@ export function OnlineLobbyView({
   defaultMode,
   defaultTargetScore,
   initialTab = 'public',
+  companions = [],
   onEnteredRoom,
   onRequestAuth,
   onBack,
@@ -168,9 +173,33 @@ export function OnlineLobbyView({
     }
   };
 
+  const handleInviteCompanion = async (companion: TableCompanion) => {
+    setErrorMsg(null);
+    setBusyAction(true);
+    try {
+      const res = await createOnlineRoom({
+        mode: defaultMode,
+        targetScore: defaultTargetScore,
+        isPrivate: true,
+        buyIn: 0,
+      });
+      hapticSnap();
+      onEnteredRoom(res.room, res.mySeat);
+      Share.share({
+        message: `¡Hola ${companion.companion_name}! Abrí una mesa en Dominó Latino (código: ${res.room.code}). ¿Echamos una partida?`,
+      }).catch(() => {});
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : 'No se pudo abrir la mesa para invitar.'
+      );
+    } finally {
+      setBusyAction(false);
+    }
+  };
+
   return (
     <LinearGradient
-      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
+      colors={[CLUB.roomBgTop, CLUB.roomBgMid, '#091A21', CLUB.roomBgBottom]}
       locations={[0, 0.35, 0.72, 1]}
       style={styles.gradient}
     >
@@ -448,12 +477,46 @@ export function OnlineLobbyView({
               })}
             </View>
 
+            {/* Intimate Table Companions Circle (Locket-style max 20 regular tablemates) */}
+            {companions.length > 0 && (
+              <View style={styles.companionsSection}>
+                <Text style={styles.sectionTitle}>Tus compañeros de mesa</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.companionsRow}
+                >
+                  {companions.map((c) => (
+                    <Pressable
+                      key={c.companion_user_id}
+                      disabled={busyAction}
+                      onPress={() => handleInviteCompanion(c)}
+                      style={({ pressed }) => [
+                        styles.companionPill,
+                        pressed && { opacity: 0.85 },
+                      ]}
+                    >
+                      <AvatarIllustration
+                        isBot={false}
+                        accentColor={CLUB.gold}
+                        size={38}
+                        avatarConfig={c.companion_avatar ?? undefined}
+                      />
+                      <Text style={styles.companionPillName} numberOfLines={1}>
+                        {c.companion_name}
+                      </Text>
+                      <Text style={styles.companionPillAction}>Invitar</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
             {rooms.length === 0 ? (
               <View style={styles.emptyLobby}>
-                <Text style={styles.emptyTitle}>No hay mesas esperando ahora</Text>
+                <Text style={styles.emptyTitle}>La mesa está lista para ti</Text>
                 <Text style={styles.emptySub}>
-                  Crea tu propia mesa arriba — puedes invitar amigos o rellenar
-                  los asientos vacíos con Bots al instante.
+                  Toca «Sentarme ya» o abre tu propia mesa arriba — te avisaremos apenas se siente alguien, o puedes jugar con Bots cuando quieras.
                 </Text>
               </View>
             ) : (
@@ -499,8 +562,13 @@ export function OnlineLobbyView({
                             {occupant ? (
                               <AvatarIllustration
                                 isBot={occupant.is_bot}
-                                accentColor={idx % 2 === 0 ? CLUB.emerald : CLUB.cyan}
+                                accentColor={idx % 2 === 0 ? CLUB.emerald : CLUB.gold}
                                 size={36}
+                                avatarConfig={
+                                  !occupant.is_bot && occupant.avatar_config
+                                    ? sanitizeAvatarConfig(occupant.avatar_config)
+                                    : undefined
+                                }
                               />
                             ) : (
                               <View style={styles.openSeatCircle}>
@@ -893,6 +961,36 @@ const styles = StyleSheet.create({
   joinRoomText: {
     color: CLUB.textInk,
     fontSize: 14,
+    fontWeight: '900',
+  },
+  companionsSection: {
+    gap: 8,
+    marginTop: 2,
+  },
+  companionsRow: {
+    gap: 10,
+    paddingVertical: 2,
+  },
+  companionPill: {
+    alignItems: 'center',
+    width: 82,
+    backgroundColor: CLUB.surfaceCard,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.34)',
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    gap: 4,
+  },
+  companionPillName: {
+    color: CLUB.ivoryTop,
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  companionPillAction: {
+    color: CLUB.gold,
+    fontSize: 10,
     fontWeight: '900',
   },
 });
