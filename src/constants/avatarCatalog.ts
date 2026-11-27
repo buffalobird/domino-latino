@@ -33,11 +33,23 @@ export type AvatarMouthId = 'smile' | 'grin' | 'smirk' | 'lips' | 'calm' | 'laug
 
 export type AvatarHairId =
   | 'classic'
+  | 'textured_crop'
   | 'messy'
   | 'fade'
   | 'buzz'
   | 'receding'
   | 'bald'
+  | 'spiky'
+  | 'spiky_wild'
+  | 'curtain'
+  | 'shaggy'
+  | 'side_sweep'
+  | 'wavy_part'
+  | 'bowl_mod'
+  | 'slick_tail'
+  | 'samurai_bun'
+  | 'rocker_long'
+  | 'dreads_band'
   | 'straight_long'
   | 'waves'
   | 'bob'
@@ -255,20 +267,32 @@ export const AVATAR_MOUTH_OPTIONS: AvatarItemOption<AvatarMouthId>[] = [
 
 export const AVATAR_HAIR_OPTIONS: AvatarItemOption<AvatarHairId>[] = [
   { id: 'classic', cosmeticKey: null, name: 'Corto Clásico', costChips: 0 },
+  { id: 'textured_crop', cosmeticKey: null, name: 'Crop Puntas', costChips: 0 },
+  { id: 'curtain', cosmeticKey: null, name: 'Raya al Medio', costChips: 0 },
+  { id: 'shaggy', cosmeticKey: null, name: 'Flequillo', costChips: 0 },
+  { id: 'side_sweep', cosmeticKey: null, name: 'Fleco de Lado', costChips: 0 },
+  { id: 'slick_tail', cosmeticKey: null, name: 'Coleta Baja', costChips: 0 },
+  { id: 'bowl_mod', cosmeticKey: null, name: 'Corte Mod', costChips: 0 },
+  { id: 'messy', cosmeticKey: null, name: 'Despeinado', costChips: 0 },
+  { id: 'fade', cosmeticKey: null, name: 'Fade Urbano', costChips: 0 },
   { id: 'straight_long', cosmeticKey: null, name: 'Liso Largo', costChips: 0 },
   { id: 'waves', cosmeticKey: null, name: 'Ondulado', costChips: 0 },
-  { id: 'messy', cosmeticKey: null, name: 'Despeinado', costChips: 0 },
   { id: 'bob', cosmeticKey: null, name: 'Bob Moderno', costChips: 0 },
-  { id: 'fade', cosmeticKey: null, name: 'Fade Urbano', costChips: 0 },
   { id: 'ponytail', cosmeticKey: null, name: 'Coleta Alta', costChips: 0 },
   { id: 'curls', cosmeticKey: null, name: 'Rizos', costChips: 0 },
   { id: 'buzz', cosmeticKey: null, name: 'Rapado', costChips: 0 },
   { id: 'receding', cosmeticKey: null, name: 'Entradas', costChips: 0 },
   { id: 'bald', cosmeticKey: null, name: 'Calvo', costChips: 0 },
   { id: 'bun', cosmeticKey: 'hair:bun', name: 'Moño Alto', costChips: 150 },
+  { id: 'spiky', cosmeticKey: 'hair:spiky', name: 'Puntas Arriba', costChips: 200 },
   { id: 'afro', cosmeticKey: 'hair:afro', name: 'Afro', costChips: 250 },
+  { id: 'wavy_part', cosmeticKey: 'hair:wavy_part', name: 'Onda Elegante', costChips: 300 },
   { id: 'braids', cosmeticKey: 'hair:braids', name: 'Trenzas', costChips: 400 },
+  { id: 'spiky_wild', cosmeticKey: 'hair:spiky_wild', name: 'Puntas Rebeldes', costChips: 450, tag: 'Pop' },
+  { id: 'samurai_bun', cosmeticKey: 'hair:samurai_bun', name: 'Moño Top-Knot', costChips: 550, tag: 'Pro' },
   { id: 'pompadour', cosmeticKey: 'hair:pompadour', name: 'Copete Retro', costChips: 600 },
+  { id: 'dreads_band', cosmeticKey: 'hair:dreads_band', name: 'Rastas', costChips: 650, tag: 'Flow' },
+  { id: 'rocker_long', cosmeticKey: 'hair:rocker_long', name: 'Melena Rock', costChips: 800, tag: 'VIP' },
 ];
 
 export const AVATAR_FACIAL_OPTIONS: AvatarItemOption<AvatarFacialId>[] = [

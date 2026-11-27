@@ -492,6 +492,79 @@ export function ModularAvatar({
           </G>
         )}
 
+        {/* Back layers for new expressive male/unisex hairstyles */}
+        {hair === 'curtain' && (
+          <Path
+            d="M40 52L36 74L44 72L41 82L51 78H89L99 82L96 72L104 74L100 52Z"
+            fill={hairCol}
+            stroke="rgba(0,0,0,0.28)"
+            strokeWidth={1.3}
+            strokeLinejoin="round"
+          />
+        )}
+
+        {hair === 'shaggy' && (
+          <Path
+            d="M40 50L37 72L45 78H95L103 72L100 50Z"
+            fill={hairCol}
+            stroke="rgba(0,0,0,0.25)"
+            strokeWidth={1.2}
+          />
+        )}
+
+        {hair === 'slick_tail' && (
+          <G>
+            {/* Low sleek side ponytail peeking behind neck */}
+            <Path
+              d="M52 72C42 74 36 82 34 91C42 90 50 86 56 80Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.3}
+              strokeLinejoin="round"
+            />
+            <Path d="M40 84L45 81L43 86" stroke="rgba(255,255,255,0.3)" strokeWidth={1.3} fill="none" />
+          </G>
+        )}
+
+        {hair === 'samurai_bun' && !fullCoverHat && (
+          <G>
+            {/* Fluffy high top-knot bun */}
+            <Circle cx={70} cy={14} r={11.5} fill={hairCol} stroke="rgba(0,0,0,0.32)" strokeWidth={1.4} />
+            <Circle cx={62} cy={15} r={6.5} fill={hairCol} />
+            <Circle cx={78} cy={14} r={6.5} fill={hairCol} />
+            <Circle cx={70} cy={8} r={6} fill={hairCol} />
+            <Rect x={63} y={22} width={14} height={4.5} rx={2} fill="#7C2D12" stroke="#1C1917" strokeWidth={1} />
+          </G>
+        )}
+
+        {hair === 'rocker_long' && (
+          <Path
+            d="M36 44L30 58L36 62L31 76L38 80L35 94L48 88H92L105 94L102 80L109 76L104 62L110 58L104 44C99 24 86 17 70 17C54 17 41 24 36 44Z"
+            fill={hairCol}
+            stroke="rgba(0,0,0,0.32)"
+            strokeWidth={1.4}
+            strokeLinejoin="round"
+          />
+        )}
+
+        {hair === 'dreads_band' && (
+          <G>
+            {/* Textured curly dreadlock silhouette framing cheeks and neck */}
+            <Circle cx={40} cy={46} r={9} fill={hairCol} />
+            <Circle cx={100} cy={46} r={9} fill={hairCol} />
+            <Circle cx={38} cy={60} r={8.5} fill={hairCol} />
+            <Circle cx={102} cy={60} r={8.5} fill={hairCol} />
+            <Circle cx={42} cy={74} r={8.5} fill={hairCol} />
+            <Circle cx={98} cy={74} r={8.5} fill={hairCol} />
+            <Circle cx={50} cy={80} r={7.5} fill={hairCol} />
+            <Circle cx={90} cy={80} r={7.5} fill={hairCol} />
+            <Circle cx={48} cy={27} r={9.5} fill={hairCol} />
+            <Circle cx={61} cy={21} r={10} fill={hairCol} />
+            <Circle cx={79} cy={21} r={10} fill={hairCol} />
+            <Circle cx={92} cy={27} r={9.5} fill={hairCol} />
+          </G>
+        )}
+
         {/* ===== LAYER 2: ELEVATED UPPER TORSO & REAL GARMENTS (y=84..140!) ===== */}
         {outfit === 'tee' && (
           <G>
@@ -912,9 +985,253 @@ export function ModularAvatar({
             <Path
               d="M43 49C42 30 51 16 72 15C91 14 99 27 97 49C93 38 84 35 70 35C55 35 48 39 43 49Z"
               fill={hairCol}
+              stroke="rgba(0,0,0,0.28)"
+              strokeWidth={1.3}
             />
             {!fullCoverHat && (
-              <Path d="M52 24C62 18 78 18 87 24" stroke="rgba(255,255,255,0.24)" strokeWidth={2.6} strokeLinecap="round" fill="none" />
+              <Path d="M52 24C62 18 78 18 87 24" stroke="rgba(255,255,255,0.26)" strokeWidth={2.6} strokeLinecap="round" fill="none" />
+            )}
+          </G>
+        )}
+
+        {/* ===== NEW EXPRESSIVE MALE / UNISEX HAIRSTYLES (with zig-zag sheen & temple sideburns) ===== */}
+        {hair === 'textured_crop' && (
+          <G>
+            <Path
+              d="M43 52C42 33 52 21 70 21C88 21 98 33 97 52L94 49L92 38L87 40L83 34L78 39L74 33L70 39L66 33L62 39L57 34L53 40L48 38L46 49Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.35}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M56 30L60 26L64 31L68 25L72 31L76 26L81 30"
+                stroke="rgba(255,255,255,0.3)"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            )}
+          </G>
+        )}
+
+        {hair === 'spiky' && (
+          <G>
+            <Path
+              d="M43 53L41 36L46 39L48 25L56 30L64 16L71 25L79 14L83 27L92 22L94 37L99 35L97 53L93 48L91 37C84 35 77 34 70 34C63 34 56 35 49 37L47 48Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.34)"
+              strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M52 31L57 26L61 32L66 25L70 32L75 25L79 32L84 26L88 31"
+                stroke="rgba(255,255,255,0.34)"
+                strokeWidth={1.9}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            )}
+          </G>
+        )}
+
+        {hair === 'spiky_wild' && (
+          <G>
+            <Path
+              d="M43 53L36 37L43 37L31 21L50 26L46 15L62 23L70 11L78 23L94 15L90 26L109 21L97 37L104 37L97 53L93 46L91 39C85 35 78 33 70 36C62 33 55 35 49 39L47 46Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.36)"
+              strokeWidth={1.45}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M44 26L52 29L58 24L64 31L70 24L76 31L82 24L88 29L96 26"
+                stroke="rgba(255,255,255,0.36)"
+                strokeWidth={1.9}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            )}
+          </G>
+        )}
+
+        {hair === 'curtain' && (
+          <G>
+            {/* Middle-parted curtain bangs with crisp central V gap */}
+            <Path
+              d="M41 56C40 34 50 21 69 22L70 28L71 22C90 21 100 34 99 56L94 52C93 41 85 34 75 33L78 44L70 33L62 44L65 33C55 34 47 41 46 52Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <>
+                <Path d="M51 32C55 27 62 27 65 30" stroke="rgba(255,255,255,0.28)" strokeWidth={2} strokeLinecap="round" fill="none" />
+                <Path d="M89 32C85 27 78 27 75 30" stroke="rgba(255,255,255,0.28)" strokeWidth={2} strokeLinecap="round" fill="none" />
+              </>
+            )}
+          </G>
+        )}
+
+        {hair === 'shaggy' && (
+          <G>
+            {/* Layered full forehead bangs with wispy separated tips */}
+            <Path
+              d="M41 55C40 32 51 20 70 20C89 20 100 32 99 55L94 49L91 41L86 46L82 37L75 46L70 36L64 46L58 37L54 46L49 41L46 49Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M54 29L59 25L63 30L68 25L72 30L77 25L82 29"
+                stroke="rgba(255,255,255,0.3)"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                fill="none"
+              />
+            )}
+          </G>
+        )}
+
+        {hair === 'side_sweep' && (
+          <G>
+            {/* Diagonal swept bangs across forehead with expressive points */}
+            <Path
+              d="M41 55L38 49C40 30 52 19 71 20C89 21 99 32 101 51L96 54L92 43L82 47L76 41L66 49L57 42L48 52Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path d="M55 29L64 25L68 31L77 27" stroke="rgba(255,255,255,0.32)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            )}
+          </G>
+        )}
+
+        {hair === 'wavy_part' && (
+          <G>
+            {/* Voluminous side-parted wavy quiff */}
+            <Path
+              d="M42 53C38 40 42 26 53 23C59 16 78 15 89 22C99 28 102 41 97 53L92 46C91 37 83 34 73 36C67 37 62 32 54 34C48 36 47 43 46 50Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M57 25C64 21 74 22 81 27C85 30 88 28 90 32"
+                stroke="rgba(255,255,255,0.34)"
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                fill="none"
+              />
+            )}
+          </G>
+        )}
+
+        {hair === 'bowl_mod' && (
+          <G>
+            {/* Clean retro mod bowl cut with sharp straight bangs & zig-zag sheen */}
+            <Path
+              d="M41 48C42 28 53 19 70 19C87 19 98 28 99 48L93 48L90 38H50L47 48Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.4}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M52 31L56 26L61 32L66 26L71 32L76 26L81 32L86 27"
+                stroke="rgba(255,255,255,0.34)"
+                strokeWidth={1.9}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            )}
+          </G>
+        )}
+
+        {hair === 'slick_tail' && (
+          <G>
+            {/* Sleek combed-back hairline with bright horizontal glossy arc */}
+            <Path
+              d="M43 51C43 31 53 21 70 21C87 21 97 31 97 51L93 47C92 38 86 34 70 34C54 34 48 38 47 47Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.3)"
+              strokeWidth={1.35}
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M49 34C55 27 85 27 91 34"
+                stroke="rgba(255,255,255,0.32)"
+                strokeWidth={3.2}
+                strokeLinecap="round"
+                fill="none"
+              />
+            )}
+          </G>
+        )}
+
+        {hair === 'samurai_bun' && (
+          <G>
+            {/* Pulled-back spiky temples + signature single forehead curl */}
+            <Path
+              d="M43 52L40 42L45 40L44 31C51 24 60 22 70 22C80 22 89 24 96 31L95 40L100 42L97 52L93 47C92 38 85 34 70 34C55 34 48 38 47 47Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.35}
+              strokeLinejoin="round"
+            />
+            <Path d="M70 33C68 38 72 42 75 40" stroke={hairCol} strokeWidth={2.8} strokeLinecap="round" fill="none" />
+            {!fullCoverHat && (
+              <Path d="M56 30L61 26L65 30L70 26L75 30L79 26L84 30" stroke="rgba(255,255,255,0.32)" strokeWidth={1.7} fill="none" />
+            )}
+          </G>
+        )}
+
+        {hair === 'rocker_long' && (
+          <G>
+            {/* Dramatic swept-back front hairline with high crown tuft */}
+            <Path
+              d="M43 52C42 35 49 23 62 21L67 14L72 20L77 15L80 22C92 25 98 35 97 52L93 47C92 37 83 32 70 32C57 32 48 37 47 47Z"
+              fill={hairCol}
+              stroke="rgba(0,0,0,0.32)"
+              strokeWidth={1.35}
+              strokeLinejoin="round"
+            />
+            {!fullCoverHat && (
+              <Path d="M54 27C62 23 78 23 86 27" stroke="rgba(255,255,255,0.28)" strokeWidth={2.2} strokeLinecap="round" fill="none" />
+            )}
+          </G>
+        )}
+
+        {hair === 'dreads_band' && (
+          <G>
+            {/* Textured dread hairline + vibrant sporty headband */}
+            <Path
+              d="M43 50C44 33 54 24 70 24C86 24 96 33 97 50C92 40 83 37 70 37C57 37 48 40 43 50Z"
+              fill={hairCol}
+            />
+            {!fullCoverHat && (
+              <Path
+                d="M44 42C51 28 89 28 96 42"
+                stroke={outfitCol}
+                strokeWidth={5.5}
+                strokeLinecap="round"
+                fill="none"
+              />
             )}
           </G>
         )}
