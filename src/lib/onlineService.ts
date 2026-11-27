@@ -81,14 +81,24 @@ async function invokeOnlineFn<T>(payload: Record<string, unknown>): Promise<T> {
   return data as T;
 }
 
-export async function listOpenPublicRooms(): Promise<OnlineRoomRow[]> {
-  const { data, error } = await supabase
+export async function listOpenPublicRooms(
+  modeFilter: GameMode | 'all' = 'all'
+): Promise<OnlineRoomRow[]> {
+  let query = supabase
     .from('game_rooms')
     .select(
       'id, code, host_user_id, mode, target_score, is_private, buy_in, status, max_players, player_count, public_state, turn_started_at, created_at, room_players(seat, user_id, display_name, is_bot)'
     )
     .eq('status', 'waiting')
-    .eq('is_private', false)
+    .eq('is_private', false);
+
+  if (modeFilter !== 'all') {
+    query = query.eq('mode', modeFilter);
+  }
+
+  // Prioritize almost-full rooms first so tables fill and launch fast even with thousands online
+  const { data, error } = await query
+    .order('player_count', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(20);
 
@@ -123,6 +133,19 @@ export async function fetchRoomSnapshot(
   const myHand = Array.isArray(handRes.data?.hand) ? (handRes.data.hand as Tile[]) : [];
 
   return { room, myHand, mySeat };
+}
+
+export function quickMatchOnlineRoom(params: {
+  mode: GameMode;
+  targetScore: TargetScore;
+  buyIn?: number;
+}) {
+  return invokeOnlineFn<{ room: OnlineRoomRow; mySeat: number; matched: boolean }>({
+    action: 'quick_match',
+    mode: params.mode,
+    targetScore: params.targetScore,
+    buyIn: params.buyIn ?? 0,
+  });
 }
 
 export function createOnlineRoom(params: {

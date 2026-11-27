@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AuthModal, AuthModalReason } from '@/components/domino/AuthModal';
 import { DailyRewardModal } from '@/components/domino/DailyRewardModal';
 import { FeedbackModal } from '@/components/domino/FeedbackModal';
 import { GameTableView } from '@/components/domino/GameTableView';
@@ -152,11 +153,16 @@ export default function DominoAppScreen() {
   const [isLocalPaused, setIsLocalPaused] = useState(false);
   const [seatMoods, setSeatMoods] = useState<Record<number, BotMood>>({});
 
-  // Economy & Feedback Modals + Remote Kill-Switch Config
+  // Economy, Auth & Feedback Modals + Remote Kill-Switch Config
   const [dailyModalOpen, setDailyModalOpen] = useState(false);
   const [themesModalOpen, setThemesModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [authModal, setAuthModal] = useState<{ open: boolean; reason: AuthModalReason }>({
+    open: false,
+    reason: 'profile',
+  });
   const [remoteConfig, setRemoteConfig] = useState<RemoteAppConfig>(DEFAULT_REMOTE_CONFIG);
+  const pendingOnlineTabRef = useRef<'public' | 'private' | null>(null);
 
   // Online Room Realtime State
   const [onlineRoom, setOnlineRoom] = useState<OnlineRoomRow | null>(null);
@@ -228,10 +234,21 @@ export default function DominoAppScreen() {
     return () => sub.remove();
   }, [screenMode]);
 
-  // 2. Background Supabase Sync on sign-in
+  // 2. Background Supabase Sync on sign-in + Auto-continue into Online Lobby if triggered from guest tap
   useEffect(() => {
     if (!hydrated || !user) return;
     let active = true;
+
+    if (authModal.open) {
+      setAuthModal((prev) => ({ ...prev, open: false }));
+    }
+    if (pendingOnlineTabRef.current) {
+      const targetTab = pendingOnlineTabRef.current;
+      pendingOnlineTabRef.current = null;
+      setLobbyInitialTab(targetTab);
+      setScreenMode('online_lobby');
+    }
+
     flushPendingAndSyncProgress(user.id, retentionRef.current)
       .then(({ mergedProgress, profile }) => {
         if (!active) return;
@@ -935,12 +952,24 @@ export default function DominoAppScreen() {
             onStartQuickMatch={handleStartQuickMatch}
             onOpenOnlineLobby={(tab) => {
               if (!remoteConfig.onlineEnabled) return;
+              if (!user) {
+                pendingOnlineTabRef.current = tab;
+                setAuthModal({
+                  open: true,
+                  reason: tab === 'private' ? 'online_private' : 'online_public',
+                });
+                return;
+              }
               setLobbyInitialTab(tab);
               setScreenMode('online_lobby');
             }}
             onOpenDailyRewards={() => setDailyModalOpen(true)}
             onOpenThemes={() => setThemesModalOpen(true)}
             onOpenFeedback={() => setFeedbackModalOpen(true)}
+            onOpenAuth={() => {
+              pendingOnlineTabRef.current = null;
+              setAuthModal({ open: true, reason: 'profile' });
+            }}
           />
         )}
 
@@ -988,6 +1017,7 @@ export default function DominoAppScreen() {
             defaultTargetScore={state.targetScore}
             initialTab={lobbyInitialTab}
             onEnteredRoom={handleEnteredOnlineRoom}
+            onRequestAuth={() => setAuthModal({ open: true, reason: 'online_public' })}
             onBack={() => setScreenMode('local')}
           />
         )}
@@ -1062,6 +1092,15 @@ export default function DominoAppScreen() {
           visible={feedbackModalOpen}
           userId={user?.id ?? null}
           onClose={() => setFeedbackModalOpen(false)}
+        />
+
+        <AuthModal
+          visible={authModal.open}
+          reason={authModal.reason}
+          onClose={() => {
+            pendingOnlineTabRef.current = null;
+            setAuthModal((prev) => ({ ...prev, open: false }));
+          }}
         />
       </View>
     </SafeAreaView>

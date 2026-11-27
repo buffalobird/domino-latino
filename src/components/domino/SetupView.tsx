@@ -43,6 +43,7 @@ interface SetupViewProps {
   onOpenDailyRewards: () => void;
   onOpenThemes: () => void;
   onOpenFeedback: () => void;
+  onOpenAuth: () => void;
 }
 
 const MODE_OPTIONS: {
@@ -130,6 +131,7 @@ export function SetupView({
   onOpenDailyRewards,
   onOpenThemes,
   onOpenFeedback,
+  onOpenAuth,
 }: SetupViewProps) {
   const { height: winH } = useWindowDimensions();
   const isCompactH = winH < 780;
@@ -417,8 +419,8 @@ export function SetupView({
               </View>
             </View>
 
-            {/* 5. Slim Frosted OAuth Row */}
-            <AccountCard />
+            {/* 5. Clean Account / Sign-in Trigger (opens full-size AuthModal) */}
+            <AccountCard onOpenAuth={onOpenAuth} />
           </View>
         </ScrollView>
 

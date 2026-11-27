@@ -18,16 +18,16 @@ import {
   joinOnlineRoom,
   listOpenPublicRooms,
   OnlineRoomRow,
+  quickMatchOnlineRoom,
 } from '@/lib/onlineService';
-import { supabase } from '@/lib/supabase';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
-import { AccountCard } from './AccountCard';
 import { AvatarIllustration } from './AvatarIllustration';
 import { GlossyButton } from './GlossyButton';
 import {
   ChevronLeftIcon,
   ChipIcon,
   LockIcon,
+  PlayIcon,
   PlusIcon,
   RefreshIcon,
 } from './Icons';
@@ -38,6 +38,7 @@ interface OnlineLobbyViewProps {
   defaultTargetScore: TargetScore;
   initialTab?: 'public' | 'private';
   onEnteredRoom: (room: OnlineRoomRow, mySeat: number) => void;
+  onRequestAuth?: () => void;
   onBack: () => void;
 }
 
@@ -54,10 +55,12 @@ export function OnlineLobbyView({
   defaultTargetScore,
   initialTab = 'public',
   onEnteredRoom,
+  onRequestAuth,
   onBack,
 }: OnlineLobbyViewProps) {
   const { isSignedIn } = useAuth();
   const [rooms, setRooms] = useState<OnlineRoomRow[]>([]);
+  const [modeFilter, setModeFilter] = useState<GameMode | 'all'>('all');
   const [loading, setLoading] = useState(false);
   const [busyAction, setBusyAction] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -76,40 +79,41 @@ export function OnlineLobbyView({
     if (!isSignedIn) return;
     setLoading(true);
     try {
-      const list = await listOpenPublicRooms();
+      const list = await listOpenPublicRooms(modeFilter);
       setRooms(list);
     } finally {
       setLoading(false);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, modeFilter]);
 
-  // Live Realtime Lobby updates whenever rooms or seated players change
+  // Scalable Lobby Polling (every 8s — avoids unfiltered Realtime storm when thousands are playing!)
   useEffect(() => {
     if (!isSignedIn) return;
     refreshRooms();
-
-    const channel = supabase
-      .channel('public-lobby-rooms')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'game_rooms' },
-        () => {
-          refreshRooms();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'room_players' },
-        () => {
-          refreshRooms();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    const poll = setInterval(() => {
+      refreshRooms();
+    }, 8000);
+    return () => clearInterval(poll);
   }, [isSignedIn, refreshRooms]);
+
+  const handleQuickMatch = async () => {
+    setErrorMsg(null);
+    setBusyAction(true);
+    try {
+      const targetMode: GameMode = modeFilter === 'all' ? defaultMode : modeFilter;
+      const res = await quickMatchOnlineRoom({
+        mode: targetMode,
+        targetScore: defaultTargetScore,
+        buyIn: 0,
+      });
+      hapticSnap();
+      onEnteredRoom(res.room, res.mySeat);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'No se pudo buscar mesa rápida.');
+    } finally {
+      setBusyAction(false);
+    }
+  };
 
   const handleCreate = async () => {
     setErrorMsg(null);
@@ -202,10 +206,13 @@ export function OnlineLobbyView({
           <View style={styles.authGate}>
             <Text style={styles.gateTitle}>Inicia sesión para jugar Online</Text>
             <Text style={styles.gateSub}>
-              Conéctate con Google o Apple para sentarte en mesas públicas, crear
-              salas privadas con código y guardar tus Fichas de Club.
+              Conéctate con Apple o Google para entrar a mesas públicas o crear salas privadas con amigos.
             </Text>
-            <AccountCard />
+            <GlossyButton
+              title="Iniciar sesión"
+              variant="emerald"
+              onPress={() => onRequestAuth?.()}
+            />
           </View>
         ) : (
           <>
@@ -213,6 +220,30 @@ export function OnlineLobbyView({
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{errorMsg}</Text>
               </View>
+            )}
+
+            {/* 1-Tap Scalable Online Quick Match */}
+            {initialTab !== 'private' && (
+              <GlossyButton
+                title="Sentarme ya (Online rápido)"
+                subtitle={`${
+                  modeFilter === 'all'
+                    ? defaultMode === '1v1'
+                      ? '1 vs 1'
+                      : defaultMode === '2v2'
+                      ? '2 vs 2'
+                      : '4 Jug.'
+                    : modeFilter === '1v1'
+                    ? '1 vs 1'
+                    : modeFilter === '2v2'
+                    ? '2 vs 2'
+                    : '4 Jug.'
+                } · Mesa pública gratis`}
+                variant="emerald"
+                icon={<PlayIcon size={18} color="#06311B" />}
+                loading={busyAction}
+                onPress={handleQuickMatch}
+              />
             )}
 
             {/* Join Private Room by 6-char Code */}
@@ -371,7 +402,7 @@ export function OnlineLobbyView({
               </View>
             )}
 
-            {/* Open Public Tables List */}
+            {/* Open Public Tables List with Mode Filter */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Mesas públicas abiertas</Text>
               <Pressable
@@ -383,6 +414,33 @@ export function OnlineLobbyView({
                   {loading ? 'Buscando...' : 'Actualizar'}
                 </Text>
               </Pressable>
+            </View>
+
+            <View style={styles.chipRow}>
+              {(
+                [
+                  { id: 'all', label: 'Todas' },
+                  { id: '1v1', label: '1 vs 1' },
+                  { id: '2v2', label: '2 vs 2' },
+                  { id: '4ffa', label: '4 Jug.' },
+                ] as const
+              ).map((f) => {
+                const active = modeFilter === f.id;
+                return (
+                  <Pressable
+                    key={f.id}
+                    onPress={() => {
+                      hapticLight();
+                      setModeFilter(f.id);
+                    }}
+                    style={[styles.pill, active && styles.pillActive]}
+                  >
+                    <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                      {f.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
             {rooms.length === 0 ? (
