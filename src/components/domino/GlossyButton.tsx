@@ -10,6 +10,8 @@ import {
   ViewStyle,
 } from 'react-native';
 
+import { usePalette } from '@/context/PaletteContext';
+
 export type GlossyVariant = 'emerald' | 'cobalt' | 'violet' | 'gold' | 'coral' | 'glass';
 
 interface GlossyButtonProps {
@@ -106,7 +108,49 @@ export function GlossyButton({
   style,
   onPress,
 }: GlossyButtonProps) {
-  const cfg = VARIANT_CONFIG[variant];
+  const { palette } = usePalette();
+  const baseCfg = VARIANT_CONFIG[variant];
+  const cfg =
+    variant === 'emerald'
+      ? {
+          ...baseCfg,
+          colors: [palette.primaryTop, palette.primaryMid, palette.primaryBottom] as [
+            string,
+            string,
+            string,
+          ],
+          lip: palette.primaryShadow,
+          border: palette.isDark
+            ? 'rgba(187, 247, 208, 0.55)'
+            : 'rgba(255, 255, 255, 0.45)',
+          shadow: palette.isDark
+            ? baseCfg.shadow
+            : '0px 6px 18px rgba(237, 106, 90, 0.28)',
+          text: palette.textOnPrimary,
+          sub: palette.isDark ? '#0B4D2B' : 'rgba(255, 255, 255, 0.90)',
+        }
+      : variant === 'cobalt' && !palette.isDark
+      ? {
+          ...baseCfg,
+          colors: ['#54DBD8', palette.accent, '#21ABA8'] as [string, string, string],
+          lip: '#177E7C',
+          border: 'rgba(255, 255, 255, 0.55)',
+          shadow: '0px 4px 14px rgba(54, 201, 198, 0.28)',
+          text: palette.textOnAccent,
+          sub: '#124648',
+        }
+      : variant === 'glass' && !palette.isDark
+      ? {
+          ...baseCfg,
+          colors: ['#FFFFFF', '#F5F7F1', '#E9EFE6'] as [string, string, string],
+          lip: palette.secondaryAccent,
+          border: palette.borderSubtle,
+          shadow: '0px 3px 10px rgba(26, 49, 54, 0.08)',
+          text: palette.textPrimary,
+          sub: palette.textSecondary,
+          glossOpacity: 0.25,
+        }
+      : baseCfg;
   const radius = compact ? 14 : 18;
 
   return (

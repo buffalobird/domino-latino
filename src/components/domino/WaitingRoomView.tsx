@@ -11,6 +11,7 @@ import {
 
 import { sanitizeAvatarConfig } from '@/constants/avatarCatalog';
 import { CLUB } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { OnlineRoomRow } from '@/lib/onlineService';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
@@ -30,6 +31,7 @@ export function WaitingRoomView({
   onStartWithBots,
   onLeave,
 }: WaitingRoomViewProps) {
+  const { palette } = usePalette();
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const seats = room.room_players ?? [];
@@ -73,38 +75,76 @@ export function WaitingRoomView({
 
   return (
     <LinearGradient
-      colors={[CLUB.roomBgTop, CLUB.roomBgMid, '#091A21', CLUB.roomBgBottom]}
-      locations={[0, 0.35, 0.72, 1]}
+      colors={[palette.bgTop, palette.bgMid, palette.bgBottom]}
+      locations={[0, 0.5, 1]}
       style={styles.root}
     >
-      <View style={styles.card}>
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: palette.surfaceCard,
+            borderColor: palette.borderSubtle,
+            boxShadow: palette.isDark
+              ? '0px 18px 44px rgba(0, 0, 0, 0.65)'
+              : '0px 14px 32px rgba(26, 49, 54, 0.12)',
+          },
+        ]}
+      >
         <View style={styles.kickerRow}>
           {room.is_private ? (
-            <LockIcon size={12} color={CLUB.gold} />
+            <LockIcon size={12} color={palette.brandAccent} />
           ) : (
-            <GlobeIcon size={12} color={CLUB.gold} />
+            <GlobeIcon size={12} color={palette.brandAccent} />
           )}
-          <Text style={styles.kicker}>
+          <Text style={[styles.kicker, { color: palette.brandAccent }]}>
             {room.is_private ? 'SALA PRIVADA' : 'MESA PÚBLICA'} · {modeLabel.toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.headline}>
+        <Text style={[styles.headline, { color: palette.textPrimary }]}>
           La mesa te espera ({seats.length}/{room.max_players})
         </Text>
-        <Text style={styles.sub}>
+        <Text style={[styles.sub, { color: palette.textSecondary }]}>
           Meta {room.target_score} pts ·{' '}
           {room.buy_in === 0 ? 'Mesa amistosa gratis' : `Salón ${room.buy_in} fichas`}
         </Text>
 
         {/* Shareable 6-character code */}
-        <View style={styles.codeBox}>
-          <Text style={styles.codeLabel}>CÓDIGO DE MESA</Text>
-          <Text style={styles.codeValue}>{room.code}</Text>
+        <View
+          style={[
+            styles.codeBox,
+            {
+              backgroundColor: palette.isDark
+                ? 'rgba(34, 27, 16, 0.66)'
+                : palette.chipPillBg,
+              borderColor: palette.borderWarm,
+              boxShadow: palette.isDark
+                ? '0px 0px 20px rgba(245, 196, 81, 0.22)'
+                : '0px 4px 14px rgba(237, 106, 90, 0.10)',
+            },
+          ]}
+        >
+          <Text style={[styles.codeLabel, { color: palette.textMuted }]}>
+            CÓDIGO DE MESA
+          </Text>
+          <Text
+            style={[
+              styles.codeValue,
+              { color: palette.isDark ? CLUB.gold : palette.textPrimary },
+            ]}
+          >
+            {room.code}
+          </Text>
           <GlossyButton
             title="Compartir código con amigos"
             variant="cobalt"
             compact
-            icon={<ShareIcon size={15} color="#FFFFFF" />}
+            icon={
+              <ShareIcon
+                size={15}
+                color={palette.isDark ? '#FFFFFF' : palette.textOnAccent}
+              />
+            }
             onPress={handleShareCode}
             style={{ width: '100%', marginTop: 4 }}
           />
@@ -113,11 +153,20 @@ export function WaitingRoomView({
         {/* Live Seated Roster */}
         <View style={styles.seatsGrid}>
           {slots.map((occupant, idx) => (
-            <View key={idx} style={styles.seatCard}>
+            <View
+              key={idx}
+              style={[
+                styles.seatCard,
+                {
+                  backgroundColor: palette.surfaceCardAlt,
+                  borderColor: palette.borderSubtle,
+                },
+              ]}
+            >
               {occupant ? (
                 <AvatarIllustration
                   isBot={occupant.is_bot}
-                  accentColor={idx % 2 === 0 ? CLUB.emerald : CLUB.gold}
+                  accentColor={idx % 2 === 0 ? palette.accent : palette.brandAccent}
                   size={46}
                   avatarConfig={
                     !occupant.is_bot && occupant.avatar_config
@@ -126,11 +175,19 @@ export function WaitingRoomView({
                   }
                 />
               ) : (
-                <View style={styles.emptyCircle}>
-                  <PlusIcon size={20} color={CLUB.gold} />
+                <View
+                  style={[
+                    styles.emptyCircle,
+                    { borderColor: palette.brandAccent },
+                  ]}
+                >
+                  <PlusIcon size={20} color={palette.brandAccent} />
                 </View>
               )}
-              <Text style={styles.seatLabel} numberOfLines={1}>
+              <Text
+                style={[styles.seatLabel, { color: palette.textPrimary }]}
+                numberOfLines={1}
+              >
                 {occupant ? occupant.display_name : 'Esperando...'}
               </Text>
             </View>
@@ -139,16 +196,37 @@ export function WaitingRoomView({
 
         {errorMsg && (
           <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{errorMsg}</Text>
+            <Text
+              style={[styles.errorText, !palette.isDark && { color: '#9F1239' }]}
+            >
+              {errorMsg}
+            </Text>
           </View>
         )}
 
         {isPaidSalon && (
-          <View style={styles.salonNotice}>
-            <Text style={styles.salonNoticeTitle}>
+          <View
+            style={[
+              styles.salonNotice,
+              {
+                backgroundColor: palette.isDark
+                  ? 'rgba(245, 196, 81, 0.12)'
+                  : palette.chipPillBg,
+                borderColor: palette.borderWarm,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.salonNoticeTitle,
+                { color: palette.isDark ? CLUB.gold : palette.chipPillText },
+              ]}
+            >
               Salón de {room.buy_in.toLocaleString('es-ES')} fichas · Solo jugadores reales
             </Text>
-            <Text style={styles.salonNoticeBody}>
+            <Text
+              style={[styles.salonNoticeBody, { color: palette.textSecondary }]}
+            >
               Las fichas de entrada solo se descuentan cuando todos los asientos se llenan con humanos.
             </Text>
           </View>

@@ -5,25 +5,34 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { GlobalErrorBoundary } from '@/components/domino/GlobalErrorBoundary';
-import { CLUB } from '@/constants/tokens';
 import { AuthProvider } from '@/context/AuthContext';
+import { PaletteProvider, usePalette } from '@/context/PaletteContext';
 
-export default function RootLayout() {
+function ThemedRootStack() {
+  const { palette } = usePalette();
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: CLUB.roomBgTop }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: palette.bgTop }}>
       <SafeAreaProvider>
         <GlobalErrorBoundary>
           <AuthProvider>
-            <StatusBar style="light" />
+            <StatusBar style={palette.isDark ? 'light' : 'dark'} />
             <Stack
               screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: CLUB.roomBgTop },
+                contentStyle: { backgroundColor: palette.bgTop },
               }}
             />
           </AuthProvider>
         </GlobalErrorBoundary>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <PaletteProvider>
+      <ThemedRootStack />
+    </PaletteProvider>
   );
 }

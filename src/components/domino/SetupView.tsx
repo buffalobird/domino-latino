@@ -11,8 +11,8 @@ import {
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { getWarmHostGreeting } from '@/constants/socialReactions';
-import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
+import { usePalette } from '@/context/PaletteContext';
 import { GameMode, TARGET_SCORES, TargetScore } from '@/engine/types';
 import { canClaimDailyReward, RetentionProgress } from '@/storage/gameStorage';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
@@ -74,35 +74,35 @@ const MODE_OPTIONS: {
   },
 ];
 
-/** Warm overhead parlor lamp glow matching the active nocturnal domino table */
-function WarmParlorBackdrop() {
+function AmbientPaletteBackdrop() {
+  const { palette } = usePalette();
   return (
     <View style={styles.backdropLayer} pointerEvents="none">
       <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
         <Defs>
-          <RadialGradient id="parlorLamp" cx="50%" cy="18%" r="54%">
-            <Stop offset="0%" stopColor="#F5C451" stopOpacity={0.14} />
-            <Stop offset="45%" stopColor="#14626A" stopOpacity={0.22} />
-            <Stop offset="100%" stopColor="#071419" stopOpacity={0} />
+          <RadialGradient id="palTop" cx="50%" cy="16%" r="58%">
+            <Stop offset="0%" stopColor={palette.glowTop} stopOpacity={palette.glowTopOpacity} />
+            <Stop offset="100%" stopColor={palette.bgTop} stopOpacity={0} />
           </RadialGradient>
-          <RadialGradient id="feltWarmth" cx="50%" cy="88%" r="46%">
-            <Stop offset="0%" stopColor="#1A6E56" stopOpacity={0.22} />
-            <Stop offset="60%" stopColor="#0C353C" stopOpacity={0.08} />
-            <Stop offset="100%" stopColor="#061116" stopOpacity={0} />
+          <RadialGradient id="palBot" cx="50%" cy="88%" r="48%">
+            <Stop
+              offset="0%"
+              stopColor={palette.glowBottom}
+              stopOpacity={palette.glowBottomOpacity}
+            />
+            <Stop offset="100%" stopColor={palette.bgBottom} stopOpacity={0} />
           </RadialGradient>
         </Defs>
-        <Rect x={0} y={0} width={100} height={100} fill="url(#parlorLamp)" />
-        <Rect x={0} y={0} width={100} height={100} fill="url(#feltWarmth)" />
+        <Rect x={0} y={0} width={100} height={100} fill="url(#palTop)" />
+        <Rect x={0} y={0} width={100} height={100} fill="url(#palBot)" />
       </Svg>
     </View>
   );
 }
 
 /**
- * Unified "La Sobremesa" Nocturnal Domino Club Home Screen (see DESIGN_LANGUAGE.md):
- * - Same warm obsidian-teal atmosphere, brass hairlines, porcelain domino tiles, and live 2.5D avatar
- *   as the active table — zero 3D-arcade visual mismatch in the first 50 ms.
- * - Warm time-of-day host greeting designed for players seeking calm company around the table.
+ * Dynamically themed Home Screen driven 100% by `PaletteContext` so new color palettes
+ * (daylight or nocturnal) can be tested live in 1 tap without rewriting screens.
  */
 export function SetupView({
   mode,
@@ -121,6 +121,7 @@ export function SetupView({
   onOpenAuth,
 }: SetupViewProps) {
   const { profile } = useAuth();
+  const { palette, cyclePalette } = usePalette();
   const { height: winH } = useWindowDimensions();
   const isCompactH = winH < 780;
 
@@ -133,11 +134,11 @@ export function SetupView({
 
   return (
     <LinearGradient
-      colors={[CLUB.roomBgTop, CLUB.roomBgMid, '#091A21', CLUB.roomBgBottom]}
-      locations={[0, 0.36, 0.74, 1]}
+      colors={[palette.bgTop, palette.bgMid, palette.bgBottom]}
+      locations={[0, 0.45, 1]}
       style={styles.gradient}
     >
-      <WarmParlorBackdrop />
+      <AmbientPaletteBackdrop />
 
       <View style={styles.shell}>
         <ScrollView
@@ -149,13 +150,32 @@ export function SetupView({
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Top Club Bar (Level + Boutique + Club Chips + Feedback) */}
+          {/* 1. Top Club Bar (Level + 1-Tap Live Palette Lab + Boutique + Chips + Feedback) */}
           <View style={styles.topStrip}>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelText}>Nivel {retention.level}</Text>
-              <View style={styles.xpBarBg}>
+            <View
+              style={[
+                styles.levelBadge,
+                {
+                  backgroundColor: palette.surfacePill,
+                  borderColor: palette.borderSubtle,
+                },
+              ]}
+            >
+              <Text style={[styles.levelText, { color: palette.textPrimary }]}>
+                Nv. {retention.level}
+              </Text>
+              <View
+                style={[
+                  styles.xpBarBg,
+                  {
+                    backgroundColor: palette.isDark
+                      ? 'rgba(255,255,255,0.12)'
+                      : 'rgba(26,49,54,0.10)',
+                  },
+                ]}
+              >
                 <LinearGradient
-                  colors={[CLUB.goldSoft, CLUB.gold]}
+                  colors={[palette.accent, palette.brandAccent]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
                   style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]}
@@ -164,15 +184,57 @@ export function SetupView({
             </View>
 
             <View style={styles.topRightPills}>
+              {/* 1-Tap Live Palette Lab Switcher */}
+              <Pressable
+                onPress={() => {
+                  hapticLight();
+                  cyclePalette();
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Cambiar paleta de color, actual ${palette.name}`}
+                style={({ pressed }) => [
+                  styles.palettePill,
+                  {
+                    backgroundColor: palette.surfacePill,
+                    borderColor: palette.borderSubtle,
+                  },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                <View style={styles.swatchDots}>
+                  {palette.swatches.slice(0, 3).map((hex, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.swatchDot,
+                        { backgroundColor: hex, borderColor: palette.surfaceCard },
+                      ]}
+                    />
+                  ))}
+                </View>
+                <Text style={[styles.palettePillText, { color: palette.textPrimary }]}>
+                  {palette.name.split(' ')[0]}
+                </Text>
+              </Pressable>
+
               <Pressable
                 onPress={() => {
                   hapticLight();
                   onOpenThemes();
                 }}
                 accessibilityRole="button"
-                style={({ pressed }) => [styles.themesPill, pressed && { opacity: 0.85 }]}
+                style={({ pressed }) => [
+                  styles.themesPill,
+                  {
+                    backgroundColor: palette.surfacePill,
+                    borderColor: palette.borderSubtle,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}
               >
-                <Text style={styles.themesPillText}>Mesas</Text>
+                <Text style={[styles.themesPillText, { color: palette.textPrimary }]}>
+                  Mesas
+                </Text>
               </Pressable>
 
               <Pressable
@@ -183,15 +245,20 @@ export function SetupView({
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.chipsPill,
-                  hasDailyBonus && styles.chipsPillReady,
+                  {
+                    backgroundColor: palette.chipPillBg,
+                    borderColor: hasDailyBonus ? palette.brandAccent : palette.borderWarm,
+                  },
                   pressed && { opacity: 0.85 },
                 ]}
               >
-                <ChipIcon size={14} color={CLUB.gold} />
-                <Text style={styles.chipsValue}>
+                <ChipIcon size={14} color={palette.chipIconColor} />
+                <Text style={[styles.chipsValue, { color: palette.chipPillText }]}>
                   {retention.clubChips.toLocaleString('es-ES')}
                 </Text>
-                {hasDailyBonus && <View style={styles.readyDot} />}
+                {hasDailyBonus && (
+                  <View style={[styles.readyDot, { backgroundColor: palette.brandAccent }]} />
+                )}
               </Pressable>
 
               <Pressable
@@ -203,24 +270,37 @@ export function SetupView({
                 accessibilityLabel="Sugerencias y soporte"
                 style={({ pressed }) => [
                   styles.gearBtn,
+                  {
+                    backgroundColor: palette.surfacePill,
+                    borderColor: palette.borderSubtle,
+                  },
                   pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
                 ]}
               >
-                <GearIcon size={18} color={CLUB.textSecondary} />
+                <GearIcon size={17} color={palette.textSecondary} />
               </Pressable>
             </View>
           </View>
 
-          {/* 2. Unified Sobremesa Brand Header + Live Companion Host Card */}
+          {/* 2. Brand Header */}
           <View style={[styles.brandBlock, isCompactH && { paddingVertical: 2 }]}>
-            <Text style={styles.brandKicker}>LA SOBREMESA · DOBLE SEIS</Text>
-            <Text style={[styles.brandTitle, isCompactH && { fontSize: 28 }]}>
-              DOMINÓ <Text style={styles.brandTitleAccent}>LATINO</Text>
+            <Text style={[styles.brandKicker, { color: palette.textMuted }]}>
+              LA SOBREMESA · DOBLE SEIS
             </Text>
-            <View style={styles.brassRule} />
+            <Text
+              style={[
+                styles.brandTitle,
+                { color: palette.textPrimary },
+                isCompactH && { fontSize: 28 },
+              ]}
+            >
+              DOMINÓ{' '}
+              <Text style={{ color: palette.brandAccent }}>LATINO</Text>
+            </Text>
+            <View style={[styles.brassRule, { backgroundColor: palette.accent }]} />
           </View>
 
-          {/* Signature Tactile Card: Your live 2.5D Avatar + Warm Greeting + Real Porcelain Tiles */}
+          {/* Signature Tactile Host Card: Live 2.5D Avatar + Warm Greeting + Real Porcelain Tiles */}
           <Pressable
             onPress={() => {
               hapticLight();
@@ -230,6 +310,10 @@ export function SetupView({
             accessibilityLabel="Personalizar mi avatar"
             style={({ pressed }) => [
               styles.hostCard,
+              {
+                backgroundColor: palette.surfaceHighlight,
+                borderColor: palette.borderSubtle,
+              },
               isCompactH && { paddingVertical: 10, paddingHorizontal: 12 },
               pressed && { opacity: 0.94 },
             ]}
@@ -240,21 +324,36 @@ export function SetupView({
                 size={isCompactH ? 54 : 62}
                 showFrameRing
               />
-              <View style={styles.avatarEditPill}>
-                <Text style={styles.avatarEditPillText}>Editar</Text>
+              <View
+                style={[
+                  styles.avatarEditPill,
+                  {
+                    backgroundColor: palette.chipPillBg,
+                    borderColor: palette.borderWarm,
+                  },
+                ]}
+              >
+                <Text style={[styles.avatarEditPillText, { color: palette.chipPillText }]}>
+                  Editar
+                </Text>
               </View>
             </View>
 
             <View style={styles.hostCopyCol}>
-              <Text style={styles.hostGreeting} numberOfLines={1}>
+              <Text
+                style={[styles.hostGreeting, { color: palette.textPrimary }]}
+                numberOfLines={1}
+              >
                 {greeting}
               </Text>
-              <Text style={styles.hostInvite} numberOfLines={2}>
+              <Text
+                style={[styles.hostInvite, { color: palette.textSecondary }]}
+                numberOfLines={2}
+              >
                 {inviteLine}
               </Text>
             </View>
 
-            {/* Real tactile domino pieces in user's equipped tile style */}
             <View style={styles.emblemTiles} pointerEvents="none">
               <View style={styles.emblemTileBack}>
                 <DominoTile
@@ -278,14 +377,24 @@ export function SetupView({
           </Pressable>
 
           {maintenanceBanner && (
-            <View style={styles.maintenanceBanner}>
-              <Text style={styles.maintenanceBannerText}>{maintenanceBanner}</Text>
+            <View
+              style={[
+                styles.maintenanceBanner,
+                {
+                  backgroundColor: palette.chipPillBg,
+                  borderColor: palette.borderWarm,
+                },
+              ]}
+            >
+              <Text style={[styles.maintenanceBannerText, { color: palette.chipPillText }]}>
+                {maintenanceBanner}
+              </Text>
             </View>
           )}
 
           {/* 3–5. Lower Interactive Cluster */}
           <View style={styles.lowerCluster}>
-            {/* 3. Warm Daily Challenge Card */}
+            {/* 3. Daily Challenge Card */}
             <Pressable
               onPress={() => {
                 hapticLight();
@@ -294,6 +403,10 @@ export function SetupView({
               accessibilityRole="button"
               style={({ pressed }) => [
                 styles.challengeCard,
+                {
+                  backgroundColor: palette.surfaceCard,
+                  borderColor: palette.borderSubtle,
+                },
                 pressed && { opacity: 0.92 },
               ]}
             >
@@ -302,28 +415,42 @@ export function SetupView({
                   <StarIcon
                     key={idx}
                     size={17}
-                    color={idx < retention.dailyStars ? CLUB.gold : 'rgba(245,196,81,0.32)'}
+                    color={idx < retention.dailyStars ? palette.starColor : palette.starMuted}
                     filled={idx < retention.dailyStars}
                   />
                 ))}
               </View>
               <View style={styles.challengeTextCol}>
-                <Text style={styles.challengeTitle} numberOfLines={1}>
+                <Text
+                  style={[styles.challengeTitle, { color: palette.textPrimary }]}
+                  numberOfLines={1}
+                >
                   {remainingStars === 0
                     ? 'Reto diario completado'
                     : `Reto diario · ${retention.dailyStars}/3`}
                 </Text>
-                <Text style={styles.challengeSub} numberOfLines={1}>
+                <Text
+                  style={[styles.challengeSub, { color: palette.textSecondary }]}
+                  numberOfLines={1}
+                >
                   {hasDailyBonus
                     ? 'Tu bono de bienvenida de hoy está listo'
                     : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
                 </Text>
               </View>
-              <View style={[styles.bonusBadge, hasDailyBonus && styles.bonusBadgeReady]}>
+              <View
+                style={[
+                  styles.bonusBadge,
+                  {
+                    backgroundColor: hasDailyBonus ? palette.chipPillBg : palette.surfaceCardAlt,
+                    borderColor: hasDailyBonus ? palette.borderWarm : palette.borderSubtle,
+                  },
+                ]}
+              >
                 <Text
                   style={[
                     styles.bonusBadgeText,
-                    hasDailyBonus && styles.bonusBadgeTextReady,
+                    { color: hasDailyBonus ? palette.chipPillText : palette.textSecondary },
                   ]}
                 >
                   {hasDailyBonus ? 'Reclamar' : 'Bonos'}
@@ -331,14 +458,24 @@ export function SetupView({
               </View>
             </Pressable>
 
-            {/* 4. Smoked-Glass Table Setup Card */}
-            <View style={styles.setupCard}>
+            {/* 4. Table Setup Card */}
+            <View
+              style={[
+                styles.setupCard,
+                {
+                  backgroundColor: palette.surfaceCard,
+                  borderColor: palette.borderSubtle,
+                },
+              ]}
+            >
               <View style={styles.setupGroup}>
-                <Text style={styles.sectionLabel}>MODALIDAD</Text>
+                <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>
+                  MODALIDAD
+                </Text>
                 <View style={styles.modeSegmentedRow}>
                   {MODE_OPTIONS.map((opt) => {
                     const active = mode === opt.value;
-                    const silColor = active ? CLUB.gold : 'rgba(185, 200, 217, 0.45)';
+                    const silColor = active ? palette.selectedText : palette.textMuted;
                     const renderSideIcon = () =>
                       opt.value === '1v1' ? (
                         <UserSilhouetteIcon size={14} color={silColor} />
@@ -356,7 +493,13 @@ export function SetupView({
                           onChangeMode(opt.value);
                         }}
                         accessibilityRole="button"
-                        style={[styles.modePill, active && styles.modePillActive]}
+                        style={[
+                          styles.modePill,
+                          {
+                            backgroundColor: active ? palette.selectedBg : palette.surfaceCardAlt,
+                            borderColor: active ? palette.selectedBorder : palette.borderSubtle,
+                          },
+                        ]}
                       >
                         <View style={styles.modePillInner}>
                           {renderSideIcon()}
@@ -364,7 +507,7 @@ export function SetupView({
                             <Text
                               style={[
                                 styles.modePillTitle,
-                                active && styles.modePillTitleActive,
+                                { color: active ? palette.selectedText : palette.textPrimary },
                               ]}
                               numberOfLines={1}
                             >
@@ -373,7 +516,7 @@ export function SetupView({
                             <Text
                               style={[
                                 styles.modePillSub,
-                                active && styles.modePillSubActive,
+                                { color: active ? palette.selectedSubText : palette.textMuted },
                               ]}
                               numberOfLines={1}
                             >
@@ -388,7 +531,9 @@ export function SetupView({
               </View>
 
               <View style={styles.setupGroup}>
-                <Text style={styles.sectionLabel}>META DE PUNTOS</Text>
+                <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>
+                  META DE PUNTOS
+                </Text>
                 <View style={styles.scoreSingleRow}>
                   {TARGET_SCORES.map((pts) => {
                     const active = targetScore === pts;
@@ -400,12 +545,19 @@ export function SetupView({
                           onChangeTargetScore(pts);
                         }}
                         accessibilityRole="button"
-                        style={[styles.scoreChip, active && styles.scoreChipActive]}
+                        style={[
+                          styles.scoreChip,
+                          {
+                            backgroundColor: active ? palette.selectedBg : palette.surfaceCardAlt,
+                            borderColor: active ? palette.selectedBorder : palette.borderSubtle,
+                          },
+                        ]}
                       >
                         <Text
                           style={[
                             styles.scoreChipText,
-                            active && styles.scoreChipTextActive,
+                            { color: active ? palette.selectedText : palette.textSecondary },
+                            active && { fontWeight: '900' },
                           ]}
                         >
                           {pts}
@@ -422,8 +574,16 @@ export function SetupView({
           </View>
         </ScrollView>
 
-        {/* BOTTOM STICKY THUMB DOCK (Single Emerald Primary CTA + Calm Parlor Online CTAs) */}
-        <View style={styles.thumbDock}>
+        {/* BOTTOM STICKY THUMB DOCK */}
+        <View
+          style={[
+            styles.thumbDock,
+            {
+              backgroundColor: palette.dockBg,
+              borderTopColor: palette.dockBorder,
+            },
+          ]}
+        >
           <Pressable
             onPress={() => {
               hapticSnap();
@@ -432,20 +592,23 @@ export function SetupView({
             accessibilityRole="button"
             style={({ pressed }) => [
               styles.primaryBtnOuter,
+              { borderBottomColor: palette.primaryShadow },
               pressed && styles.primaryBtnPressed,
             ]}
           >
             <LinearGradient
-              colors={['#38DF96', '#21BA77', '#138956']}
+              colors={[palette.primaryTop, palette.primaryMid, palette.primaryBottom]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 0.5, y: 1 }}
               style={styles.primaryBtnGrad}
             >
               <View style={styles.primaryBtnTop}>
-                <PlayIcon size={19} color="#06291A" />
-                <Text style={styles.primaryBtnText}>Jugar ahora</Text>
+                <PlayIcon size={19} color={palette.textOnPrimary} />
+                <Text style={[styles.primaryBtnText, { color: palette.textOnPrimary }]}>
+                  Jugar ahora
+                </Text>
               </View>
-              <Text style={styles.primaryBtnSub}>
+              <Text style={[styles.primaryBtnSub, { color: palette.textOnPrimary }]}>
                 {selectedMode.ctaLabel} · Meta {targetScore} pts (Bots)
               </Text>
             </LinearGradient>
@@ -462,17 +625,26 @@ export function SetupView({
               accessibilityRole="button"
               style={({ pressed }) => [
                 styles.secondaryBtn,
-                styles.secondaryBtnWarm,
+                {
+                  backgroundColor: palette.surfaceCard,
+                  borderColor: palette.borderAccent,
+                },
                 !onlineEnabled && styles.onlineBtnDisabled,
                 pressed && onlineEnabled && styles.secondaryBtnPressed,
               ]}
             >
-              <GlobeIcon size={19} color={CLUB.gold} />
+              <GlobeIcon size={19} color={palette.accent} />
               <View style={styles.secondaryTextCol}>
-                <Text style={styles.onlineBtnTitle} numberOfLines={1}>
+                <Text
+                  style={[styles.onlineBtnTitle, { color: palette.textPrimary }]}
+                  numberOfLines={1}
+                >
                   Salas Online
                 </Text>
-                <Text style={styles.onlineBtnSub} numberOfLines={1}>
+                <Text
+                  style={[styles.onlineBtnSub, { color: palette.textSecondary }]}
+                  numberOfLines={1}
+                >
                   {onlineEnabled ? 'Juega con otros' : 'Mantenimiento'}
                 </Text>
               </View>
@@ -488,16 +660,26 @@ export function SetupView({
               accessibilityRole="button"
               style={({ pressed }) => [
                 styles.secondaryBtn,
+                {
+                  backgroundColor: palette.surfaceCard,
+                  borderColor: palette.borderSubtle,
+                },
                 !onlineEnabled && styles.onlineBtnDisabled,
                 pressed && onlineEnabled && styles.secondaryBtnPressed,
               ]}
             >
-              <KeyIcon size={18} color={CLUB.emerald} />
+              <KeyIcon size={18} color={palette.brandAccent} />
               <View style={styles.secondaryTextCol}>
-                <Text style={styles.onlineBtnTitle} numberOfLines={1}>
+                <Text
+                  style={[styles.onlineBtnTitle, { color: palette.textPrimary }]}
+                  numberOfLines={1}
+                >
                   Sala Privada
                 </Text>
-                <Text style={styles.onlineBtnSub} numberOfLines={1}>
+                <Text
+                  style={[styles.onlineBtnSub, { color: palette.textSecondary }]}
+                  numberOfLines={1}
+                >
                   {onlineEnabled ? 'Con amigos' : 'Mantenimiento'}
                 </Text>
               </View>
@@ -541,29 +723,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 6,
   },
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: CLUB.glassBg,
+    gap: 6,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   levelText: {
-    color: CLUB.ivoryTop,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   xpBarBg: {
-    width: 46,
+    width: 34,
     height: 5,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)',
     overflow: 'hidden',
   },
   xpBarFill: {
@@ -573,113 +751,111 @@ const styles = StyleSheet.create({
   topRightPills: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 5,
+  },
+  palettePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  swatchDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  swatchDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    marginLeft: -2,
+  },
+  palettePillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
   },
   themesPill: {
-    backgroundColor: CLUB.glassBg,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   themesPillText: {
-    color: CLUB.ivoryTop,
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   chipsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(34, 27, 14, 0.78)',
+    gap: 4,
     borderWidth: 1,
-    borderColor: CLUB.borderWarm,
     borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 6,
-    position: 'relative',
-  },
-  chipsPillReady: {
-    borderColor: CLUB.gold,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
   },
   chipsValue: {
-    color: CLUB.gold,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   readyDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: CLUB.emerald,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   gearBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: CLUB.glassBg,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   brandBlock: {
     alignItems: 'center',
-    paddingVertical: 4,
-    gap: 3,
+    paddingVertical: 3,
+    gap: 2,
   },
   brandKicker: {
-    color: CLUB.goldSoft,
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 2.2,
-    opacity: 0.85,
   },
   brandTitle: {
-    color: CLUB.ivoryTop,
     fontSize: 32,
     fontWeight: '900',
     letterSpacing: 1.4,
   },
-  brandTitleAccent: {
-    color: CLUB.gold,
-  },
   brassRule: {
     width: 48,
-    height: 2,
+    height: 2.5,
     borderRadius: 999,
-    backgroundColor: 'rgba(245, 196, 81, 0.55)',
     marginTop: 2,
   },
   hostCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(15, 38, 46, 0.86)',
     borderRadius: 20,
     borderWidth: 1.25,
-    borderColor: 'rgba(245, 214, 138, 0.28)',
     paddingHorizontal: 14,
     paddingVertical: 12,
-    boxShadow: '0px 10px 26px rgba(0, 0, 0, 0.42)',
+    boxShadow: '0px 8px 20px rgba(26, 49, 54, 0.10)',
   },
   hostAvatarWrap: {
     alignItems: 'center',
-    position: 'relative',
   },
   avatarEditPill: {
     marginTop: -8,
-    backgroundColor: '#1E3D49',
     borderWidth: 1,
-    borderColor: CLUB.borderWarm,
     borderRadius: 999,
     paddingHorizontal: 7,
     paddingVertical: 1.5,
   },
   avatarEditPillText: {
-    color: CLUB.goldSoft,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.3,
@@ -689,12 +865,10 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   hostGreeting: {
-    color: CLUB.ivoryTop,
     fontSize: 17,
     fontWeight: '900',
   },
   hostInvite: {
-    color: CLUB.textSecondary,
     fontSize: 12.5,
     fontWeight: '600',
     lineHeight: 17,
@@ -711,7 +885,7 @@ const styles = StyleSheet.create({
     left: 2,
     top: 4,
     transform: [{ rotate: '-12deg' }],
-    opacity: 0.88,
+    opacity: 0.9,
   },
   emblemTileFront: {
     position: 'absolute',
@@ -720,15 +894,12 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '8deg' }],
   },
   maintenanceBanner: {
-    backgroundColor: 'rgba(245, 196, 81, 0.14)',
     borderWidth: 1,
-    borderColor: CLUB.borderWarm,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   maintenanceBannerText: {
-    color: CLUB.goldSoft,
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
@@ -740,10 +911,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: 'rgba(24, 34, 34, 0.78)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.32)',
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
@@ -756,40 +925,26 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   challengeTitle: {
-    color: CLUB.ivoryTop,
     fontSize: 13,
     fontWeight: '800',
   },
   challengeSub: {
-    color: CLUB.textSecondary,
     fontSize: 11.5,
     fontWeight: '600',
   },
   bonusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-  },
-  bonusBadgeReady: {
-    backgroundColor: CLUB.gold,
-    borderColor: CLUB.goldSoft,
   },
   bonusBadgeText: {
-    color: CLUB.textSecondary,
     fontSize: 11,
     fontWeight: '800',
   },
-  bonusBadgeTextReady: {
-    color: CLUB.textInk,
-  },
   setupCard: {
-    backgroundColor: CLUB.glassBg,
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
     padding: 12,
     gap: 11,
   },
@@ -797,7 +952,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sectionLabel: {
-    color: CLUB.textMuted,
     fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 1,
@@ -808,17 +962,11 @@ const styles = StyleSheet.create({
   },
   modePill: {
     flex: 1,
-    backgroundColor: CLUB.surfaceCardLight,
     borderRadius: 13,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
+    borderWidth: 1.25,
     paddingVertical: 9,
     paddingHorizontal: 6,
     alignItems: 'center',
-  },
-  modePillActive: {
-    backgroundColor: 'rgba(245, 196, 81, 0.16)',
-    borderColor: CLUB.gold,
   },
   modePillInner: {
     flexDirection: 'row',
@@ -830,20 +978,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modePillTitle: {
-    color: CLUB.textPrimary,
     fontSize: 13,
     fontWeight: '900',
   },
-  modePillTitleActive: {
-    color: CLUB.goldSoft,
-  },
   modePillSub: {
-    color: CLUB.textMuted,
     fontSize: 10,
     fontWeight: '700',
-  },
-  modePillSubActive: {
-    color: CLUB.gold,
   },
   scoreSingleRow: {
     flexDirection: 'row',
@@ -853,25 +993,14 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 36,
     borderRadius: 10,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
+    borderWidth: 1.25,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scoreChipActive: {
-    backgroundColor: CLUB.gold,
-    borderColor: CLUB.goldSoft,
-  },
   scoreChipText: {
-    color: CLUB.textSecondary,
     fontSize: 13,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
-  },
-  scoreChipTextActive: {
-    color: CLUB.textInk,
-    fontWeight: '900',
   },
   thumbDock: {
     paddingHorizontal: 16,
@@ -879,15 +1008,12 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(245, 214, 138, 0.12)',
-    backgroundColor: 'rgba(6, 17, 22, 0.92)',
   },
   primaryBtnOuter: {
     borderRadius: 16,
     overflow: 'hidden',
     borderBottomWidth: 3.5,
-    borderBottomColor: '#0D6840',
-    boxShadow: '0px 8px 22px rgba(39, 209, 136, 0.28)',
+    boxShadow: '0px 8px 20px rgba(237, 106, 90, 0.28)',
   },
   primaryBtnPressed: {
     opacity: 0.9,
@@ -905,14 +1031,13 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   primaryBtnText: {
-    color: '#06291A',
     fontSize: 17,
     fontWeight: '900',
   },
   primaryBtnSub: {
-    color: 'rgba(6, 41, 26, 0.80)',
     fontSize: 11.5,
     fontWeight: '800',
+    opacity: 0.88,
   },
   onlineRow: {
     flexDirection: 'row',
@@ -923,16 +1048,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: CLUB.surfaceCard,
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderWidth: 1.25,
     paddingHorizontal: 12,
     paddingVertical: 11,
-  },
-  secondaryBtnWarm: {
-    borderColor: 'rgba(245, 196, 81, 0.36)',
-    backgroundColor: 'rgba(22, 42, 46, 0.92)',
   },
   secondaryBtnPressed: {
     opacity: 0.86,
@@ -945,12 +1064,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   onlineBtnTitle: {
-    color: CLUB.ivoryTop,
     fontSize: 13.5,
     fontWeight: '900',
   },
   onlineBtnSub: {
-    color: CLUB.textSecondary,
     fontSize: 10.5,
     fontWeight: '600',
   },

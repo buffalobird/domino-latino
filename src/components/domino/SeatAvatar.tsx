@@ -11,6 +11,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood, SeatProfile } from '@/constants/seatProfiles';
 import { CLUB } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { AvatarIllustration } from './AvatarIllustration';
 
 interface SeatAvatarProps {
@@ -50,6 +51,7 @@ export function SeatAvatar({
   layout = 'horizontal',
   bubbleAnchor = 'below',
 }: SeatAvatarProps) {
+  const { palette } = usePalette();
   const isStacked = layout === 'stacked';
   const avatarSize = isStacked ? 40 : 48;
   const ringStroke = isStacked ? 3.5 : 4;
@@ -60,13 +62,20 @@ export function SeatAvatar({
   const strokeDashoffset = circumference * (1 - clamped);
 
   const isUrgent = isActiveTurn && secondsLeft !== null && secondsLeft <= 5;
+  const ringTrackColor = palette.isDark
+    ? 'rgba(255,255,255,0.15)'
+    : 'rgba(155, 193, 188, 0.55)';
   const ringColor = !isActiveTurn
-    ? 'rgba(255,255,255,0.14)'
+    ? ringTrackColor
     : isUrgent
-    ? CLUB.coral
+    ? palette.isDark
+      ? CLUB.coral
+      : palette.brandAccent
     : clamped <= 0.35
     ? CLUB.gold
-    : CLUB.emerald;
+    : palette.isDark
+    ? CLUB.emerald
+    : palette.accent;
 
   const activeBubble = reactionText ?? lastAction;
   const isReactionBubble = Boolean(reactionText);
@@ -122,7 +131,7 @@ export function SeatAvatar({
           cx={outerSize / 2}
           cy={outerSize / 2}
           r={radius}
-          stroke="rgba(255,255,255,0.15)"
+          stroke={ringTrackColor}
           strokeWidth={ringStroke}
           fill="none"
         />
@@ -167,11 +176,23 @@ export function SeatAvatar({
       <View
         style={[
           styles.countBadge,
-          isActiveTurn && { backgroundColor: CLUB.gold, borderColor: '#FFF' },
+          !palette.isDark && {
+            backgroundColor: palette.textPrimary,
+            borderColor: '#FFFFFF',
+          },
+          isActiveTurn && {
+            backgroundColor: palette.isDark ? CLUB.gold : palette.brandAccent,
+            borderColor: '#FFFFFF',
+          },
         ]}
       >
         <Text
-          style={[styles.countBadgeText, isActiveTurn && { color: CLUB.textInk }]}
+          style={[
+            styles.countBadgeText,
+            isActiveTurn && {
+              color: palette.isDark ? CLUB.textInk : '#FFFFFF',
+            },
+          ]}
         >
           {tileCount}
         </Text>
@@ -186,41 +207,62 @@ export function SeatAvatar({
       ? styles.bubbleLeft
       : styles.bubbleRight;
 
+  const cardScoreColor = palette.isDark ? CLUB.gold : palette.brandAccent;
+
   return (
     <View style={styles.anchorContainer}>
       {isStacked ? (
         <View
           style={[
             styles.stackedCard,
-            isActiveTurn && { borderColor: profile.accentColor },
+            {
+              backgroundColor: palette.hudPillBg,
+              borderColor: isActiveTurn ? palette.accent : palette.hudPillBorder,
+            },
           ]}
         >
           {avatarCircle}
-          <Text style={styles.stackedName} numberOfLines={1}>
+          <Text
+            style={[styles.stackedName, { color: palette.hudPillText }]}
+            numberOfLines={1}
+          >
             {profile.displayName}
           </Text>
           {showScore ? (
-            <Text style={styles.stackedScore}>
+            <Text style={[styles.stackedScore, { color: cardScoreColor }]}>
               {score}/{targetScore}
             </Text>
           ) : profile.badgeText ? (
-            <Text style={styles.partnerTiny}>{profile.badgeText}</Text>
+            <Text
+              style={[
+                styles.partnerTiny,
+                { color: palette.isDark ? CLUB.emerald : palette.accent },
+              ]}
+            >
+              {profile.badgeText}
+            </Text>
           ) : null}
         </View>
       ) : (
         <View
           style={[
             styles.horizontalCard,
-            isActiveTurn && { borderColor: profile.accentColor },
+            {
+              backgroundColor: palette.hudPillBg,
+              borderColor: isActiveTurn ? palette.accent : palette.hudPillBorder,
+            },
           ]}
         >
           {avatarCircle}
           <View style={styles.infoCol}>
-            <Text style={styles.name} numberOfLines={1}>
+            <Text
+              style={[styles.name, { color: palette.hudPillText }]}
+              numberOfLines={1}
+            >
               {profile.displayName}
             </Text>
             {showScore && (
-              <Text style={styles.scoreText}>
+              <Text style={[styles.scoreText, { color: cardScoreColor }]}>
                 {score}/{targetScore}
               </Text>
             )}

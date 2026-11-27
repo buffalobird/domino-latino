@@ -33,6 +33,7 @@ import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
+import { usePalette } from '@/context/PaletteContext';
 import { AiDifficulty, chooseAiMove } from '@/engine/ai';
 import {
   applyDraw,
@@ -157,6 +158,7 @@ type AppScreenMode = 'local' | 'online_lobby' | 'online_room';
 
 export default function DominoAppScreen() {
   const { user, setProfile } = useAuth();
+  const { palette } = usePalette();
   const [screenMode, setScreenMode] = useState<AppScreenMode>('local');
   const [lobbyInitialTab, setLobbyInitialTab] = useState<'public' | 'private'>('public');
 
@@ -1241,8 +1243,8 @@ export default function DominoAppScreen() {
 
   if (!hydrated) {
     return (
-      <SafeAreaView style={styles.loading}>
-        <ActivityIndicator size="large" color={CLUB.gold} />
+      <SafeAreaView style={[styles.loading, { backgroundColor: palette.bgTop }]}>
+        <ActivityIndicator size="large" color={palette.brandAccent} />
       </SafeAreaView>
     );
   }
@@ -1254,12 +1256,26 @@ export default function DominoAppScreen() {
 
   if (requiresForceUpdate) {
     return (
-      <SafeAreaView style={styles.loading}>
-        <View style={styles.updateCard}>
-          <Text style={styles.updateKicker}>ACTUALIZACIÓN REQUERIDA</Text>
-          <Text style={styles.updateTitle}>Nueva versión disponible</Text>
-          <Text style={styles.updateBody}>{remoteConfig.forceUpdateMessage}</Text>
-          <Text style={styles.updateMeta}>
+      <SafeAreaView style={[styles.loading, { backgroundColor: palette.bgTop }]}>
+        <View
+          style={[
+            styles.updateCard,
+            {
+              backgroundColor: palette.surfaceCard,
+              borderColor: palette.borderSubtle,
+            },
+          ]}
+        >
+          <Text style={[styles.updateKicker, { color: palette.brandAccent }]}>
+            ACTUALIZACIÓN REQUERIDA
+          </Text>
+          <Text style={[styles.updateTitle, { color: palette.textPrimary }]}>
+            Nueva versión disponible
+          </Text>
+          <Text style={[styles.updateBody, { color: palette.textSecondary }]}>
+            {remoteConfig.forceUpdateMessage}
+          </Text>
+          <Text style={[styles.updateMeta, { color: palette.textMuted }]}>
             Tu versión: v{APP_VERSION} · Mínima: v{remoteConfig.minSupportedVersion}
           </Text>
           <Pressable
@@ -1268,9 +1284,17 @@ export default function DominoAppScreen() {
                 .then((cfg) => setRemoteConfig(cfg))
                 .catch(() => {});
             }}
-            style={styles.updateBtn}
+            style={[
+              styles.updateBtn,
+              {
+                backgroundColor: palette.primaryMid,
+                borderBottomColor: palette.primaryShadow,
+              },
+            ]}
           >
-            <Text style={styles.updateBtnText}>Comprobar de nuevo</Text>
+            <Text style={[styles.updateBtnText, { color: palette.textOnPrimary }]}>
+              Comprobar de nuevo
+            </Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -1283,8 +1307,16 @@ export default function DominoAppScreen() {
       state.phase === 'round_summary' ||
       state.phase === 'match_over');
 
+  const safeAreaBg =
+    showLocalTable || (screenMode === 'online_room' && Boolean(onlineGameState))
+      ? palette.tableRoomTop
+      : palette.bgTop;
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.safe, { backgroundColor: safeAreaBg }]}
+      edges={['top', 'bottom', 'left', 'right']}
+    >
       <View style={styles.flex}>
         {/* HOME / SETUP */}
         {screenMode === 'local' && state.phase === 'setup' && (

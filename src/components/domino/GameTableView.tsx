@@ -25,6 +25,7 @@ import { TABLE_REACTIONS, TableReactionCode } from '@/constants/socialReactions'
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { AiDifficulty } from '@/engine/ai';
 import {
   canDrawFromBoneyard,
@@ -241,6 +242,7 @@ export function GameTableView({
   onRestartMatch,
   onExitToHome,
 }: GameTableViewProps) {
+  const { palette } = usePalette();
   const { width: winW, height: winH } = useWindowDimensions();
   const isLandscape = winW > winH;
 
@@ -546,8 +548,8 @@ export function GameTableView({
 
   return (
     <LinearGradient
-      colors={[CLUB.roomBgTop, CLUB.roomBgMid, '#091A21', CLUB.roomBgBottom]}
-      locations={[0, 0.35, 0.72, 1]}
+      colors={[palette.tableRoomTop, palette.tableRoomMid, palette.tableRoomBottom]}
+      locations={[0, 0.5, 1]}
       style={styles.root}
       onLayout={measureRootOrigin}
     >
@@ -562,9 +564,16 @@ export function GameTableView({
               }}
               accessibilityRole="button"
               accessibilityLabel="Menú de pausa"
-              style={({ pressed }) => [styles.iconCircle, pressed && { opacity: 0.78 }]}
+              style={({ pressed }) => [
+                styles.iconCircle,
+                {
+                  backgroundColor: palette.hudPillBg,
+                  borderColor: palette.hudPillBorder,
+                },
+                pressed && { opacity: 0.78 },
+              ]}
             >
-              <PauseIcon size={18} color={CLUB.textPrimary} />
+              <PauseIcon size={18} color={palette.hudPillText} />
             </Pressable>
 
             <Pressable
@@ -574,26 +583,56 @@ export function GameTableView({
               }}
               accessibilityRole="button"
               accessibilityLabel={state.soundEnabled ? 'Silenciar sonido' : 'Activar sonido'}
-              style={({ pressed }) => [styles.iconCircle, pressed && { opacity: 0.78 }]}
+              style={({ pressed }) => [
+                styles.iconCircle,
+                {
+                  backgroundColor: palette.hudPillBg,
+                  borderColor: palette.hudPillBorder,
+                },
+                pressed && { opacity: 0.78 },
+              ]}
             >
               {state.soundEnabled ? (
-                <SoundOnIcon size={18} color={CLUB.emerald} />
+                <SoundOnIcon
+                  size={18}
+                  color={palette.isDark ? CLUB.emerald : palette.accent}
+                />
               ) : (
-                <SoundOffIcon size={18} color={CLUB.textMuted} />
+                <SoundOffIcon size={18} color={palette.textMuted} />
               )}
             </Pressable>
           </View>
 
           {is2v2 && (
-            <View style={styles.teamScorePill}>
-              <Text style={styles.teamNosotros}>
+            <View
+              style={[
+                styles.teamScorePill,
+                {
+                  backgroundColor: palette.hudPillBg,
+                  borderColor: palette.hudPillBorder,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.teamNosotros,
+                  { color: palette.isDark ? CLUB.emerald : '#128E8B' },
+                ]}
+              >
                 NOS {state.scores[0]}
               </Text>
-              <Text style={styles.teamDivider}>·</Text>
-              <Text style={styles.teamRivales}>
+              <Text style={[styles.teamDivider, { color: palette.textMuted }]}>·</Text>
+              <Text
+                style={[
+                  styles.teamRivales,
+                  { color: palette.isDark ? CLUB.coral : palette.brandAccent },
+                ]}
+              >
                 RIV {state.scores[1]}
               </Text>
-              <Text style={styles.teamGoal}>/{state.targetScore}</Text>
+              <Text style={[styles.teamGoal, { color: palette.textMuted }]}>
+                /{state.targetScore}
+              </Text>
             </View>
           )}
 
@@ -695,11 +734,24 @@ export function GameTableView({
           {/* Signature Moment Overlay (~0.95s dramatic celebration over live board before RoundSummary) */}
           {handEndMoment && (
             <View style={styles.signatureOverlay} pointerEvents="none">
-              <View style={styles.signatureCard}>
+              <View
+                style={[
+                  styles.signatureCard,
+                  !palette.isDark && {
+                    backgroundColor: '#FFFFFF',
+                    borderColor: palette.brandAccent,
+                  },
+                ]}
+              >
                 <View
                   style={[
                     styles.signatureAvatarRing,
-                    { borderColor: handEndMoment.reason === 'tranca_tie' ? CLUB.textSecondary : CLUB.gold },
+                    {
+                      borderColor:
+                        handEndMoment.reason === 'tranca_tie'
+                          ? palette.textSecondary
+                          : palette.brandAccent,
+                    },
                   ]}
                 >
                   <AvatarIllustration
@@ -710,14 +762,24 @@ export function GameTableView({
                     avatarConfig={handEndMoment.winnerAvatar}
                   />
                 </View>
-                <Text style={styles.signatureTitle}>
+                <Text
+                  style={[
+                    styles.signatureTitle,
+                    { color: palette.isDark ? CLUB.gold : palette.brandAccent },
+                  ]}
+                >
                   {handEndMoment.reason === 'domino'
                     ? '¡DOMINÓ!'
                     : handEndMoment.reason === 'tranca'
                     ? '¡TRANCA!'
                     : '¡EMPATE!'}
                 </Text>
-                <Text style={styles.signatureSub}>
+                <Text
+                  style={[
+                    styles.signatureSub,
+                    { color: palette.isDark ? CLUB.ivoryTop : palette.textPrimary },
+                  ]}
+                >
                   {handEndMoment.reason === 'tranca_tie'
                     ? 'Mano nula · Siguiente reparto'
                     : `${handEndMoment.winnerName ?? 'Ganador'} · +${handEndMoment.points} pts`}
@@ -729,7 +791,15 @@ export function GameTableView({
 
         {/* Floating 6-Reaction Sobremesa Tray (zero toxic free-text chat, pure table warmth) */}
         {reactionsOpen && onSendReaction && (
-          <View style={styles.reactionTray}>
+          <View
+            style={[
+              styles.reactionTray,
+              {
+                backgroundColor: palette.isDark ? CLUB.glassBgStrong : '#FFFFFF',
+                borderColor: palette.borderWarm,
+              },
+            ]}
+          >
             {TABLE_REACTIONS.map((item) => (
               <Pressable
                 key={item.code}
@@ -741,10 +811,16 @@ export function GameTableView({
                 }}
                 style={({ pressed }) => [
                   styles.reactionChip,
+                  {
+                    backgroundColor: palette.surfaceCardAlt,
+                    borderColor: palette.borderSubtle,
+                  },
                   pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
                 ]}
               >
-                <Text style={styles.reactionChipText}>{item.label}</Text>
+                <Text style={[styles.reactionChipText, { color: palette.textPrimary }]}>
+                  {item.label}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -772,7 +848,15 @@ export function GameTableView({
           {mustPass ? (
             <Pressable
               onPress={onHumanPass}
-              style={({ pressed }) => [styles.passBtn, pressed && { opacity: 0.88 }]}
+              style={({ pressed }) => [
+                styles.passBtn,
+                !palette.isDark && {
+                  backgroundColor: palette.brandAccent,
+                  borderBottomColor: palette.primaryShadow,
+                  borderColor: 'rgba(255,255,255,0.45)',
+                },
+                pressed && { opacity: 0.88 },
+              ]}
             >
               <Text style={styles.passBtnText}>Pasar</Text>
             </Pressable>
@@ -788,17 +872,40 @@ export function GameTableView({
                   accessibilityLabel="Enviar saludo o reacción de mesa"
                   style={[
                     styles.reactToggleBtn,
-                    reactionsOpen && styles.reactToggleBtnActive,
+                    {
+                      backgroundColor: reactionsOpen
+                        ? palette.brandAccent
+                        : palette.hudPillBg,
+                      borderColor: reactionsOpen
+                        ? palette.brandAccent
+                        : palette.borderWarm,
+                    },
                   ]}
                 >
                   <MessageIcon
                     size={16}
-                    color={reactionsOpen ? CLUB.textInk : CLUB.goldSoft}
+                    color={
+                      reactionsOpen
+                        ? palette.textOnPrimary
+                        : palette.isDark
+                        ? CLUB.goldSoft
+                        : palette.brandAccent
+                    }
                   />
                 </Pressable>
               )}
-              <View style={styles.pipSumChip}>
-                <Text style={styles.pipSumText}>{myPipSum} pts</Text>
+              <View
+                style={[
+                  styles.pipSumChip,
+                  {
+                    backgroundColor: palette.hudPillBg,
+                    borderColor: palette.hudPillBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.pipSumText, { color: palette.textSecondary }]}>
+                  {myPipSum} pts
+                </Text>
               </View>
               <Pressable
                 onPress={() => {
@@ -807,9 +914,15 @@ export function GameTableView({
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Cambiar orden de fichas"
-                style={styles.sortChip}
+                style={[
+                  styles.sortChip,
+                  {
+                    backgroundColor: palette.hudPillBg,
+                    borderColor: palette.hudPillBorder,
+                  },
+                ]}
               >
-                <Text style={styles.sortChipText}>
+                <Text style={[styles.sortChipText, { color: palette.hudPillText }]}>
                   {state.sortMode === 'value' ? '1-6' : 'Dobles'}
                 </Text>
               </Pressable>
