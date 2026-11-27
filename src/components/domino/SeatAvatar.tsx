@@ -61,7 +61,7 @@ export function SeatAvatar({
     ? 'rgba(255,255,255,0.14)'
     : isUrgent
     ? CLUB.coral
-    : clamped <= 0.5
+    : clamped <= 0.35
     ? CLUB.gold
     : CLUB.emerald;
 

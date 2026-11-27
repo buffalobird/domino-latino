@@ -182,7 +182,9 @@ export function DominoTile({
   }
 
   const gradColors: [string, string, string] = ebony
-    ? ['#223043', '#172231', '#0F1724']
+    ? tileStyle.isDarkFace
+      ? ['#131A26', '#0D131C', '#080C12']
+      : ['#223043', '#172231', '#0F1724']
     : tileStyle.faceGradient;
 
   const tileBody = (
@@ -203,10 +205,11 @@ export function DominoTile({
           borderBottomColor: tileStyle.bottomLipColor,
         },
         ebony && styles.tileEbony,
-        ebony && tileStyle.isDarkFace && { opacity: 0.52 },
+        ebony && tileStyle.isDarkFace && styles.tileEbonyOnDarkSet,
         playable &&
           !selected && [
             styles.tilePlayable,
+            tileStyle.isDarkFace && styles.tilePlayableDarkSet,
             {
               borderColor: tileStyle.playableBorderColor,
               borderBottomColor: tileStyle.playableLipColor,
@@ -341,12 +344,22 @@ const styles = StyleSheet.create({
     transform: [{ translateY: 2 }],
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.48)',
   },
+  tileEbonyOnDarkSet: {
+    opacity: 0.42,
+    borderColor: '#1E293B',
+    transform: [{ translateY: 3 }],
+  },
   // Pure luminous porcelain lifted subtly on rack — NO thick yellow sticker border!
   tilePlayable: {
     borderColor: '#EBD39A',
     borderBottomColor: '#B89E68',
     transform: [{ translateY: -4 }],
     boxShadow: '0px 7px 14px rgba(245, 196, 81, 0.28)',
+  },
+  tilePlayableDarkSet: {
+    borderWidth: 1.5,
+    transform: [{ translateY: -5 }],
+    boxShadow: '0px 8px 18px rgba(245, 196, 81, 0.42)',
   },
   tileSelected: {
     borderColor: '#7DD3FC',

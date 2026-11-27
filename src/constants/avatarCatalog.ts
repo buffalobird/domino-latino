@@ -19,7 +19,15 @@ export type AvatarHairId =
   | 'pompadour'
   | 'bald';
 
-export type AvatarEyeStyleId = 'natural' | 'lashes' | 'fierce' | 'warm' | 'star';
+export type AvatarEyeStyleId =
+  | 'natural'
+  | 'lashes'
+  | 'fierce'
+  | 'warm'
+  | 'wink'
+  | 'skeptic'
+  | 'hearts'
+  | 'star';
 
 export type AvatarFacialId =
   | 'none'
@@ -28,7 +36,9 @@ export type AvatarFacialId =
   | 'stubble'
   | 'beard'
   | 'mustache'
-  | 'goatee';
+  | 'goatee'
+  | 'dali'
+  | 'pirate_beard';
 
 export type AvatarOutfitId =
   | 'guayabera'
@@ -44,17 +54,26 @@ export type AvatarGlassesId =
   | 'none'
   | 'round'
   | 'cat_eye'
+  | 'hearts_shades'
   | 'aviator'
   | 'wayfarer'
+  | 'pixel_boss'
+  | 'star_party'
+  | 'monocle'
   | 'gold_visor';
 
 export type AvatarHatId =
   | 'none'
   | 'cap'
+  | 'hibiscus'
   | 'headband'
   | 'beanie'
+  | 'bandana'
   | 'beret'
+  | 'dj_phones'
+  | 'chef'
   | 'panama'
+  | 'captain'
   | 'vueltiao'
   | 'crown';
 
@@ -159,7 +178,10 @@ export const AVATAR_EYE_OPTIONS: AvatarItemOption<AvatarEyeStyleId>[] = [
   { id: 'natural', cosmeticKey: null, name: 'Clásicos', costChips: 0 },
   { id: 'lashes', cosmeticKey: null, name: 'Pestañas Glam', costChips: 0 },
   { id: 'warm', cosmeticKey: null, name: 'Sonriente', costChips: 0 },
+  { id: 'wink', cosmeticKey: null, name: 'Guiño Pícaro', costChips: 0 },
   { id: 'fierce', cosmeticKey: null, name: 'Competitivo', costChips: 0 },
+  { id: 'skeptic', cosmeticKey: 'eye:skeptic', name: 'Sospechoso', costChips: 250, tag: 'Humor' },
+  { id: 'hearts', cosmeticKey: 'eye:hearts', name: 'Enamorado', costChips: 600, tag: 'Pop' },
   { id: 'star', cosmeticKey: 'eye:star', name: 'Mirada Estrella', costChips: 800, tag: 'VIP' },
 ];
 
@@ -171,6 +193,8 @@ export const AVATAR_FACIAL_OPTIONS: AvatarItemOption<AvatarFacialId>[] = [
   { id: 'hoops', cosmeticKey: 'facial:hoops', name: 'Aros de Oro', costChips: 200 },
   { id: 'mustache', cosmeticKey: 'facial:mustache', name: 'Bigote Clásico', costChips: 250 },
   { id: 'goatee', cosmeticKey: 'facial:goatee', name: 'Candado', costChips: 350 },
+  { id: 'dali', cosmeticKey: 'facial:dali', name: 'Bigote Dalí', costChips: 450, tag: 'Humor' },
+  { id: 'pirate_beard', cosmeticKey: 'facial:pirate_beard', name: 'Barba Capitán', costChips: 750, tag: 'Caribe' },
 ];
 
 export const AVATAR_OUTFIT_OPTIONS: AvatarItemOption<AvatarOutfitId>[] = [
@@ -188,18 +212,27 @@ export const AVATAR_GLASSES_OPTIONS: AvatarItemOption<AvatarGlassesId>[] = [
   { id: 'none', cosmeticKey: null, name: 'Sin gafas', costChips: 0 },
   { id: 'round', cosmeticKey: 'glasses:round', name: 'Redondas', costChips: 150 },
   { id: 'cat_eye', cosmeticKey: 'glasses:cat_eye', name: 'Ojo de Gato', costChips: 300 },
+  { id: 'hearts_shades', cosmeticKey: 'glasses:hearts_shades', name: 'Gafas Corazón', costChips: 400, tag: 'Pop' },
   { id: 'aviator', cosmeticKey: 'glasses:aviator', name: 'Aviador Sol', costChips: 550 },
   { id: 'wayfarer', cosmeticKey: 'glasses:wayfarer', name: 'Nocturnas', costChips: 900 },
+  { id: 'pixel_boss', cosmeticKey: 'glasses:pixel_boss', name: 'Pixel Jefe', costChips: 1100, tag: 'Humor' },
+  { id: 'star_party', cosmeticKey: 'glasses:star_party', name: 'Fiesta Estrella', costChips: 1400, tag: 'Fiesta' },
+  { id: 'monocle', cosmeticKey: 'glasses:monocle', name: 'Monóculo Club', costChips: 2200, tag: 'Don' },
   { id: 'gold_visor', cosmeticKey: 'glasses:gold_visor', name: 'Visor Oro VIP', costChips: 3500, tag: 'VIP' },
 ];
 
 export const AVATAR_HAT_OPTIONS: AvatarItemOption<AvatarHatId>[] = [
   { id: 'none', cosmeticKey: null, name: 'Sin sombrero', costChips: 0 },
   { id: 'cap', cosmeticKey: 'hat:cap', name: 'Gorra Urbana', costChips: 200 },
+  { id: 'hibiscus', cosmeticKey: 'hat:hibiscus', name: 'Flor Tropical', costChips: 300, tag: 'Caribe' },
   { id: 'headband', cosmeticKey: 'hat:headband', name: 'Diadema Perlas', costChips: 350 },
   { id: 'beanie', cosmeticKey: 'hat:beanie', name: 'Gorro Street', costChips: 450 },
+  { id: 'bandana', cosmeticKey: 'hat:bandana', name: 'Pañuelo Caribe', costChips: 500, tag: 'Flow' },
   { id: 'beret', cosmeticKey: 'hat:beret', name: 'Boina Bohemio', costChips: 750 },
+  { id: 'dj_phones', cosmeticKey: 'hat:dj_phones', name: 'Audífonos DJ', costChips: 950, tag: 'Ritmo' },
+  { id: 'chef', cosmeticKey: 'hat:chef', name: 'Gorro de Chef', costChips: 1200, tag: 'Humor' },
   { id: 'panama', cosmeticKey: 'hat:panama', name: 'Panamá Clásico', costChips: 1500, tag: 'Caribe' },
+  { id: 'captain', cosmeticKey: 'hat:captain', name: 'Gorra Capitán', costChips: 1800, tag: 'Yate' },
   { id: 'vueltiao', cosmeticKey: 'hat:vueltiao', name: 'Sombrero Caribe', costChips: 2500, tag: 'Maestro' },
   { id: 'crown', cosmeticKey: 'hat:crown', name: 'Corona del Club', costChips: 12000, tag: 'Leyenda' },
 ];

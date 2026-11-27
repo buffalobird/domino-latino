@@ -631,7 +631,12 @@ export function GameTableView({
                 ]}
               >
                 <PlusIcon size={26} color="#FFFFFF" />
-                <View style={styles.pozoCountBadge}>
+                <View
+                  style={[
+                    styles.pozoCountBadge,
+                    mustDraw && styles.pozoCountBadgeActive,
+                  ]}
+                >
                   <Text style={styles.pozoCountText}>{state.boneyard.length}</Text>
                 </View>
               </Pressable>
@@ -928,12 +933,16 @@ const styles = StyleSheet.create({
     minWidth: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: CLUB.coral,
+    backgroundColor: '#1E3A5F',
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(186, 218, 255, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
+  },
+  pozoCountBadgeActive: {
+    backgroundColor: CLUB.coral,
+    borderColor: '#FFFFFF',
   },
   pozoCountText: {
     color: '#FFFFFF',
@@ -970,10 +979,12 @@ const styles = StyleSheet.create({
     zIndex: 26,
   },
   passBtn: {
-    backgroundColor: CLUB.coral,
+    backgroundColor: '#D97706',
     borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 230, 138, 0.45)',
     borderBottomWidth: 4,
-    borderBottomColor: CLUB.coralDark,
+    borderBottomColor: '#92400E',
     paddingHorizontal: 18,
     minHeight: 44,
     alignItems: 'center',

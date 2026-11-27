@@ -119,20 +119,23 @@ export function PlayIcon({ size = 20, color = '#0D1520' }: IconProps) {
   );
 }
 
-/** Tactile Club Chip coin icon for economy balance & buy-ins */
+/** Golden Club Medallion / Star Coin (100% non-casino friendly PEGI 3+ / 4+ emblem) */
 export function ChipIcon({ size = 16, color = '#F5C451' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Circle cx={12} cy={12} r={9.5} fill={color} />
+      <Circle cx={12} cy={12} r={9.8} fill={color} />
       <Circle
         cx={12}
         cy={12}
-        r={6.4}
-        stroke="#0D1520"
-        strokeWidth={1.7}
-        strokeDasharray="3.2 2.6"
+        r={7.5}
+        stroke="#B45309"
+        strokeWidth={1.35}
+        fill="rgba(255, 251, 235, 0.22)"
       />
-      <Circle cx={12} cy={12} r={2.6} fill="#0D1520" />
+      <Path
+        d="M12 6.2L13.55 10.25L17.8 11.8L13.55 13.35L12 17.4L10.45 13.35L6.2 11.8L10.45 10.25L12 6.2Z"
+        fill="#78350F"
+      />
     </Svg>
   );
 }

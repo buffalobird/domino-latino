@@ -7,6 +7,7 @@ import Svg, {
   G,
   LinearGradient,
   Path,
+  RadialGradient,
   Rect,
   Stop,
 } from 'react-native-svg';
@@ -43,6 +44,7 @@ export function ModularAvatar({
   const frame = getAvatarFrame(config.frame);
 
   const bgId = `abg_${uid}`;
+  const rimId = `arm_${uid}`;
   const skinId = `ask_${uid}`;
   const clipId = `acl_${uid}`;
   const goldId = `agld_${uid}`;
@@ -54,7 +56,13 @@ export function ModularAvatar({
   const outfitCol = config.outfitColor;
   const hat = config.hat;
   const fullCoverHat =
-    hat === 'cap' || hat === 'beanie' || hat === 'panama' || hat === 'vueltiao';
+    hat === 'cap' ||
+    hat === 'beanie' ||
+    hat === 'bandana' ||
+    hat === 'chef' ||
+    hat === 'captain' ||
+    hat === 'panama' ||
+    hat === 'vueltiao';
 
   // Soft brow color slightly darker or matching hair
   const browColor = hair === 'bald' ? '#2A221E' : hairCol;
@@ -66,6 +74,11 @@ export function ModularAvatar({
           <Stop offset="0" stopColor={frame.bgTop} />
           <Stop offset="1" stopColor={frame.bgBottom} />
         </LinearGradient>
+        <RadialGradient id={rimId} cx="50%" cy="44%" r="48%">
+          <Stop offset="0" stopColor="#E0F2FE" stopOpacity={0.34} />
+          <Stop offset="0.58" stopColor={frame.ringColor} stopOpacity={0.14} />
+          <Stop offset="1" stopColor={frame.bgBottom} stopOpacity={0} />
+        </RadialGradient>
         <LinearGradient id={skinId} x1="0.2" y1="0" x2="0.8" y2="1">
           <Stop offset="0" stopColor={skin.light} />
           <Stop offset="0.58" stopColor={skin.base} />
@@ -89,8 +102,8 @@ export function ModularAvatar({
       <Circle cx={64} cy={64} r={showFrameRing ? 58 : 63} fill={`url(#${bgId})`} />
 
       <G clipPath={`url(#${clipId})`}>
-        {/* Subtle studio top rim light */}
-        <Circle cx={64} cy={38} r={44} fill="#FFFFFF" opacity={0.07} />
+        {/* Studio radial rim-light behind silhouette so dark hair pops crisply even at 40px */}
+        <Circle cx={64} cy={56} r={54} fill={`url(#${rimId})`} />
 
         {/* Sparkles for premium frames */}
         {frame.hasSparkles && (
@@ -376,6 +389,30 @@ export function ModularAvatar({
           </G>
         )}
 
+        {config.facial === 'dali' && (
+          <G>
+            {/* Iconic curled Dalí / handlebar mustache */}
+            <Path
+              d="M64 70C59 66.5 52 67 48 70.5C44 73.5 39 71 39.5 66.5C40 64.5 42.5 64.5 42.5 66.5C42.5 68 44.8 68.5 47.2 66.8C51 64.2 59.5 64 64 68.5C68.5 64 77 64.2 80.8 66.8C83.2 68.5 85.5 68 85.5 66.5C85.5 64.5 88 64.5 88.5 66.5C89 71 84 73.5 80 70.5C76 67 69 66.5 64 70Z"
+              fill={hairCol}
+              stroke="rgba(255,255,255,0.16)"
+              strokeWidth={0.7}
+            />
+          </G>
+        )}
+
+        {config.facial === 'pirate_beard' && (
+          <G>
+            {/* Sculpted Caribbean captain beard with twin braided ends & gold rings */}
+            <Path
+              d="M39 61C39 78 48 90 56 92L54 103H61L64 93L67 103H74L72 92C80 90 89 78 89 61C85 69 78 73 73 72C70 69 58 69 55 72C50 73 43 69 39 61Z"
+              fill={hairCol}
+            />
+            <Rect x={54} y={96} width={7} height={3} rx={1.5} fill={`url(#${goldId})`} />
+            <Rect x={67} y={96} width={7} height={3} rx={1.5} fill={`url(#${goldId})`} />
+          </G>
+        )}
+
         {/* ===== LAYER 5: MOUTH & MOOD ===== */}
         {mood === 'lose' || mood === 'pass' ? (
           <Path
@@ -436,6 +473,32 @@ export function ModularAvatar({
             <Path d="M69 49C72 47 77 47 80.5 49.5" stroke={browColor} strokeWidth={2.4} strokeLinecap="round" fill="none" />
             <Path d="M49.5 58C51.5 54.2 56.5 54.2 58.5 58" stroke="#0F172A" strokeWidth={3} strokeLinecap="round" fill="none" />
             <Path d="M69.5 58C71.5 54.2 76.5 54.2 78.5 58" stroke="#0F172A" strokeWidth={3} strokeLinecap="round" fill="none" />
+          </G>
+        ) : config.eyeStyle === 'wink' ? (
+          <G>
+            {/* Playful cheeky wink */}
+            <Path d="M47 48.5C51 45.8 56 46.5 59 49" stroke={browColor} strokeWidth={2.4} strokeLinecap="round" fill="none" />
+            <Path d="M69 50C72 48.5 77 48.8 81 51" stroke={browColor} strokeWidth={2.4} strokeLinecap="round" fill="none" />
+            <Circle cx={54} cy={57} r={3.7} fill="#0F172A" />
+            <Circle cx={55.3} cy={55.7} r={1.3} fill="#FFFFFF" />
+            <Path d="M69 57.5C72 54.2 76.5 54.2 79.5 57.5" stroke="#0F172A" strokeWidth={3} strokeLinecap="round" fill="none" />
+          </G>
+        ) : config.eyeStyle === 'skeptic' ? (
+          <G>
+            {/* Raised suspicious domino brow ("¿seguro que llevas?") */}
+            <Path d="M47 51.5L59 51" stroke={browColor} strokeWidth={2.6} strokeLinecap="round" />
+            <Path d="M69 48.5C72.5 44.5 77.5 44.8 81.5 48.5" stroke={browColor} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+            <Circle cx={55.2} cy={57.5} r={3.5} fill="#0F172A" />
+            <Circle cx={75.2} cy={57} r={3.8} fill="#0F172A" />
+            <Circle cx={56.3} cy={56.2} r={1.1} fill="#FFFFFF" />
+            <Circle cx={76.4} cy={55.6} r={1.25} fill="#FFFFFF" />
+          </G>
+        ) : config.eyeStyle === 'hearts' ? (
+          <G>
+            <Path d="M47.5 49C51 46.5 56 46.5 59 48.8" stroke={browColor} strokeWidth={2.2} strokeLinecap="round" fill="none" />
+            <Path d="M69 48.8C72 46.5 77 46.5 80.5 49" stroke={browColor} strokeWidth={2.2} strokeLinecap="round" fill="none" />
+            <Path d="M54 61.5C50 58.2 48.5 55.2 50.5 53.3C52 52 53.5 53.2 54 54.4C54.5 53.2 56 52 57.5 53.3C59.5 55.2 58 58.2 54 61.5Z" fill="#F43F5E" />
+            <Path d="M74 61.5C70 58.2 68.5 55.2 70.5 53.3C72 52 73.5 53.2 74 54.4C74.5 53.2 76 52 77.5 53.3C79.5 55.2 78 58.2 74 61.5Z" fill="#F43F5E" />
           </G>
         ) : config.eyeStyle === 'star' ? (
           <G>
@@ -634,6 +697,88 @@ export function ModularAvatar({
           </G>
         )}
 
+        {config.glasses === 'hearts_shades' && (
+          <G>
+            <Path
+              d="M52 65C45 60 42 55 45 51.5C47.5 49 50.8 50.8 52 53C53.2 50.8 56.5 49 59 51.5C62 55 59 60 52 65Z"
+              fill="rgba(244, 63, 94, 0.82)"
+              stroke="#FFF1F2"
+              strokeWidth={1.8}
+            />
+            <Path
+              d="M76 65C69 60 66 55 69 51.5C71.5 49 74.8 50.8 76 53C77.2 50.8 80.5 49 83 51.5C86 55 83 60 76 65Z"
+              fill="rgba(244, 63, 94, 0.82)"
+              stroke="#FFF1F2"
+              strokeWidth={1.8}
+            />
+            <Path d="M60 55H68" stroke="#FFF1F2" strokeWidth={2} />
+          </G>
+        )}
+
+        {config.glasses === 'pixel_boss' && (
+          <G>
+            {/* 8-bit Deal-With-It pixel shades */}
+            <Rect x={39} y={51} width={50} height={4} fill="#090D16" />
+            <Rect x={42} y={55} width={19} height={6} fill="#090D16" />
+            <Rect x={45} y={61} width={13} height={3} fill="#090D16" />
+            <Rect x={67} y={55} width={19} height={6} fill="#090D16" />
+            <Rect x={70} y={61} width={13} height={3} fill="#090D16" />
+            {/* Iconic white pixel glints */}
+            <Rect x={45} y={55} width={3.5} height={3} fill="#FFFFFF" />
+            <Rect x={48.5} y={58} width={3.5} height={3} fill="#FFFFFF" />
+            <Rect x={70} y={55} width={3.5} height={3} fill="#FFFFFF" />
+            <Rect x={73.5} y={58} width={3.5} height={3} fill="#FFFFFF" />
+          </G>
+        )}
+
+        {config.glasses === 'star_party' && (
+          <G>
+            <Path
+              d="M52 47L55 53.5L62 54.5L57 59L58.2 66L52 62.5L45.8 66L47 59L42 54.5L49 53.5Z"
+              fill="rgba(232, 121, 249, 0.78)"
+              stroke="#FEF08A"
+              strokeWidth={1.9}
+              strokeLinejoin="round"
+            />
+            <Path
+              d="M76 47L79 53.5L86 54.5L81 59L82.2 66L76 62.5L69.8 66L71 59L66 54.5L73 53.5Z"
+              fill="rgba(232, 121, 249, 0.78)"
+              stroke="#FEF08A"
+              strokeWidth={1.9}
+              strokeLinejoin="round"
+            />
+            <Path d="M60.5 56H67.5" stroke="#FEF08A" strokeWidth={2.2} />
+          </G>
+        )}
+
+        {config.glasses === 'monocle' && (
+          <G>
+            <Circle
+              cx={75}
+              cy={57}
+              r={9.5}
+              fill="rgba(224, 242, 254, 0.2)"
+              stroke={`url(#${goldId})`}
+              strokeWidth={2.4}
+            />
+            <Path
+              d="M71 52.5L75 56.5"
+              stroke="#FFFFFF"
+              strokeWidth={1.6}
+              opacity={0.55}
+              strokeLinecap="round"
+            />
+            {/* Delicate dangling gold chain */}
+            <Path
+              d="M84.5 58C87.5 67 86 78 82 90"
+              stroke={`url(#${goldId})`}
+              strokeWidth={1.4}
+              strokeDasharray="2 2"
+              fill="none"
+            />
+          </G>
+        )}
+
         {/* ===== LAYER 9: HATS & HEADPIECES ===== */}
         {hat === 'headband' && (
           <G>
@@ -717,6 +862,87 @@ export function ModularAvatar({
             <Circle cx={64} cy={27} r={3.2} fill="#10B981" stroke="#FEF08A" strokeWidth={1} />
             <Circle cx={51} cy={29} r={2.2} fill="#F43F5E" />
             <Circle cx={77} cy={29} r={2.2} fill="#38BDF8" />
+          </G>
+        )}
+
+        {hat === 'hibiscus' && (
+          <G>
+            {/* Lush tropical hibiscus flower + emerald leaves tucked at temple */}
+            <Ellipse cx={84} cy={41} rx={7} ry={3.5} fill="#10B981" transform="rotate(-24 84 41)" />
+            <Ellipse cx={93} cy={48} rx={6.5} ry={3.2} fill="#059669" transform="rotate(28 93 48)" />
+            <Circle cx={88} cy={40} r={5.4} fill="#FB7185" />
+            <Circle cx={94} cy={44} r={5.4} fill="#F43F5E" />
+            <Circle cx={91} cy={50} r={5.2} fill="#FB7185" />
+            <Circle cx={84} cy={49} r={5.2} fill="#F43F5E" />
+            <Circle cx={82.5} cy={43.5} r={5.2} fill="#FDA4AF" />
+            <Circle cx={88} cy={45.5} r={3.2} fill="#FEF08A" />
+          </G>
+        )}
+
+        {hat === 'bandana' && (
+          <G>
+            {/* Knotted Caribbean pirate/street bandana */}
+            <Path
+              d="M36 45C37 26 49 18 64 18C79 18 91 26 92 45C80 39 48 39 36 45Z"
+              fill="#DC2626"
+              stroke="#991B1B"
+              strokeWidth={1.4}
+            />
+            <Path d="M41 37C54 33 74 33 87 37" stroke="#FEF08A" strokeWidth={2.2} strokeDasharray="4 4" fill="none" />
+            {/* Side knot tails */}
+            <Path d="M89 39L100 35L97 44Z" fill="#B91C1C" />
+            <Path d="M90 42L101 47L94 50Z" fill="#DC2626" />
+          </G>
+        )}
+
+        {hat === 'dj_phones' && (
+          <G>
+            {/* Over-ear neon cyan DJ headphones */}
+            <Path
+              d="M34 56C34 25 46 16 64 16C82 16 94 25 94 56"
+              stroke="#1E293B"
+              strokeWidth={6}
+              strokeLinecap="round"
+              fill="none"
+            />
+            <Path
+              d="M37 46C40 26 50 18 64 18C78 18 88 26 91 46"
+              stroke="#38BDF8"
+              strokeWidth={2}
+              strokeLinecap="round"
+              fill="none"
+            />
+            <Rect x={29} y={50} width={10} height={22} rx={5} fill="#0F172A" stroke="#38BDF8" strokeWidth={2} />
+            <Rect x={89} y={50} width={10} height={22} rx={5} fill="#0F172A" stroke="#38BDF8" strokeWidth={2} />
+          </G>
+        )}
+
+        {hat === 'chef' && (
+          <G>
+            {/* Classic puffy white chef toque ("Cocinando la tranca") */}
+            <Circle cx={48} cy={22} r={11} fill="#FFFFFF" stroke="#CBD5E1" strokeWidth={1.2} />
+            <Circle cx={64} cy={17} r={13} fill="#FFFFFF" stroke="#CBD5E1" strokeWidth={1.2} />
+            <Circle cx={80} cy={22} r={11} fill="#FFFFFF" stroke="#CBD5E1" strokeWidth={1.2} />
+            <Rect x={42} y={26} width={44} height={15} rx={4} fill="#F8FAFC" stroke="#CBD5E1" strokeWidth={1.2} />
+            <Path d="M43 36H85" stroke="#E2E8F0" strokeWidth={2} />
+          </G>
+        )}
+
+        {hat === 'captain' && (
+          <G>
+            {/* White Caribbean yacht captain cap with gold anchor & navy visor */}
+            <Path
+              d="M36 33C42 18 86 18 92 33L86 41H42Z"
+              fill="#F8FAFC"
+              stroke="#CBD5E1"
+              strokeWidth={1.3}
+            />
+            <Rect x={41} y={34} width={46} height={7} rx={2} fill="#0F172A" />
+            <Path d="M42 36H86" stroke={`url(#${goldId})`} strokeWidth={1.6} />
+            <Path d="M35 41C48 37 80 37 93 41C85 47 43 47 35 41Z" fill="#0F172A" />
+            {/* Gold emblem */}
+            <Circle cx={64} cy={27.5} r={4.2} fill={`url(#${goldId})`} />
+            <Circle cx={64} cy={27.5} r={1.8} fill="#0F172A" />
           </G>
         )}
       </G>
