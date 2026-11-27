@@ -1,23 +1,31 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 import { CLUB } from '@/constants/tokens';
 import { GameMode, TARGET_SCORES, TargetScore } from '@/engine/types';
 import { canClaimDailyReward, RetentionProgress } from '@/storage/gameStorage';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AccountCard } from './AccountCard';
-import { AvatarIllustration } from './AvatarIllustration';
-import { DominoTile } from './DominoTile';
 import {
-  ChipIcon,
+  GearIcon,
   GlobeIcon,
-  LockIcon,
-  MessageIcon,
+  KeyIcon,
   PlayIcon,
   StarIcon,
-  TableIcon,
+  UserSilhouetteIcon,
 } from './Icons';
+
+const TITLE_LOGO_IMG = require('@/assets/images/domino-title-logo.png');
+const HERO_CHARACTERS_IMG = require('@/assets/images/home-hero-characters.png');
 
 interface SetupViewProps {
   mode: GameMode;
@@ -60,11 +68,51 @@ const MODE_OPTIONS: {
   },
 ];
 
+const STARFIELD_DOTS: { cx: number; cy: number; r: number; fill: string; o: number }[] = [
+  { cx: 14, cy: 16, r: 1.3, fill: '#93C5FD', o: 0.5 },
+  { cx: 82, cy: 14, r: 1.1, fill: '#FDE68A', o: 0.45 },
+  { cx: 26, cy: 28, r: 1.5, fill: '#67E8F9', o: 0.4 },
+  { cx: 89, cy: 26, r: 1.4, fill: '#93C5FD', o: 0.5 },
+  { cx: 9, cy: 36, r: 1.1, fill: '#FFFFFF', o: 0.35 },
+  { cx: 74, cy: 34, r: 1.0, fill: '#FDE68A', o: 0.4 },
+  { cx: 18, cy: 84, r: 1.8, fill: '#4ADE80', o: 0.55 },
+  { cx: 84, cy: 83, r: 1.6, fill: '#4ADE80', o: 0.5 },
+  { cx: 77, cy: 80, r: 2.2, fill: '#86EFAC', o: 0.45 },
+  { cx: 24, cy: 90, r: 1.3, fill: '#60A5FA', o: 0.45 },
+  { cx: 90, cy: 88, r: 1.4, fill: '#C084FC', o: 0.45 },
+];
+
+function AmbientStarfieldBackdrop() {
+  return (
+    <View style={styles.backdropLayer} pointerEvents="none">
+      <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <Defs>
+          <RadialGradient id="heroGlow" cx="50%" cy="24%" r="48%">
+            <Stop offset="0%" stopColor="#1A4278" stopOpacity={0.48} />
+            <Stop offset="60%" stopColor="#0C1E3B" stopOpacity={0.18} />
+            <Stop offset="100%" stopColor="#081327" stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="dockGlow" cx="50%" cy="86%" r="44%">
+            <Stop offset="0%" stopColor="#22C55E" stopOpacity={0.22} />
+            <Stop offset="65%" stopColor="#16A34A" stopOpacity={0.05} />
+            <Stop offset="100%" stopColor="#081327" stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect x={0} y={0} width={100} height={100} fill="url(#heroGlow)" />
+        <Rect x={0} y={0} width={100} height={100} fill="url(#dockGlow)" />
+        {STARFIELD_DOTS.map((d, i) => (
+          <Circle key={i} cx={d.cx} cy={d.cy} r={d.r * 0.45} fill={d.fill} opacity={d.o} />
+        ))}
+      </Svg>
+    </View>
+  );
+}
+
 /**
- * Thumb-First Mobile Home Architecture (CRO 60/30/10):
- * - TOP (Glance zone): Level/XP, Themes, Club Chips, Feedback button, Compact Hero & Daily Challenge.
- * - MIDDLE (Easy stretch, 0-scroll fit): Compact 1-row Mode pills, 1-row Score chips, Slim OAuth bar.
- * - BOTTOM STICKY THUMB DOCK (Golden thumb arc): Dominant "Jugar ahora" CTA + Online/Private CTAs.
+ * Glossy 3D Arcade Club Caribe Home Screen:
+ * - Midnight starfield canvas + 3D "DOMINÓ LATINO" logo & Pixar-style faceoff artwork.
+ * - Golden-glow Daily Challenge card + frosted-glass 0-scroll Setup card with luminous gold chips.
+ * - Sticky bottom thumb dock with glossy specular emerald Play CTA + Cobalt/Purple Online CTAs.
  */
 export function SetupView({
   mode,
@@ -83,26 +131,34 @@ export function SetupView({
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
   const selectedMode = MODE_OPTIONS.find((m) => m.value === mode) ?? MODE_OPTIONS[0];
   const hasDailyBonus = canClaimDailyReward(retention);
-  const xpIntoLevel = retention.xp % 100;
+  const xpIntoLevel = Math.max(8, retention.xp % 100);
 
   return (
     <LinearGradient
-      colors={[CLUB.roomBgTop, CLUB.roomBgBottom]}
+      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
+      locations={[0, 0.35, 0.72, 1]}
       style={styles.gradient}
     >
+      <AmbientStarfieldBackdrop />
+
       <View style={styles.shell}>
-        {/* TOP + MIDDLE: Glance Info & Compact Quick-Setup (scrollable only on tiny/landscape screens) */}
+        {/* TOP + MIDDLE: Glance Info, 3D Hero Stage & Compact Frosted Setup */}
         <ScrollView
           style={styles.bodyScroll}
           contentContainerStyle={styles.bodyContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Top Economy, Level & Utility Strip */}
+          {/* 1. Top Frosted HUD Bar */}
           <View style={styles.topStrip}>
             <View style={styles.levelBadge}>
               <Text style={styles.levelText}>Nv. {retention.level}</Text>
               <View style={styles.xpBarBg}>
-                <View style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]} />
+                <LinearGradient
+                  colors={['#67E8F9', '#38BDF8']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]}
+                />
               </View>
             </View>
 
@@ -115,7 +171,6 @@ export function SetupView({
                 accessibilityRole="button"
                 style={({ pressed }) => [styles.themesPill, pressed && { opacity: 0.85 }]}
               >
-                <TableIcon size={14} color={CLUB.goldSoft} />
                 <Text style={styles.themesPillText}>Mesas</Text>
               </Pressable>
 
@@ -131,7 +186,6 @@ export function SetupView({
                   pressed && { opacity: 0.85 },
                 ]}
               >
-                <ChipIcon size={15} color={CLUB.gold} />
                 <Text style={styles.chipsValue}>
                   {retention.clubChips.toLocaleString('es-ES')}
                 </Text>
@@ -144,36 +198,40 @@ export function SetupView({
                   onOpenFeedback();
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="Enviar sugerencia o reportar fallo"
-                style={({ pressed }) => [styles.helpPill, pressed && { opacity: 0.8 }]}
+                accessibilityLabel="Sugerencias y soporte"
+                style={({ pressed }) => [
+                  styles.gearOrbWrap,
+                  pressed && { transform: [{ scale: 0.94 }] },
+                ]}
               >
-                <MessageIcon size={15} color={CLUB.textSecondary} />
+                <LinearGradient
+                  colors={['#60A5FA', '#2563EB', '#1D4ED8']}
+                  start={{ x: 0.2, y: 0 }}
+                  end={{ x: 0.8, y: 1 }}
+                  style={styles.gearOrb}
+                >
+                  <View style={styles.orbGloss} pointerEvents="none" />
+                  <GearIcon size={19} color="#FFFFFF" />
+                </LinearGradient>
               </Pressable>
             </View>
           </View>
 
-          {/* 2. Club Caribe Hero Stage (expands gracefully on tall phones so all controls sit lower in thumb reach) */}
+          {/* 2. 3D Illustrated Hero Stage (Logo + Subtitle + Characters/Dominoes) */}
           <View style={styles.heroStage}>
-            <View style={styles.hero}>
-              <View style={styles.faceoffRow}>
-                <View style={styles.avatarRing}>
-                  <AvatarIllustration isBot={false} accentColor={CLUB.emerald} size={44} />
-                </View>
-                <View style={styles.centerTile}>
-                  <DominoTile a={6} b={6} orientation="horizontal" unit={23} />
-                </View>
-                <View style={[styles.avatarRing, { borderColor: CLUB.cyan }]}>
-                  <AvatarIllustration
-                    isBot
-                    accentColor={CLUB.cyan}
-                    mood="play"
-                    size={44}
-                  />
-                </View>
-              </View>
-              <Text style={styles.title}>Dominó Latino</Text>
-              <Text style={styles.heroSub}>Club Caribe · Doble Seis</Text>
-            </View>
+            <Image
+              source={TITLE_LOGO_IMG}
+              style={styles.logoImage}
+              resizeMode="contain"
+              accessibilityLabel="Dominó Latino"
+            />
+            <Text style={styles.heroSub}>Club Caribe · Doble Seis</Text>
+            <Image
+              source={HERO_CHARACTERS_IMG}
+              style={styles.charactersImage}
+              resizeMode="contain"
+              accessibilityLabel="Jugador y Bot frente a frente con fichas de dominó"
+            />
           </View>
 
           {maintenanceBanner && (
@@ -182,23 +240,26 @@ export function SetupView({
             </View>
           )}
 
-          {/* 3–5. Lower Interactive Cluster anchored cleanly right above the Thumb Dock (0 empty void) */}
+          {/* 3–5. Lower Interactive Cluster anchored seamlessly above Thumb Dock */}
           <View style={styles.lowerCluster}>
-            {/* 3. Compact Daily 3-Star Challenge Strip */}
+            {/* 3. Golden-Glow Daily Challenge Card */}
             <Pressable
               onPress={() => {
                 hapticLight();
                 onOpenDailyRewards();
               }}
               accessibilityRole="button"
-              style={styles.challengeCard}
+              style={({ pressed }) => [
+                styles.challengeCard,
+                pressed && { opacity: 0.92 },
+              ]}
             >
               <View style={styles.starsRow}>
                 {[0, 1, 2].map((idx) => (
                   <StarIcon
                     key={idx}
-                    size={17}
-                    color={CLUB.gold}
+                    size={18}
+                    color={idx < retention.dailyStars ? '#F5C451' : 'rgba(245,196,81,0.35)'}
                     filled={idx < retention.dailyStars}
                   />
                 ))}
@@ -211,26 +272,30 @@ export function SetupView({
                 </Text>
                 <Text style={styles.challengeSub} numberOfLines={1}>
                   {hasDailyBonus
-                    ? 'Bono diario de fichas disponible'
+                    ? 'Bono diario de fichas listo'
                     : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
                 </Text>
               </View>
               <View style={[styles.bonusBadge, hasDailyBonus && styles.bonusBadgeReady]}>
                 <Text
-                  style={[styles.bonusBadgeText, hasDailyBonus && styles.bonusBadgeTextReady]}
+                  style={[
+                    styles.bonusBadgeText,
+                    hasDailyBonus && styles.bonusBadgeTextReady,
+                  ]}
                 >
                   {hasDailyBonus ? 'Reclamar' : 'Bonos'}
                 </Text>
               </View>
             </Pressable>
 
-            {/* 4. Compact Configuration Card (10% visual weight — clearly selectors, ZERO scroll) */}
+            {/* 4. Frosted Glass Configuration Card */}
             <View style={styles.setupCard}>
               <View style={styles.setupGroup}>
-                <Text style={styles.sectionLabel}>Modalidad</Text>
+                <Text style={styles.sectionLabel}>MODALIDAD</Text>
                 <View style={styles.modeSegmentedRow}>
                   {MODE_OPTIONS.map((opt) => {
                     const active = mode === opt.value;
+                    const silColor = active ? '#E8B84B' : 'rgba(148, 178, 214, 0.45)';
                     return (
                       <Pressable
                         key={opt.value}
@@ -241,17 +306,30 @@ export function SetupView({
                         accessibilityRole="button"
                         style={[styles.modePill, active && styles.modePillActive]}
                       >
-                        <Text
-                          style={[styles.modePillTitle, active && styles.modePillTitleActive]}
-                        >
-                          {opt.shortTitle}
-                        </Text>
-                        <Text
-                          style={[styles.modePillSub, active && styles.modePillSubActive]}
-                          numberOfLines={1}
-                        >
-                          {opt.subtitle}
-                        </Text>
+                        <View style={styles.modePillInner}>
+                          <UserSilhouetteIcon size={13} color={silColor} />
+                          <View style={styles.modeTextCenter}>
+                            <Text
+                              style={[
+                                styles.modePillTitle,
+                                active && styles.modePillTitleActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {opt.shortTitle}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.modePillSub,
+                                active && styles.modePillSubActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {opt.subtitle}
+                            </Text>
+                          </View>
+                          <UserSilhouetteIcon size={13} color={silColor} />
+                        </View>
                       </Pressable>
                     );
                   })}
@@ -259,7 +337,7 @@ export function SetupView({
               </View>
 
               <View style={styles.setupGroup}>
-                <Text style={styles.sectionLabel}>Meta de puntos</Text>
+                <Text style={styles.sectionLabel}>META DE PUNTOS</Text>
                 <View style={styles.scoreSingleRow}>
                   {TARGET_SCORES.map((pts) => {
                     const active = targetScore === pts;
@@ -271,13 +349,22 @@ export function SetupView({
                           onChangeTargetScore(pts);
                         }}
                         accessibilityRole="button"
-                        style={[styles.scoreChip, active && styles.scoreChipActive]}
+                        style={[styles.scoreChipWrap, active && styles.scoreChipGlow]}
                       >
-                        <Text
-                          style={[styles.scoreChipText, active && styles.scoreChipTextActive]}
-                        >
-                          {pts}
-                        </Text>
+                        {active ? (
+                          <LinearGradient
+                            colors={['#FFF2A6', '#F7C948', '#E39D1E']}
+                            start={{ x: 0.2, y: 0 }}
+                            end={{ x: 0.8, y: 1 }}
+                            style={styles.scoreChipActiveGrad}
+                          >
+                            <Text style={styles.scoreChipTextActive}>{pts}</Text>
+                          </LinearGradient>
+                        ) : (
+                          <View style={styles.scoreChip}>
+                            <Text style={styles.scoreChipText}>{pts}</Text>
+                          </View>
+                        )}
                       </Pressable>
                     );
                   })}
@@ -285,12 +372,12 @@ export function SetupView({
               </View>
             </View>
 
-            {/* 5. Slim 1-Row Optional OAuth / Cloud Sync Bar */}
+            {/* 5. Slim Frosted OAuth Row */}
             <AccountCard />
           </View>
         </ScrollView>
 
-        {/* BOTTOM STICKY THUMB DOCK (Golden Thumb Arc — 60% Primary CTA + 30% Online CTAs) */}
+        {/* BOTTOM STICKY THUMB DOCK (Glossy Candy-Glass Arcade CTAs) */}
         <View style={styles.thumbDock}>
           <Pressable
             onPress={() => {
@@ -299,17 +386,26 @@ export function SetupView({
             }}
             accessibilityRole="button"
             style={({ pressed }) => [
-              styles.primaryBtn,
+              styles.primaryBtnOuter,
               pressed && styles.primaryBtnPressed,
             ]}
           >
-            <View style={styles.primaryBtnTop}>
-              <PlayIcon size={20} color={CLUB.textInk} />
-              <Text style={styles.primaryBtnText}>Jugar ahora</Text>
-            </View>
-            <Text style={styles.primaryBtnSub}>
-              {selectedMode.ctaLabel} · Meta {targetScore} pts (Bots)
-            </Text>
+            <LinearGradient
+              colors={['#7DF6B6', '#33D982', '#17A459']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.primaryBtnGrad}
+            >
+              {/* Glossy top-half specular glass highlight */}
+              <View style={styles.btnGlossTop} pointerEvents="none" />
+              <View style={styles.primaryBtnTop}>
+                <PlayIcon size={20} color="#06311B" />
+                <Text style={styles.primaryBtnText}>Jugar ahora</Text>
+              </View>
+              <Text style={styles.primaryBtnSub}>
+                {selectedMode.ctaLabel} · Meta {targetScore} pts (Bots)
+              </Text>
+            </LinearGradient>
           </Pressable>
 
           <View style={styles.onlineRow}>
@@ -322,18 +418,29 @@ export function SetupView({
               disabled={!onlineEnabled}
               accessibilityRole="button"
               style={({ pressed }) => [
-                styles.onlineBtn,
+                styles.secondaryBtnOuter,
+                styles.onlineShadow,
                 !onlineEnabled && styles.onlineBtnDisabled,
-                pressed && onlineEnabled && { transform: [{ translateY: 2 }], opacity: 0.94 },
+                pressed && onlineEnabled && styles.secondaryBtnPressed,
               ]}
             >
-              <View style={styles.onlineBtnTop}>
-                <GlobeIcon size={14} color="#FFFFFF" />
-                <Text style={styles.onlineBtnTitle}>Salas Online</Text>
-              </View>
-              <Text style={styles.onlineBtnSub}>
-                {onlineEnabled ? 'Mesas públicas' : 'En mantenimiento'}
-              </Text>
+              <LinearGradient
+                colors={['#4393FF', '#2264DF', '#1646A8']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.secondaryBtnGrad}
+              >
+                <View style={styles.secondaryGlossTop} pointerEvents="none" />
+                <GlobeIcon size={21} color="#E0F2FE" />
+                <View style={styles.secondaryTextCol}>
+                  <Text style={styles.onlineBtnTitle} numberOfLines={1}>
+                    Salas Online
+                  </Text>
+                  <Text style={styles.onlineBtnSub} numberOfLines={1}>
+                    {onlineEnabled ? 'Mesas públicas' : 'Mantenimiento'}
+                  </Text>
+                </View>
+              </LinearGradient>
             </Pressable>
 
             <Pressable
@@ -345,18 +452,29 @@ export function SetupView({
               disabled={!onlineEnabled}
               accessibilityRole="button"
               style={({ pressed }) => [
-                styles.privateBtn,
+                styles.secondaryBtnOuter,
+                styles.privateShadow,
                 !onlineEnabled && styles.onlineBtnDisabled,
-                pressed && onlineEnabled && { transform: [{ translateY: 2 }], opacity: 0.94 },
+                pressed && onlineEnabled && styles.secondaryBtnPressed,
               ]}
             >
-              <View style={styles.onlineBtnTop}>
-                <LockIcon size={13} color="#FFFFFF" />
-                <Text style={styles.onlineBtnTitle}>Sala Privada</Text>
-              </View>
-              <Text style={styles.onlineBtnSub}>
-                {onlineEnabled ? 'Con amigos' : 'En mantenimiento'}
-              </Text>
+              <LinearGradient
+                colors={['#B35CFF', '#8A2EE5', '#6418B5']}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={styles.secondaryBtnGrad}
+              >
+                <View style={styles.secondaryGlossTop} pointerEvents="none" />
+                <KeyIcon size={20} color="#F5E8FF" />
+                <View style={styles.secondaryTextCol}>
+                  <Text style={styles.onlineBtnTitle} numberOfLines={1}>
+                    Sala Privada
+                  </Text>
+                  <Text style={styles.onlineBtnSub} numberOfLines={1}>
+                    {onlineEnabled ? 'Con amigos' : 'Mantenimiento'}
+                  </Text>
+                </View>
+              </LinearGradient>
             </Pressable>
           </View>
         </View>
@@ -368,11 +486,19 @@ export function SetupView({
 const styles = StyleSheet.create({
   gradient: {
     flex: 1,
+    position: 'relative',
+  },
+  backdropLayer: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
   },
   shell: {
     flex: 1,
     width: '100%',
-    maxWidth: 480,
+    maxWidth: 460,
     alignSelf: 'center',
   },
   bodyScroll: {
@@ -381,7 +507,7 @@ const styles = StyleSheet.create({
   bodyContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 6,
     paddingBottom: 10,
     gap: 10,
   },
@@ -394,71 +520,68 @@ const styles = StyleSheet.create({
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    backgroundColor: CLUB.surfaceCard,
+    gap: 8,
+    backgroundColor: 'rgba(26, 46, 78, 0.62)',
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: 'rgba(148, 190, 255, 0.24)',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   levelText: {
-    color: CLUB.textPrimary,
-    fontSize: 12,
+    color: '#F8FAFC',
+    fontSize: 13,
     fontWeight: '900',
   },
   xpBarBg: {
-    width: 48,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    width: 52,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(7, 15, 29, 0.65)',
+    borderWidth: 0.75,
+    borderColor: 'rgba(148, 190, 255, 0.16)',
     overflow: 'hidden',
   },
   xpBarFill: {
     height: '100%',
-    backgroundColor: CLUB.cyan,
-    borderRadius: 3,
+    borderRadius: 4,
   },
   topRightPills: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
   },
   themesPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(26, 46, 78, 0.62)',
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+    borderColor: 'rgba(148, 190, 255, 0.24)',
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
   },
   themesPillText: {
-    color: CLUB.textPrimary,
-    fontSize: 12,
+    color: '#E2ECF8',
+    fontSize: 13,
     fontWeight: '800',
   },
   chipsPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: CLUB.surfaceCard,
-    borderWidth: 1,
-    borderColor: CLUB.borderWarm,
+    backgroundColor: 'rgba(34, 28, 16, 0.72)',
+    borderWidth: 1.25,
+    borderColor: 'rgba(245, 196, 81, 0.65)',
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 6,
   },
   chipsPillReady: {
-    borderColor: CLUB.gold,
-    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+    borderColor: '#F5C451',
+    boxShadow: '0px 0px 12px rgba(245, 196, 81, 0.35)',
   },
   chipsValue: {
-    color: CLUB.gold,
-    fontSize: 12,
+    color: '#F5C451',
+    fontSize: 13,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
@@ -466,62 +589,55 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: CLUB.emerald,
+    backgroundColor: '#34D399',
   },
-  helpPill: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: CLUB.surfaceCard,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+  gearOrbWrap: {
+    borderRadius: 20,
+    boxShadow: '0px 0px 16px rgba(56, 189, 248, 0.55)',
+  },
+  gearOrb: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(147, 213, 255, 0.65)',
+    overflow: 'hidden',
+  },
+  orbGloss: {
+    position: 'absolute',
+    top: 2,
+    left: 5,
+    right: 5,
+    height: 13,
+    borderRadius: 99,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
   },
   heroStage: {
     flexGrow: 1,
-    justifyContent: 'center',
-    minHeight: 96,
-    paddingVertical: 8,
-  },
-  hero: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  faceoffRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatarRing: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: CLUB.emerald,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    minHeight: 175,
+    paddingVertical: 2,
   },
-  centerTile: {
-    transform: [{ rotate: '-6deg' }],
-  },
-  title: {
-    color: CLUB.textPrimary,
-    fontSize: 27,
-    fontWeight: '900',
-    letterSpacing: -0.4,
-    marginTop: 2,
+  logoImage: {
+    width: '66%',
+    maxWidth: 245,
+    aspectRatio: 880 / 453,
   },
   heroSub: {
-    color: CLUB.textMuted,
-    fontSize: 12,
+    color: '#D5E3F5',
+    fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
+    marginTop: -4,
+    marginBottom: 2,
   },
-  lowerCluster: {
-    gap: 10,
+  charactersImage: {
+    width: '86%',
+    maxWidth: 325,
+    aspectRatio: 960 / 431,
   },
   maintenanceBanner: {
     backgroundColor: 'rgba(245, 196, 81, 0.14)',
@@ -537,16 +653,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  lowerCluster: {
+    gap: 10,
+  },
   challengeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.32)',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
+    backgroundColor: 'rgba(34, 27, 16, 0.66)',
+    borderRadius: 16,
+    borderWidth: 1.25,
+    borderColor: 'rgba(245, 196, 81, 0.72)',
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    boxShadow: '0px 0px 20px rgba(245, 196, 81, 0.22)',
   },
   starsRow: {
     flexDirection: 'row',
@@ -556,54 +676,52 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   challengeTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 12,
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '800',
   },
   challengeSub: {
-    color: CLUB.goldSoft,
+    color: '#E5C67E',
     fontSize: 11,
     fontWeight: '600',
     marginTop: 1,
   },
   bonusBadge: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 8,
-    backgroundColor: CLUB.surfaceCardLight,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: 'rgba(245, 196, 81, 0.12)',
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: 'rgba(245, 196, 81, 0.58)',
   },
   bonusBadgeReady: {
-    backgroundColor: 'rgba(245, 196, 81, 0.18)',
-    borderColor: CLUB.gold,
+    backgroundColor: 'rgba(245, 196, 81, 0.24)',
+    borderColor: '#F5C451',
   },
   bonusBadgeText: {
-    color: CLUB.textSecondary,
-    fontSize: 11,
+    color: '#FDE68A',
+    fontSize: 12,
     fontWeight: '800',
   },
   bonusBadgeTextReady: {
-    color: CLUB.gold,
+    color: '#FFE699',
   },
   setupCard: {
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 16,
+    backgroundColor: 'rgba(22, 42, 72, 0.52)',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+    borderColor: 'rgba(148, 190, 255, 0.22)',
     padding: 12,
     gap: 11,
   },
   setupGroup: {
-    gap: 6,
+    gap: 7,
   },
   sectionLabel: {
-    color: CLUB.textMuted,
+    color: '#8EA6C6',
     fontSize: 11,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.85,
+    letterSpacing: 0.9,
   },
   modeSegmentedRow: {
     flexDirection: 'row',
@@ -611,89 +729,123 @@ const styles = StyleSheet.create({
   },
   modePill: {
     flex: 1,
-    minHeight: 52,
-    backgroundColor: CLUB.surfaceDeep,
+    minHeight: 54,
+    backgroundColor: 'rgba(38, 62, 96, 0.44)',
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderRadius: 12,
-    paddingHorizontal: 6,
+    borderColor: 'rgba(148, 190, 255, 0.18)',
+    borderRadius: 13,
+    paddingHorizontal: 5,
     paddingVertical: 7,
-    alignItems: 'center',
     justifyContent: 'center',
-    gap: 1,
   },
   modePillActive: {
-    backgroundColor: 'rgba(245, 196, 81, 0.14)',
-    borderColor: CLUB.gold,
+    backgroundColor: 'rgba(66, 52, 24, 0.62)',
+    borderColor: '#F5C451',
     borderWidth: 1.5,
+    boxShadow: '0px 0px 14px rgba(245, 196, 81, 0.22)',
+  },
+  modePillInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 2,
+  },
+  modeTextCenter: {
+    flex: 1,
+    alignItems: 'center',
   },
   modePillTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 14,
+    color: '#CBD9EC',
+    fontSize: 13,
     fontWeight: '900',
   },
   modePillTitleActive: {
-    color: CLUB.gold,
+    color: '#F5C451',
   },
   modePillSub: {
-    color: CLUB.textMuted,
-    fontSize: 10,
+    color: '#8098B8',
+    fontSize: 9.5,
     fontWeight: '700',
+    marginTop: 1,
   },
   modePillSubActive: {
-    color: CLUB.goldSoft,
+    color: '#E9CFA0',
   },
   scoreSingleRow: {
     flexDirection: 'row',
     gap: 6,
   },
-  scoreChip: {
+  scoreChipWrap: {
     flex: 1,
-    minHeight: 40,
-    backgroundColor: CLUB.surfaceDeep,
+    borderRadius: 11,
+  },
+  scoreChipGlow: {
+    boxShadow: '0px 0px 16px rgba(245, 196, 81, 0.5)',
+  },
+  scoreChipActiveGrad: {
+    minHeight: 42,
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderRadius: 10,
+    borderColor: '#FFF7CC',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scoreChipActive: {
-    backgroundColor: CLUB.gold,
-    borderColor: CLUB.goldSoft,
+  scoreChip: {
+    minHeight: 42,
+    backgroundColor: 'rgba(42, 68, 104, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(148, 190, 255, 0.22)',
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   scoreChipText: {
-    color: CLUB.textSecondary,
-    fontSize: 13,
-    fontWeight: '900',
+    color: '#D3E1F2',
+    fontSize: 14,
+    fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   scoreChipTextActive: {
-    color: CLUB.textInk,
+    color: '#1A1405',
+    fontSize: 15,
+    fontWeight: '900',
+    fontVariant: ['tabular-nums'],
   },
   thumbDock: {
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 6,
     paddingBottom: 12,
-    gap: 8,
-    borderTopWidth: 1,
-    borderTopColor: CLUB.borderSubtle,
-    backgroundColor: CLUB.glassBgStrong,
+    gap: 9,
   },
-  primaryBtn: {
-    backgroundColor: CLUB.emerald,
-    borderRadius: 16,
-    borderBottomWidth: 5,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 58,
-    paddingVertical: 11,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0px 8px 22px rgba(39, 209, 136, 0.30)',
+  primaryBtnOuter: {
+    borderRadius: 24,
+    borderBottomWidth: 4,
+    borderBottomColor: '#0E733E',
+    boxShadow: '0px 6px 26px rgba(41, 214, 127, 0.44)',
   },
   primaryBtnPressed: {
     transform: [{ translateY: 2 }],
-    opacity: 0.94,
+    opacity: 0.95,
+  },
+  primaryBtnGrad: {
+    minHeight: 60,
+    borderRadius: 22,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(187, 247, 208, 0.65)',
+  },
+  btnGlossTop: {
+    position: 'absolute',
+    top: 2,
+    left: 10,
+    right: 10,
+    height: '44%',
+    borderRadius: 99,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
   },
   primaryBtnTop: {
     flexDirection: 'row',
@@ -701,49 +853,62 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   primaryBtnText: {
-    color: CLUB.textInk,
-    fontSize: 20,
+    color: '#06311B',
+    fontSize: 21,
     fontWeight: '900',
     letterSpacing: -0.2,
   },
   primaryBtnSub: {
-    color: CLUB.emeraldDeep,
+    color: '#0B4D2B',
     fontSize: 12,
     fontWeight: '800',
     marginTop: 1,
   },
   onlineRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 9,
   },
-  onlineBtnTop: {
+  secondaryBtnOuter: {
+    flex: 1,
+    borderRadius: 16,
+    borderBottomWidth: 3.5,
+  },
+  onlineShadow: {
+    borderBottomColor: '#10317A',
+    boxShadow: '0px 4px 16px rgba(37, 99, 235, 0.34)',
+  },
+  privateShadow: {
+    borderBottomColor: '#480E87',
+    boxShadow: '0px 4px 16px rgba(139, 92, 246, 0.34)',
+  },
+  secondaryBtnPressed: {
+    transform: [{ translateY: 2 }],
+    opacity: 0.94,
+  },
+  secondaryBtnGrad: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  onlineBtn: {
-    flex: 1,
-    backgroundColor: CLUB.cobalt,
-    borderRadius: 14,
-    borderBottomWidth: 4,
-    borderBottomColor: '#1E3A8A',
-    minHeight: 48,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    alignItems: 'center',
     justifyContent: 'center',
-  },
-  privateBtn: {
-    flex: 1,
-    backgroundColor: CLUB.violet,
-    borderRadius: 14,
-    borderBottomWidth: 4,
-    borderBottomColor: CLUB.violetDark,
-    minHeight: 48,
+    gap: 9,
+    minHeight: 50,
+    borderRadius: 15,
     paddingVertical: 8,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+  },
+  secondaryGlossTop: {
+    position: 'absolute',
+    top: 1.5,
+    left: 6,
+    right: 6,
+    height: '42%',
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+  },
+  secondaryTextCol: {
+    alignItems: 'flex-start',
   },
   onlineBtnTitle: {
     color: '#FFFFFF',
@@ -751,10 +916,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   onlineBtnSub: {
-    color: 'rgba(255,255,255,0.78)',
+    color: 'rgba(255, 255, 255, 0.82)',
     fontSize: 11,
     fontWeight: '700',
-    marginTop: 1,
   },
   onlineBtnDisabled: {
     opacity: 0.45,

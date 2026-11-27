@@ -317,3 +317,51 @@ export function RefreshIcon({ size = 15, color = '#38BDF8' }: IconProps) {
     </Svg>
   );
 }
+
+/** Compact user silhouette for 1v1 / 2v2 / 4 Jug. mode pills */
+export function UserSilhouetteIcon({ size = 14, color = '#7E95AE' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={8.2} r={3.6} fill={color} />
+      <Path
+        d="M5.5 19.5C5.9 15.8 8.5 13.8 12 13.8C15.5 13.8 18.1 15.8 18.5 19.5H5.5Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+/** Key icon for Private Room ("Sala Privada") matching the mockup */
+export function KeyIcon({ size = 16, color = '#FFFFFF' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={8.5} cy={12} r={4.2} stroke={color} strokeWidth={2.2} />
+      <Path
+        d="M12.7 12H20.5M17.5 12V15.5M20 12V14.8"
+        stroke={color}
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Clean settings/support gear icon for top-right glossy orb */
+export function GearIcon({ size = 18, color = '#FFFFFF' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 15.2A3.2 3.2 0 1 0 12 8.8A3.2 3.2 0 1 0 12 15.2Z"
+        stroke={color}
+        strokeWidth={2.1}
+      />
+      <Path
+        d="M19.4 13.5L20.8 12L19.4 10.5L19.8 8.4L17.8 7.5L17.2 5.4L15 5.6L13.5 4L12 5L10.5 4L9 5.6L6.8 5.4L6.2 7.5L4.2 8.4L4.6 10.5L3.2 12L4.6 13.5L4.2 15.6L6.2 16.5L6.8 18.6L9 18.4L10.5 20L12 19L13.5 20L15 18.4L17.2 18.6L17.8 16.5L19.8 15.6L19.4 13.5Z"
+        stroke={color}
+        strokeWidth={1.8}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}

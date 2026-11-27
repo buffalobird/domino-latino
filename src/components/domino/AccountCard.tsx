@@ -14,7 +14,7 @@ import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { hapticLight } from '@/utils/feedback';
 
-function GoogleLogo({ size = 15 }: { size?: number }) {
+function GoogleLogo({ size = 16 }: { size?: number }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
@@ -37,7 +37,7 @@ function GoogleLogo({ size = 15 }: { size?: number }) {
   );
 }
 
-function AppleLogo({ size = 15, color = '#FFFFFF' }: { size?: number; color?: string }) {
+function AppleLogo({ size = 16, color = '#FFFFFF' }: { size?: number; color?: string }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24">
       <Path
@@ -49,8 +49,7 @@ function AppleLogo({ size = 15, color = '#FFFFFF' }: { size?: number; color?: st
 }
 
 /**
- * Slim 1-row Club Caribe account bar for optional Google & Apple OAuth.
- * Keeps 1-tap cloud sync accessible without competing visually against the Bottom Play Dock.
+ * Slim frosted-glass 1-row account bar matching the glossy arcade Club Caribe mockup.
  */
 export function AccountCard() {
   const {
@@ -166,14 +165,14 @@ export function AccountCard() {
             accessibilityLabel="Iniciar sesión con Google"
             style={({ pressed }) => [
               styles.googlePill,
-              pressed && { opacity: 0.9 },
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
             ]}
           >
             {authBusy === 'google' ? (
               <ActivityIndicator size="small" color={CLUB.textInk} />
             ) : (
               <>
-                <GoogleLogo size={14} />
+                <GoogleLogo size={15} />
                 <Text style={styles.googleText}>Google</Text>
               </>
             )}
@@ -189,14 +188,14 @@ export function AccountCard() {
             accessibilityLabel="Iniciar sesión con Apple"
             style={({ pressed }) => [
               styles.applePill,
-              pressed && { opacity: 0.9 },
+              pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
             ]}
           >
             {authBusy === 'apple' ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <AppleLogo size={14} color="#FFFFFF" />
+                <AppleLogo size={15} color="#FFFFFF" />
                 <Text style={styles.appleText}>Apple</Text>
               </>
             )}
@@ -211,13 +210,12 @@ export function AccountCard() {
 
 const styles = StyleSheet.create({
   bar: {
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 14,
+    backgroundColor: 'rgba(15, 30, 54, 0.56)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: 'rgba(148, 190, 255, 0.16)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     gap: 6,
   },
   row: {
@@ -230,51 +228,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   guestTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 12,
+    color: '#F8FAFC',
+    fontSize: 13,
     fontWeight: '800',
   },
   guestSub: {
-    color: CLUB.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
+    color: '#8EA6C6',
+    fontSize: 11,
+    fontWeight: '600',
     marginTop: 1,
   },
   oauthPills: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   googlePill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    minHeight: 36,
-    paddingHorizontal: 11,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    gap: 6,
+    minHeight: 38,
+    paddingHorizontal: 13,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 11,
+    boxShadow: '0px 3px 8px rgba(0, 0, 0, 0.28)',
   },
   googleText: {
-    color: CLUB.textInk,
-    fontSize: 12,
+    color: '#0D1520',
+    fontSize: 13,
     fontWeight: '800',
   },
   applePill: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    minHeight: 36,
-    paddingHorizontal: 11,
-    backgroundColor: '#090D16',
-    borderRadius: 10,
+    gap: 6,
+    minHeight: 38,
+    paddingHorizontal: 13,
+    backgroundColor: '#05080F',
+    borderRadius: 11,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+    boxShadow: '0px 3px 8px rgba(0, 0, 0, 0.35)',
   },
   appleText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
   },
   signedInfo: {
@@ -311,9 +311,9 @@ const styles = StyleSheet.create({
     minHeight: 34,
     paddingHorizontal: 10,
     borderRadius: 9,
-    backgroundColor: CLUB.surfaceCardLight,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: 'rgba(255,255,255,0.14)',
     alignItems: 'center',
     justifyContent: 'center',
   },
