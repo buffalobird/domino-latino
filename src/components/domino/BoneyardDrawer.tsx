@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 
+import { getTileStyle, TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
 import { CloseIcon } from './Icons';
 
@@ -13,14 +14,21 @@ interface BoneyardDrawerProps {
   leftEnd: number | null;
   rightEnd: number | null;
   canDraw: boolean;
+  tileStyleId?: TileStyleId;
   onDrawIndex: (index: number) => void;
   onClose: () => void;
 }
 
 const INITIAL_SLOTS = 14;
 
-/** Subtle tonal porcelain back engraving (geometric diamond filigree — authentic tournament ivory look) */
-function PorcelainBackWatermark() {
+/** Subtle tonal porcelain back engraving (geometric diamond filigree — matches equipped tile set) */
+function PorcelainBackWatermark({
+  strokeColor,
+  fillColor,
+}: {
+  strokeColor: string;
+  fillColor: string;
+}) {
   return (
     <Svg width={36} height={64} viewBox="0 0 36 64" fill="none">
       <Rect
@@ -29,18 +37,19 @@ function PorcelainBackWatermark() {
         width={32}
         height={60}
         rx={6}
-        stroke="#D4C5AA"
+        stroke={strokeColor}
         strokeWidth={1}
+        opacity={0.78}
       />
       <Path
         d="M18 17L26 32L18 47L10 32L18 17Z"
-        stroke="#CBB999"
+        stroke={strokeColor}
         strokeWidth={1.1}
-        fill="rgba(212, 197, 170, 0.14)"
+        fill={fillColor}
       />
       <Path
         d="M18 24L22.5 32L18 40L13.5 32L18 24Z"
-        stroke="#C4B08D"
+        stroke={strokeColor}
         strokeWidth={0.9}
       />
     </Svg>
@@ -48,8 +57,8 @@ function PorcelainBackWatermark() {
 }
 
 /**
- * Physical wooden side-drawer boneyard ("Pozo") with authentic solid porcelain ivory domino backs
- * contrasting sharply against lacquered mahogany wood.
+ * Physical wooden side-drawer boneyard ("Pozo") with authentic solid porcelain domino backs
+ * matched to the player's equipped tile style.
  */
 export function BoneyardDrawer({
   visible,
@@ -58,9 +67,11 @@ export function BoneyardDrawer({
   leftEnd,
   rightEnd,
   canDraw,
+  tileStyleId = 'marfil',
   onDrawIndex,
   onClose,
 }: BoneyardDrawerProps) {
+  const tileStyle = getTileStyle(tileStyleId);
   // Store removed visual slots per handNumber
   const [removedByHand, setRemovedByHand] = useState<{
     hand: number;
@@ -153,14 +164,29 @@ export function BoneyardDrawer({
                     ]}
                   >
                     <LinearGradient
-                      colors={['#FFFFFF', '#FBF6EC', '#E7DBC3']}
+                      colors={tileStyle.backGradient}
                       locations={[0, 0.55, 1]}
                       start={{ x: 0.1, y: 0 }}
                       end={{ x: 0.9, y: 1 }}
-                      style={styles.backTile}
+                      style={[
+                        styles.backTile,
+                        {
+                          borderColor: tileStyle.backBorderColor,
+                          borderBottomColor: tileStyle.backLipColor,
+                        },
+                      ]}
                     >
-                      <View style={styles.backSpecular} pointerEvents="none" />
-                      <PorcelainBackWatermark />
+                      <View
+                        style={[
+                          styles.backSpecular,
+                          { borderTopColor: tileStyle.specularColor },
+                        ]}
+                        pointerEvents="none"
+                      />
+                      <PorcelainBackWatermark
+                        strokeColor={tileStyle.backFiligreeStroke}
+                        fillColor={tileStyle.backFiligreeFill}
+                      />
                     </LinearGradient>
                   </Pressable>
                 ) : (

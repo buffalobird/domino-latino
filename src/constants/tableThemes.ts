@@ -1,10 +1,16 @@
-export type TableThemeId = 'caribe' | 'caoba' | 'esmeralda';
+export type TableThemeId =
+  | 'caribe'
+  | 'caoba'
+  | 'esmeralda'
+  | 'habana_noche'
+  | 'casino_oro';
 
 export interface TableThemeConfig {
   id: TableThemeId;
   name: string;
   subtitle: string;
   costChips: number;
+  tag?: string;
   feltCenter: string;
   feltEdge: string;
   feltInlay: string;
@@ -18,7 +24,7 @@ export interface TableThemeConfig {
 
 /**
  * Tactile Club table themes unlockable strictly with soft-currency "Fichas de Club".
- * Each theme harmonizes felt, brass rail inlay, wooden table frame, and player hand rack.
+ * Long-tail ladder from Free up to 15,000 Club Chips.
  */
 export const TABLE_THEMES: Record<TableThemeId, TableThemeConfig> = {
   caribe: {
@@ -56,6 +62,7 @@ export const TABLE_THEMES: Record<TableThemeId, TableThemeConfig> = {
     name: 'Esmeralda Real',
     subtitle: 'Paño torneo profesional y nogal oscuro',
     costChips: 1200,
+    tag: 'Torneo',
     feltCenter: '#146645',
     feltEdge: '#083724',
     feltInlay: 'rgba(245, 214, 138, 0.26)',
@@ -66,10 +73,44 @@ export const TABLE_THEMES: Record<TableThemeId, TableThemeConfig> = {
     rackBottom: '#2B170A',
     accent: '#27D188',
   },
+  habana_noche: {
+    id: 'habana_noche',
+    name: 'Terciopelo Burdeos',
+    subtitle: 'Salón nocturno vino tinto y filete dorado',
+    costChips: 4000,
+    tag: 'VIP',
+    feltCenter: '#6E1D34',
+    feltEdge: '#380C1A',
+    feltInlay: 'rgba(245, 196, 81, 0.34)',
+    woodLight: '#B27C4F',
+    woodMid: '#6B3E22',
+    woodDark: '#2E160A',
+    rackTop: '#542D16',
+    rackBottom: '#251208',
+    accent: '#FB7185',
+  },
+  casino_oro: {
+    id: 'casino_oro',
+    name: 'Gran Salón Dorado',
+    subtitle: 'Paño obsidiana de gala con marco de oro',
+    costChips: 15000,
+    tag: 'Leyenda',
+    feltCenter: '#1A2438',
+    feltEdge: '#0A101D',
+    feltInlay: 'rgba(253, 224, 71, 0.42)',
+    woodLight: '#D9A94E',
+    woodMid: '#8F621B',
+    woodDark: '#3E2607',
+    rackTop: '#6E4912',
+    rackBottom: '#2E1C06',
+    accent: '#FDE047',
+  },
 };
 
 export const TABLE_THEME_LIST: TableThemeConfig[] = [
   TABLE_THEMES.caribe,
   TABLE_THEMES.caoba,
   TABLE_THEMES.esmeralda,
+  TABLE_THEMES.habana_noche,
+  TABLE_THEMES.casino_oro,
 ];

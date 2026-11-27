@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthModal, AuthModalReason } from '@/components/domino/AuthModal';
+import { AvatarStudioModal } from '@/components/domino/AvatarStudioModal';
 import { DailyRewardModal } from '@/components/domino/DailyRewardModal';
 import { FeedbackModal } from '@/components/domino/FeedbackModal';
 import { GameTableView } from '@/components/domino/GameTableView';
@@ -21,8 +22,10 @@ import { RoundSummaryView } from '@/components/domino/RoundSummaryView';
 import { SetupView } from '@/components/domino/SetupView';
 import { ThemesModal } from '@/components/domino/ThemesModal';
 import { WaitingRoomView } from '@/components/domino/WaitingRoomView';
+import { AVATAR_COSMETIC_PRICES, AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood } from '@/constants/seatProfiles';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
+import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { chooseAiMove } from '@/engine/ai';
@@ -77,9 +80,12 @@ import {
 import {
   flushPendingAndSyncProgress,
   queueAndSyncMatch,
+  syncAvatarConfigToCloud,
+  syncCosmeticUnlockToCloud,
   syncDailyRewardToCloud,
   syncFreeRefillToCloud,
   syncThemeToCloud,
+  syncTileStyleToCloud,
   syncUserPreferences,
 } from '@/storage/syncService';
 import {
@@ -156,6 +162,7 @@ export default function DominoAppScreen() {
   // Economy, Auth & Feedback Modals + Remote Kill-Switch Config
   const [dailyModalOpen, setDailyModalOpen] = useState(false);
   const [themesModalOpen, setThemesModalOpen] = useState(false);
+  const [avatarStudioOpen, setAvatarStudioOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [authModal, setAuthModal] = useState<{ open: boolean; reason: AuthModalReason }>({
     open: false,
@@ -742,6 +749,107 @@ export default function DominoAppScreen() {
     [user?.id]
   );
 
+  const handleSelectOrUnlockTileStyle = useCallback(
+    (tileStyleId: TileStyleId) => {
+      const curr = retentionRef.current;
+      const cfg = TILE_STYLES[tileStyleId];
+      if (!cfg) return;
+
+      const isOwned =
+        !cfg.cosmeticKey || curr.unlockedCosmetics.includes(cfg.cosmeticKey);
+
+      if (isOwned) {
+        const updated: RetentionProgress = {
+          ...curr,
+          equippedTileStyle: tileStyleId,
+        };
+        setRetention(updated);
+        saveRetentionProgress(updated);
+        syncTileStyleToCloud(user?.id ?? null, tileStyleId, updated)
+          .then((authoritative) => {
+            if (authoritative) setRetention(authoritative);
+          })
+          .catch(() => {});
+        return;
+      }
+
+      if (curr.clubChips < cfg.costChips) return;
+      const updated: RetentionProgress = {
+        ...curr,
+        clubChips: curr.clubChips - cfg.costChips,
+        unlockedCosmetics: [...curr.unlockedCosmetics, cfg.cosmeticKey!],
+        equippedTileStyle: tileStyleId,
+      };
+      setRetention(updated);
+      saveRetentionProgress(updated);
+      hapticSuccess();
+      trackEvent(
+        'cosmetic_unlock',
+        { itemKey: cfg.cosmeticKey!, cost: cfg.costChips },
+        user?.id
+      );
+      syncTileStyleToCloud(user?.id ?? null, tileStyleId, updated)
+        .then((authoritative) => {
+          if (authoritative) setRetention(authoritative);
+        })
+        .catch(() => {});
+    },
+    [user?.id]
+  );
+
+  const handleUnlockAndSaveAvatar = useCallback(
+    (nextConfig: AvatarConfig, keysToUnlock: string[]) => {
+      const curr = retentionRef.current;
+      const ownedSet = new Set(curr.unlockedCosmetics);
+      const uniqueToBuy = Array.from(new Set(keysToUnlock)).filter(
+        (k) => k in AVATAR_COSMETIC_PRICES && !ownedSet.has(k)
+      );
+      const totalCost = uniqueToBuy.reduce(
+        (sum, k) => sum + (AVATAR_COSMETIC_PRICES[k] ?? 0),
+        0
+      );
+
+      if (curr.clubChips < totalCost) return;
+
+      const updated: RetentionProgress = {
+        ...curr,
+        clubChips: curr.clubChips - totalCost,
+        unlockedCosmetics: [...curr.unlockedCosmetics, ...uniqueToBuy],
+        avatarConfig: nextConfig,
+      };
+      setRetention(updated);
+      saveRetentionProgress(updated);
+      if (uniqueToBuy.length > 0) {
+        hapticSuccess();
+        for (const k of uniqueToBuy) {
+          trackEvent(
+            'cosmetic_unlock',
+            { itemKey: k, cost: AVATAR_COSMETIC_PRICES[k] ?? 0 },
+            user?.id
+          );
+        }
+      }
+      trackEvent(
+        'avatar_updated',
+        { hat: nextConfig.hat, outfit: nextConfig.outfit, frame: nextConfig.frame },
+        user?.id
+      );
+
+      if (user?.id) {
+        (async () => {
+          let latest: RetentionProgress = updated;
+          for (const k of uniqueToBuy) {
+            const unlockedRes = await syncCosmeticUnlockToCloud(user.id, k, latest);
+            if (unlockedRes) latest = unlockedRes;
+          }
+          const saved = await syncAvatarConfigToCloud(user.id, nextConfig, latest);
+          if (saved) setRetention(saved);
+        })().catch(() => {});
+      }
+    },
+    [user?.id]
+  );
+
   // Setup & Local Controls
   const handleChangeMode = useCallback(
     (mode: GameMode) => {
@@ -965,6 +1073,7 @@ export default function DominoAppScreen() {
             }}
             onOpenDailyRewards={() => setDailyModalOpen(true)}
             onOpenThemes={() => setThemesModalOpen(true)}
+            onOpenAvatarStudio={() => setAvatarStudioOpen(true)}
             onOpenFeedback={() => setFeedbackModalOpen(true)}
             onOpenAuth={() => {
               pendingOnlineTabRef.current = null;
@@ -983,6 +1092,8 @@ export default function DominoAppScreen() {
             botSpeed={botSpeed}
             seatMoods={seatMoods}
             themeId={retention.equippedTheme}
+            tileStyleId={retention.equippedTileStyle}
+            playerAvatarConfig={retention.avatarConfig}
             onHumanPlay={executeLocalHumanPlay}
             onHumanDraw={executeLocalHumanDraw}
             onHumanPass={executeLocalHumanPass}
@@ -997,7 +1108,12 @@ export default function DominoAppScreen() {
         )}
 
         {screenMode === 'local' && state.phase === 'round_summary' && (
-          <RoundSummaryView state={state} onContinue={handleContinueNextHand} />
+          <RoundSummaryView
+            state={state}
+            playerAvatarConfig={retention.avatarConfig}
+            tileStyleId={retention.equippedTileStyle}
+            onContinue={handleContinueNextHand}
+          />
         )}
 
         {screenMode === 'local' && state.phase === 'match_over' && (
@@ -1043,6 +1159,8 @@ export default function DominoAppScreen() {
               botSpeed={botSpeed}
               seatMoods={{}}
               themeId={retention.equippedTheme}
+              tileStyleId={retention.equippedTileStyle}
+              playerAvatarConfig={retention.avatarConfig}
               onHumanPlay={handleOnlinePlay}
               onHumanDraw={handleOnlineDraw}
               onHumanPass={handleOnlinePass}
@@ -1057,6 +1175,8 @@ export default function DominoAppScreen() {
             {onlineGameState.phase === 'round_summary' && (
               <RoundSummaryView
                 state={onlineGameState}
+                playerAvatarConfig={retention.avatarConfig}
+                tileStyleId={retention.equippedTileStyle}
                 onContinue={handleOnlineNextHand}
               />
             )}
@@ -1085,7 +1205,15 @@ export default function DominoAppScreen() {
           visible={themesModalOpen}
           retention={retention}
           onSelectOrUnlockTheme={handleSelectOrUnlockTheme}
+          onSelectOrUnlockTileStyle={handleSelectOrUnlockTileStyle}
           onClose={() => setThemesModalOpen(false)}
+        />
+
+        <AvatarStudioModal
+          visible={avatarStudioOpen}
+          retention={retention}
+          onUnlockAndSaveAvatar={handleUnlockAndSaveAvatar}
+          onClose={() => setAvatarStudioOpen(false)}
         />
 
         <FeedbackModal
@@ -1097,6 +1225,7 @@ export default function DominoAppScreen() {
         <AuthModal
           visible={authModal.open}
           reason={authModal.reason}
+          avatarConfig={retention.avatarConfig}
           onClose={() => {
             pendingOnlineTabRef.current = null;
             setAuthModal((prev) => ({ ...prev, open: false }));

@@ -1,6 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { TableThemeId } from '@/constants/tableThemes';
+import {
+  AvatarConfig,
+  DEFAULT_AVATAR_CONFIG,
+  sanitizeAvatarConfig,
+} from '@/constants/avatarCatalog';
+import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
+import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
 import { isValidPersistedState } from '@/engine/rules';
 import { GameState } from '@/engine/types';
 
@@ -19,15 +25,21 @@ export interface RetentionProgress {
   totalWins: number;
   /** Safe Double-Layer Economy: soft currency earned strictly via gameplay & daily bonuses */
   clubChips: number;
-  /** Visible XP & Player Level (Comparative Report O2) */
+  /** Visible XP & Player Level */
   xp: number;
   level: number;
-  /** 7-day escalating daily login bonus (Comparative Report O4) */
+  /** 7-day escalating daily login bonus */
   dailyClaimStreak: number;
   lastDailyClaimDate: string | null;
-  /** Cosmetic table themes (Comparative Report O5) */
+  /** Cosmetic table themes */
   equippedTheme: TableThemeId;
   unlockedThemes: TableThemeId[];
+  /** Collectible domino tile styles */
+  equippedTileStyle: TileStyleId;
+  /** Modular bust avatar configuration */
+  avatarConfig: AvatarConfig;
+  /** Unlocked cosmetic keys (`hair:bun`, `hat:panama`, `tile:jade`, `frame:oro_real`, etc.) */
+  unlockedCosmetics: string[];
 }
 
 export function getTodayKey(): string {
@@ -56,6 +68,9 @@ export function createDefaultRetention(): RetentionProgress {
     lastDailyClaimDate: null,
     equippedTheme: 'caribe',
     unlockedThemes: ['caribe'],
+    equippedTileStyle: 'marfil',
+    avatarConfig: { ...DEFAULT_AVATAR_CONFIG },
+    unlockedCosmetics: [],
   };
 }
 
@@ -144,13 +159,31 @@ export async function loadRetentionProgress(): Promise<RetentionProgress> {
     const today = getTodayKey();
     const sameDay = parsed.dateKey === today;
     const xp = typeof parsed.xp === 'number' ? Math.max(0, parsed.xp) : 0;
-    const unlocked = Array.isArray(parsed.unlockedThemes) && parsed.unlockedThemes.length > 0
-      ? (parsed.unlockedThemes as TableThemeId[])
-      : (['caribe'] as TableThemeId[]);
+    const unlockedRaw =
+      Array.isArray(parsed.unlockedThemes) && parsed.unlockedThemes.length > 0
+        ? (parsed.unlockedThemes.filter((t) => typeof t === 'string' && t in TABLE_THEMES) as TableThemeId[])
+        : (['caribe'] as TableThemeId[]);
+    const unlocked = Array.from(new Set<TableThemeId>(['caribe', ...unlockedRaw]));
     const equipped: TableThemeId =
       parsed.equippedTheme && unlocked.includes(parsed.equippedTheme)
         ? parsed.equippedTheme
         : 'caribe';
+
+    const unlockedCosmetics = Array.isArray(parsed.unlockedCosmetics)
+      ? Array.from(
+          new Set(
+            parsed.unlockedCosmetics.filter((k): k is string => typeof k === 'string' && k.length > 0)
+          )
+        )
+      : [];
+
+    const tileCandidate = parsed.equippedTileStyle as TileStyleId | undefined;
+    const equippedTileStyle: TileStyleId =
+      tileCandidate &&
+      tileCandidate in TILE_STYLES &&
+      (tileCandidate === 'marfil' || unlockedCosmetics.includes(`tile:${tileCandidate}`))
+        ? tileCandidate
+        : 'marfil';
 
     return {
       dateKey: today,
@@ -173,6 +206,9 @@ export async function loadRetentionProgress(): Promise<RetentionProgress> {
         typeof parsed.lastDailyClaimDate === 'string' ? parsed.lastDailyClaimDate : null,
       equippedTheme: equipped,
       unlockedThemes: unlocked,
+      equippedTileStyle,
+      avatarConfig: sanitizeAvatarConfig(parsed.avatarConfig),
+      unlockedCosmetics,
     };
   } catch {
     return createDefaultRetention();

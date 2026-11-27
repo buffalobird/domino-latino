@@ -90,6 +90,7 @@ export function MatchOverView({
                           accentColor={prof.accentColor}
                           mood={isWin ? 'win' : 'lose'}
                           size={34}
+                          avatarConfig={m.seat === 0 ? retention.avatarConfig : undefined}
                         />
                       </View>
                     );
@@ -118,6 +119,7 @@ export function MatchOverView({
                               b={t.b}
                               orientation="vertical"
                               unit={19}
+                              tileStyleId={retention.equippedTileStyle}
                             />
                           ))}
                         </View>
@@ -158,6 +160,7 @@ export function MatchOverView({
                   accentColor={prof.accentColor}
                   mood={isWin ? 'win' : 'lose'}
                   size={state.mode === '1v1' ? 44 : 34}
+                  avatarConfig={entry.seat === 0 ? retention.avatarConfig : undefined}
                 />
               </View>
               <Text style={styles.colName} numberOfLines={1}>
@@ -177,6 +180,7 @@ export function MatchOverView({
                       b={t.b}
                       orientation="vertical"
                       unit={unit}
+                      tileStyleId={retention.equippedTileStyle}
                     />
                   ))}
                 </View>

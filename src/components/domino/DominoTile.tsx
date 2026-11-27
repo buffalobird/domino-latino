@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { getTileStyle, TileStyleId } from '@/constants/tileStyles';
 import { CLUB, EBONY_PIP_COLORS, PIP_COLORS } from '@/constants/tokens';
 
 interface DominoTileProps {
@@ -17,6 +18,7 @@ interface DominoTileProps {
   highlighted?: boolean;
   ghost?: boolean;
   ghostActive?: boolean;
+  tileStyleId?: TileStyleId;
   onPress?: () => void;
 }
 
@@ -60,11 +62,15 @@ function PipFace({
   size,
   ebony = false,
   ghost = false,
+  pipColors = PIP_COLORS,
+  isDarkFace = false,
 }: {
   value: number;
   size: number;
   ebony?: boolean;
   ghost?: boolean;
+  pipColors?: Record<number, string>;
+  isDarkFace?: boolean;
 }) {
   const pips = PIP_LAYOUTS[value] ?? [];
   const pipSize = Math.max(4, Math.round(size * 0.23));
@@ -72,7 +78,7 @@ function PipFace({
     ? '#0B1622'
     : ebony
     ? EBONY_PIP_COLORS[value] ?? '#F1F5F9'
-    : PIP_COLORS[value] ?? '#111827';
+    : pipColors[value] ?? '#111827';
   const pad = Math.max(2.5, Math.round(size * 0.17));
   const inner = size - pad * 2;
   const step = inner / 2;
@@ -95,13 +101,13 @@ function PipFace({
             left: pad + col * step - pipSize / 2,
             overflow: 'hidden',
             borderTopWidth: showDepth ? 1 : 0,
-            borderTopColor: ebony ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.42)',
+            borderTopColor: ebony || isDarkFace ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.42)',
             borderBottomWidth: showDepth ? 0.8 : 0,
-            borderBottomColor: ebony ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.65)',
+            borderBottomColor: ebony || isDarkFace ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.65)',
           }}
         >
           {/* Concave drilled-enamel specular glint at bottom-right of each pip */}
-          {showDepth && !ebony && (
+          {showDepth && !ebony && !isDarkFace && (
             <View
               style={{
                 position: 'absolute',
@@ -131,8 +137,10 @@ export function DominoTile({
   highlighted = false,
   ghost = false,
   ghostActive = false,
+  tileStyleId = 'marfil',
   onPress,
 }: DominoTileProps) {
+  const tileStyle = getTileStyle(tileStyleId);
   const isHorizontal = orientation === 'horizontal';
   const width = isHorizontal ? unit * 2 : unit;
   const height = isHorizontal ? unit : unit * 2;
@@ -175,7 +183,7 @@ export function DominoTile({
 
   const gradColors: [string, string, string] = ebony
     ? ['#223043', '#172231', '#0F1724']
-    : ['#FFFFFF', '#FBF6EC', '#EAE0CB'];
+    : tileStyle.faceGradient;
 
   const tileBody = (
     <LinearGradient
@@ -191,9 +199,19 @@ export function DominoTile({
           flexDirection: isHorizontal ? 'row' : 'column',
           borderRadius: radius,
           borderBottomWidth: bottomLip,
+          borderColor: tileStyle.borderColor,
+          borderBottomColor: tileStyle.bottomLipColor,
         },
         ebony && styles.tileEbony,
-        playable && !selected && styles.tilePlayable,
+        ebony && tileStyle.isDarkFace && { opacity: 0.52 },
+        playable &&
+          !selected && [
+            styles.tilePlayable,
+            {
+              borderColor: tileStyle.playableBorderColor,
+              borderBottomColor: tileStyle.playableLipColor,
+            },
+          ],
         selected && styles.tileSelected,
         highlighted && styles.tileHighlighted,
       ]}
@@ -204,13 +222,22 @@ export function DominoTile({
           pointerEvents="none"
           style={[
             styles.ivorySpecular,
-            { borderRadius: Math.max(4, radius - 1.5) },
+            {
+              borderRadius: Math.max(4, radius - 1.5),
+              borderTopColor: tileStyle.specularColor,
+            },
           ]}
         />
       )}
 
       <View style={styles.half}>
-        <PipFace value={a} size={faceSize} ebony={ebony} />
+        <PipFace
+          value={a}
+          size={faceSize}
+          ebony={ebony}
+          pipColors={tileStyle.pipColors}
+          isDarkFace={tileStyle.isDarkFace}
+        />
       </View>
 
       {/* Debossed center groove (dark engraved groove + subtle light bottom edge) */}
@@ -226,6 +253,11 @@ export function DominoTile({
           style={[
             styles.dividerLine,
             isHorizontal ? styles.dividerVertical : styles.dividerHorizontal,
+            !ebony && {
+              backgroundColor: tileStyle.dividerColor,
+              borderBottomColor: isHorizontal ? 'transparent' : tileStyle.dividerHighlight,
+              borderRightColor: isHorizontal ? tileStyle.dividerHighlight : 'transparent',
+            },
             ebony && {
               backgroundColor: 'rgba(148, 163, 184, 0.25)',
               borderBottomColor: 'transparent',
@@ -233,10 +265,10 @@ export function DominoTile({
             },
           ]}
         />
-        {/* Authentic polished brass spinner pin with metallic gradient */}
+        {/* Authentic polished metallic spinner pin */}
         {!ebony && (
           <LinearGradient
-            colors={['#FFF5BF', '#D9AE4E', '#8C6516']}
+            colors={tileStyle.spinnerGradient}
             start={{ x: 0.2, y: 0.1 }}
             end={{ x: 0.9, y: 0.95 }}
             style={[
@@ -245,6 +277,7 @@ export function DominoTile({
                 width: pinSize,
                 height: pinSize,
                 borderRadius: pinSize / 2,
+                borderColor: tileStyle.spinnerBorder,
               },
             ]}
           />
@@ -252,7 +285,13 @@ export function DominoTile({
       </View>
 
       <View style={styles.half}>
-        <PipFace value={b} size={faceSize} ebony={ebony} />
+        <PipFace
+          value={b}
+          size={faceSize}
+          ebony={ebony}
+          pipColors={tileStyle.pipColors}
+          isDarkFace={tileStyle.isDarkFace}
+        />
       </View>
     </LinearGradient>
   );

@@ -10,6 +10,7 @@ import Animated, {
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
 
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
+import { TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
 import { PlacedTile, PlaySide, Tile } from '@/engine/types';
 import { DominoTile } from './DominoTile';
@@ -36,6 +37,7 @@ interface BoardCanvasProps {
   hoverSide: PlaySide | null;
   numPlayers: number;
   themeId?: TableThemeId;
+  tileStyleId?: TileStyleId;
   onSelectSide: (side: PlaySide) => void;
   onDropZonesMeasured?: (zones: DropZoneTarget[], boardRect: BoardRect) => void;
 }
@@ -415,6 +417,7 @@ export function BoardCanvas({
   hoverSide,
   numPlayers,
   themeId = 'caribe',
+  tileStyleId = 'marfil',
   onSelectSide,
   onDropZonesMeasured,
 }: BoardCanvasProps) {
@@ -619,6 +622,7 @@ export function BoardCanvas({
                         orientation={item.orientation}
                         unit={BASE_UNIT * layout.scale}
                         highlighted={item.placed.order === highlightOrder}
+                        tileStyleId={tileStyleId}
                       />
                     </AnimatedPlacedTile>
                   </View>

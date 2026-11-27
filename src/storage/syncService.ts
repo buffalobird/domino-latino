@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { BotSpeed } from '@/components/domino/PauseModal';
-import { TableThemeId } from '@/constants/tableThemes';
+import { AvatarConfig, sanitizeAvatarConfig } from '@/constants/avatarCatalog';
+import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
+import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
 import { GameMode, TargetScore } from '@/engine/types';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import {
@@ -46,6 +48,9 @@ interface CloudProgressRow {
   last_daily_claim_date?: string | null;
   equipped_theme?: string | null;
   unlocked_themes?: string[] | null;
+  equipped_tile_style?: string | null;
+  avatar_config?: unknown;
+  unlocked_cosmetics?: string[] | null;
 }
 
 function mapCloudProgressToLocal(
@@ -56,15 +61,36 @@ function mapCloudProgressToLocal(
   const today = getTodayKey();
   const cloudTodayStars = cloud.daily_date === today ? cloud.daily_stars ?? 0 : 0;
   const xp = typeof cloud.xp === 'number' ? Math.max(0, cloud.xp) : fallback.xp;
-  const unlockedRaw = Array.isArray(cloud.unlocked_themes) && cloud.unlocked_themes.length > 0
-    ? (cloud.unlocked_themes as TableThemeId[])
-    : (['caribe'] as TableThemeId[]);
+  const unlockedRaw =
+    Array.isArray(cloud.unlocked_themes) && cloud.unlocked_themes.length > 0
+      ? (cloud.unlocked_themes.filter((t) => typeof t === 'string' && t in TABLE_THEMES) as TableThemeId[])
+      : (['caribe'] as TableThemeId[]);
   const unlockedThemes = Array.from(new Set<TableThemeId>(['caribe', ...unlockedRaw]));
   const equippedCandidate = cloud.equipped_theme as TableThemeId | undefined;
   const equippedTheme: TableThemeId =
     equippedCandidate && unlockedThemes.includes(equippedCandidate)
       ? equippedCandidate
       : 'caribe';
+
+  const unlockedCosmetics = Array.isArray(cloud.unlocked_cosmetics)
+    ? Array.from(
+        new Set(
+          cloud.unlocked_cosmetics.filter((k): k is string => typeof k === 'string' && k.length > 0)
+        )
+      )
+    : fallback.unlockedCosmetics;
+
+  const tileCandidate = cloud.equipped_tile_style as TileStyleId | undefined;
+  const equippedTileStyle: TileStyleId =
+    tileCandidate &&
+    tileCandidate in TILE_STYLES &&
+    (tileCandidate === 'marfil' || unlockedCosmetics.includes(`tile:${tileCandidate}`))
+      ? tileCandidate
+      : 'marfil';
+
+  const avatarConfig = cloud.avatar_config
+    ? sanitizeAvatarConfig(cloud.avatar_config)
+    : fallback.avatarConfig;
 
   return {
     dateKey: today,
@@ -79,6 +105,9 @@ function mapCloudProgressToLocal(
     lastDailyClaimDate: cloud.last_daily_claim_date ?? null,
     equippedTheme,
     unlockedThemes,
+    equippedTileStyle,
+    avatarConfig,
+    unlockedCosmetics,
   };
 }
 
@@ -191,6 +220,63 @@ export async function syncThemeToCloud(
 }
 
 /**
+ * Authoritative server-side collectible tile style unlock / equip.
+ */
+export async function syncTileStyleToCloud(
+  userId: string | null,
+  tileStyleId: TileStyleId,
+  fallback: RetentionProgress
+): Promise<RetentionProgress | null> {
+  if (!userId || !isSupabaseConfigured) return null;
+  const res = await invokeAccountFn<{ ok: boolean; progress?: CloudProgressRow }>({
+    action: 'unlock_or_equip_tile_style',
+    tileStyleId,
+  });
+  if (!res.progress) return null;
+  const authoritative = mapCloudProgressToLocal(res.progress, fallback);
+  await saveRetentionProgress(authoritative);
+  return authoritative;
+}
+
+/**
+ * Authoritative server-side unlock for a paid avatar accessory / frame.
+ */
+export async function syncCosmeticUnlockToCloud(
+  userId: string | null,
+  itemKey: string,
+  fallback: RetentionProgress
+): Promise<RetentionProgress | null> {
+  if (!userId || !isSupabaseConfigured) return null;
+  const res = await invokeAccountFn<{ ok: boolean; progress?: CloudProgressRow }>({
+    action: 'unlock_cosmetic',
+    itemKey,
+  });
+  if (!res.progress) return null;
+  const authoritative = mapCloudProgressToLocal(res.progress, fallback);
+  await saveRetentionProgress(authoritative);
+  return authoritative;
+}
+
+/**
+ * Authoritative server-side save for the player's modular avatar configuration.
+ */
+export async function syncAvatarConfigToCloud(
+  userId: string | null,
+  avatarConfig: AvatarConfig,
+  fallback: RetentionProgress
+): Promise<RetentionProgress | null> {
+  if (!userId || !isSupabaseConfigured) return null;
+  const res = await invokeAccountFn<{ ok: boolean; progress?: CloudProgressRow }>({
+    action: 'save_avatar_config',
+    avatarConfig,
+  });
+  if (!res.progress) return null;
+  const authoritative = mapCloudProgressToLocal(res.progress, fallback);
+  await saveRetentionProgress(authoritative);
+  return authoritative;
+}
+
+/**
  * Permanent account deletion (Apple App Store 5.1.1(v) + SOC 2 Privacy).
  */
 export async function deleteUserAccount(): Promise<void> {
@@ -267,7 +353,7 @@ export async function flushPendingAndSyncProgress(
     supabase
       .from('user_progress')
       .select(
-        'daily_date, daily_stars, win_streak, best_streak, total_wins, total_matches, club_chips, xp, level, daily_claim_streak, last_daily_claim_date, equipped_theme, unlocked_themes'
+        'daily_date, daily_stars, win_streak, best_streak, total_wins, total_matches, club_chips, xp, level, daily_claim_streak, last_daily_claim_date, equipped_theme, unlocked_themes, equipped_tile_style, avatar_config, unlocked_cosmetics'
       )
       .eq('user_id', userId)
       .maybeSingle(),

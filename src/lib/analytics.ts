@@ -10,6 +10,8 @@ export type AnalyticsEventName =
   | 'daily_claim'
   | 'free_refill'
   | 'theme_unlock'
+  | 'cosmetic_unlock'
+  | 'avatar_updated'
   | 'room_created'
   | 'room_joined'
   | 'room_started_with_bots'

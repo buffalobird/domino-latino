@@ -1,18 +1,21 @@
 import React, { useId } from 'react';
 import Svg, { Circle, Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
+import { AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood } from '@/constants/seatProfiles';
+import { ModularAvatar } from './ModularAvatar';
 
 interface AvatarIllustrationProps {
   isBot: boolean;
   accentColor: string;
   mood?: BotMood;
   size?: number;
+  avatarConfig?: AvatarConfig;
 }
 
 /**
  * Illustrated SVG Club Caribe Avatars (100% Expo Go compatible, unique SVG gradient IDs):
- * - Player: warm stylized club player in guayabera with crisp shading.
+ * - Player: delegates to customizable ModularAvatar bust (inclusive styles & accessories).
  * - Bot: tactile metallic robotito with diagonal visor glass glint, brass ear bolts, and expressive moods.
  */
 export function AvatarIllustration({
@@ -20,67 +23,12 @@ export function AvatarIllustration({
   accentColor,
   mood = 'idle',
   size = 48,
+  avatarConfig,
 }: AvatarIllustrationProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
 
   if (!isBot) {
-    const bgId = `pbg_${uid}`;
-    const skinId = `pskin_${uid}`;
-    return (
-      <Svg width={size} height={size} viewBox="0 0 64 64">
-        <Defs>
-          <LinearGradient id={bgId} x1="0" y1="0" x2="0.2" y2="1">
-            <Stop offset="0" stopColor="#1B3B54" />
-            <Stop offset="1" stopColor="#0B1926" />
-          </LinearGradient>
-          <LinearGradient id={skinId} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#F0BC94" />
-            <Stop offset="1" stopColor="#DC9D72" />
-          </LinearGradient>
-        </Defs>
-        <Circle cx={32} cy={32} r={32} fill={`url(#${bgId})`} />
-        {/* Warm guayabera shoulders + collar lapels */}
-        <Path
-          d="M11 61C13.5 47 21.5 43 32 43C42.5 43 50.5 47 53 61"
-          fill={accentColor}
-        />
-        <Path d="M26 43.2L32 52L38 43.2" fill="#FFFDF9" opacity={0.92} />
-        <Path
-          d="M25.5 43.5L29 50.5M38.5 43.5L35 50.5"
-          stroke="rgba(13,21,32,0.22)"
-          strokeWidth={1.4}
-          strokeLinecap="round"
-        />
-        {/* Neck & subtle chin shadow */}
-        <Rect x={28} y={36.5} width={8} height={8.5} rx={3.2} fill="#CC8E65" />
-        {/* Head */}
-        <Circle cx={32} cy={27} r={12.5} fill={`url(#${skinId})`} />
-        {/* Hair */}
-        <Path
-          d="M19.3 25.2C19.3 16.4 24.8 12.6 32 12.6C39.2 12.6 44.7 16.4 44.7 25.2C42.2 20.6 37.2 19.3 32 19.3C26.8 19.3 21.8 20.6 19.3 25.2Z"
-          fill="#182230"
-        />
-        {/* Eyes with catchlights */}
-        <Circle cx={27.5} cy={27.4} r={1.85} fill="#0F172A" />
-        <Circle cx={36.5} cy={27.4} r={1.85} fill="#0F172A" />
-        <Circle cx={28.1} cy={26.8} r={0.55} fill="#FFFFFF" />
-        <Circle cx={37.1} cy={26.8} r={0.55} fill="#FFFFFF" />
-        {/* Expression */}
-        <Path
-          d={
-            mood === 'lose'
-              ? 'M28 34.2C29.8 32.6 34.2 32.6 36 34.2'
-              : mood === 'win'
-              ? 'M26.5 32C29 35.6 35 35.6 37.5 32'
-              : 'M27.6 32.6C29.6 34.8 34.4 34.8 36.4 32.6'
-          }
-          stroke="#7C2D12"
-          strokeWidth={2}
-          strokeLinecap="round"
-          fill="none"
-        />
-      </Svg>
-    );
+    return <ModularAvatar config={avatarConfig} mood={mood} size={size} />;
   }
 
   // Expressive Club Robotito

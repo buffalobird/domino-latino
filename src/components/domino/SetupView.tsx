@@ -26,6 +26,7 @@ import {
   StarIcon,
   UserSilhouetteIcon,
 } from './Icons';
+import { ModularAvatar } from './ModularAvatar';
 
 const TITLE_LOGO_IMG = require('@/assets/images/domino-title-logo.png');
 const HERO_CHARACTERS_IMG = require('@/assets/images/home-hero-characters.png');
@@ -42,6 +43,7 @@ interface SetupViewProps {
   onOpenOnlineLobby: (tab: 'public' | 'private') => void;
   onOpenDailyRewards: () => void;
   onOpenThemes: () => void;
+  onOpenAvatarStudio: () => void;
   onOpenFeedback: () => void;
   onOpenAuth: () => void;
 }
@@ -130,6 +132,7 @@ export function SetupView({
   onOpenOnlineLobby,
   onOpenDailyRewards,
   onOpenThemes,
+  onOpenAvatarStudio,
   onOpenFeedback,
   onOpenAuth,
 }: SetupViewProps) {
@@ -163,19 +166,40 @@ export function SetupView({
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Top Frosted HUD Bar */}
+          {/* 1. Top Frosted HUD Bar (Live Tappable Modular Avatar + Level + Mesas/Fichas + Chips) */}
           <View style={styles.topStrip}>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelText}>Nv. {retention.level}</Text>
-              <View style={styles.xpBarBg}>
-                <LinearGradient
-                  colors={['#67E8F9', '#38BDF8']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]}
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                onOpenAvatarStudio();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Personalizar mi avatar"
+              style={({ pressed }) => [
+                styles.levelBadge,
+                pressed && { opacity: 0.86, transform: [{ scale: 0.97 }] },
+              ]}
+            >
+              <View style={styles.avatarMiniWrap}>
+                <ModularAvatar
+                  config={retention.avatarConfig}
+                  size={30}
+                  showFrameRing
                 />
+                <View style={styles.avatarEditDot} />
               </View>
-            </View>
+              <View style={styles.levelMetaCol}>
+                <Text style={styles.levelText}>Nv. {retention.level}</Text>
+                <View style={styles.xpBarBg}>
+                  <LinearGradient
+                    colors={['#67E8F9', '#38BDF8']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]}
+                  />
+                </View>
+              </View>
+            </Pressable>
 
             <View style={styles.topRightPills}>
               <Pressable
@@ -568,22 +592,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(26, 46, 78, 0.62)',
+    backgroundColor: 'rgba(26, 46, 78, 0.68)',
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.24)',
+    borderColor: 'rgba(148, 190, 255, 0.28)',
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingLeft: 4,
+    paddingRight: 11,
+    paddingVertical: 4,
+  },
+  avatarMiniWrap: {
+    position: 'relative',
+  },
+  avatarEditDot: {
+    position: 'absolute',
+    right: -1,
+    bottom: -1,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    backgroundColor: '#F5C451',
+    borderWidth: 1.5,
+    borderColor: '#0D1B34',
+  },
+  levelMetaCol: {
+    gap: 3,
   },
   levelText: {
     color: '#F8FAFC',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
+    lineHeight: 13,
   },
   xpBarBg: {
-    width: 52,
-    height: 7,
-    borderRadius: 4,
+    width: 48,
+    height: 5.5,
+    borderRadius: 3,
     backgroundColor: 'rgba(7, 15, 29, 0.65)',
     borderWidth: 0.75,
     borderColor: 'rgba(148, 190, 255, 0.16)',

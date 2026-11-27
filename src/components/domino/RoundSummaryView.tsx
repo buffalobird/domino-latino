@@ -1,7 +1,9 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { AvatarConfig } from '@/constants/avatarCatalog';
 import { getSeatProfile } from '@/constants/seatProfiles';
+import { TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
 import { GameState, HandSummary } from '@/engine/types';
 import { hapticSnap } from '@/utils/feedback';
@@ -12,12 +14,20 @@ import { CrownIcon } from './Icons';
 
 interface RoundSummaryViewProps {
   state: GameState;
+  playerAvatarConfig?: AvatarConfig;
+  tileStyleId?: TileStyleId;
   onContinue: () => void;
 }
 
 type RemainingEntry = HandSummary['remainingHands'][number];
 
-function VerticalTilesStrip({ tiles }: { tiles: RemainingEntry['tiles'] }) {
+function VerticalTilesStrip({
+  tiles,
+  tileStyleId = 'marfil',
+}: {
+  tiles: RemainingEntry['tiles'];
+  tileStyleId?: TileStyleId;
+}) {
   if (tiles.length === 0) {
     return (
       <View style={styles.emptyBox}>
@@ -38,6 +48,7 @@ function VerticalTilesStrip({ tiles }: { tiles: RemainingEntry['tiles'] }) {
           b={tile.b}
           orientation="vertical"
           unit={unit}
+          tileStyleId={tileStyleId}
         />
       ))}
     </View>
@@ -50,7 +61,12 @@ function VerticalTilesStrip({ tiles }: { tiles: RemainingEntry['tiles'] }) {
  *   matching the exact vertical orientation used while playing on the rack.
  * - Adapted cleanly per mode: 2 columns for 1v1, 2 team columns for 2v2, 2x2 grid for 4ffa.
  */
-export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
+export function RoundSummaryView({
+  state,
+  playerAvatarConfig,
+  tileStyleId = 'marfil',
+  onContinue,
+}: RoundSummaryViewProps) {
   const summary = state.lastHandSummary;
   if (!summary) return null;
 
@@ -102,6 +118,7 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
                       : 'lose'
                   }
                   size={48}
+                  avatarConfig={entry.seat === 0 ? playerAvatarConfig : undefined}
                 />
               </View>
 
@@ -118,7 +135,7 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
               <Text style={styles.trayLabel}>
                 Restantes ({entry.pipSum} pts)
               </Text>
-              <VerticalTilesStrip tiles={entry.tiles} />
+              <VerticalTilesStrip tiles={entry.tiles} tileStyleId={tileStyleId} />
 
               <View style={styles.totalFooter}>
                 <Text style={styles.totalLabel}>TOTAL</Text>
@@ -184,6 +201,7 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
                             : 'lose'
                         }
                         size={36}
+                        avatarConfig={m.seat === 0 ? playerAvatarConfig : undefined}
                       />
                     </View>
                   );
@@ -208,7 +226,7 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
                         {prof.displayName} · {m.pipSum} pts
                         {m.countedInScore ? '' : ' (ganó)'}
                       </Text>
-                      <VerticalTilesStrip tiles={m.tiles} />
+                      <VerticalTilesStrip tiles={m.tiles} tileStyleId={tileStyleId} />
                     </View>
                   );
                 })}
@@ -259,6 +277,7 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
                         : 'lose'
                     }
                     size={34}
+                    avatarConfig={entry.seat === 0 ? playerAvatarConfig : undefined}
                   />
                 </View>
                 <View style={styles.gridNameCol}>
@@ -273,7 +292,7 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
               </View>
 
               <Text style={styles.memberSubLabel}>Restan {entry.pipSum} pts</Text>
-              <VerticalTilesStrip tiles={entry.tiles} />
+              <VerticalTilesStrip tiles={entry.tiles} tileStyleId={tileStyleId} />
             </View>
           );
         })}

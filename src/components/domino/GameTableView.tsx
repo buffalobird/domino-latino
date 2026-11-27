@@ -19,8 +19,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
+import { TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
 import {
   canDrawFromBoneyard,
@@ -46,6 +48,8 @@ interface GameTableViewProps {
   botSpeed: BotSpeed;
   seatMoods: Record<number, BotMood>;
   themeId?: TableThemeId;
+  tileStyleId?: TileStyleId;
+  playerAvatarConfig?: AvatarConfig;
   onHumanPlay: (tileId: string, side: PlaySide) => void;
   onHumanDraw: (boneyardIndex?: number) => void;
   onHumanPass: () => void;
@@ -65,6 +69,7 @@ interface GestureHandTileProps {
   isSelected: boolean;
   isDraggingThis: boolean;
   singleValidSide: PlaySide | null;
+  tileStyleId?: TileStyleId;
   dragX: SharedValue<number>;
   dragY: SharedValue<number>;
   dragActive: SharedValue<number>;
@@ -85,6 +90,7 @@ function GestureHandTile({
   isSelected,
   isDraggingThis,
   singleValidSide,
+  tileStyleId = 'marfil',
   dragX,
   dragY,
   dragActive,
@@ -180,6 +186,7 @@ function GestureHandTile({
           playable={isLegal}
           selected={isSelected && !isDraggingThis}
           ebony={!isLegal}
+          tileStyleId={tileStyleId}
         />
       </View>
     </GestureDetector>
@@ -194,6 +201,8 @@ export function GameTableView({
   botSpeed,
   seatMoods,
   themeId = 'caribe',
+  tileStyleId = 'marfil',
+  playerAvatarConfig,
   onHumanPlay,
   onHumanDraw,
   onHumanPass,
@@ -604,6 +613,7 @@ export function GameTableView({
             hoverSide={hoverSide}
             numPlayers={state.players.length}
             themeId={themeId}
+            tileStyleId={tileStyleId}
             onSelectSide={handleSelectSide}
             onDropZonesMeasured={handleDropZonesMeasured}
           />
@@ -650,6 +660,7 @@ export function GameTableView({
             secondsLeft={turnSecondsLeft}
             lastAction={human.lastAction}
             mood={seatMoods[0] ?? 'idle'}
+            avatarConfig={playerAvatarConfig}
             layout="horizontal"
             bubbleAnchor="right"
           />
@@ -707,6 +718,7 @@ export function GameTableView({
                     isSelected={effectiveSelectedId === tile.id}
                     isDraggingThis={draggingTile?.id === tile.id}
                     singleValidSide={singleValidSide}
+                    tileStyleId={tileStyleId}
                     dragX={dragX}
                     dragY={dragY}
                     dragActive={dragActive}
@@ -737,6 +749,7 @@ export function GameTableView({
               orientation="vertical"
               unit={42}
               selected
+              tileStyleId={tileStyleId}
             />
           )}
         </Animated.View>
@@ -748,6 +761,7 @@ export function GameTableView({
           leftEnd={state.leftEnd}
           rightEnd={state.rightEnd}
           canDraw={mustDraw}
+          tileStyleId={tileStyleId}
           onDrawIndex={onHumanDraw}
           onClose={() => setBoneyardOpen(false)}
         />

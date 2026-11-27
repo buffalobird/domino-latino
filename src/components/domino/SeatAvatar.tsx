@@ -8,6 +8,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
+import { AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood, SeatProfile } from '@/constants/seatProfiles';
 import { CLUB } from '@/constants/tokens';
 import { AvatarIllustration } from './AvatarIllustration';
@@ -24,6 +25,7 @@ interface SeatAvatarProps {
   secondsLeft?: number | null;
   lastAction?: string | null;
   mood?: BotMood;
+  avatarConfig?: AvatarConfig;
   /** Vertical stacked pill for 4-player top arc (takes minimal horizontal width) */
   layout?: 'horizontal' | 'stacked';
   /** Floating bubble anchor so bubbles NEVER shift or collide with HUD layout */
@@ -41,6 +43,7 @@ export function SeatAvatar({
   secondsLeft = null,
   lastAction = null,
   mood = 'idle',
+  avatarConfig,
   layout = 'horizontal',
   bubbleAnchor = 'below',
 }: SeatAvatarProps) {
@@ -143,6 +146,7 @@ export function SeatAvatar({
           accentColor={profile.accentColor}
           mood={isActiveTurn && profile.isBot ? 'thinking' : mood}
           size={avatarSize}
+          avatarConfig={avatarConfig}
         />
         {isUrgent && (
           <View style={styles.urgentOverlay}>

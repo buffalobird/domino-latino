@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
+import { AvatarConfig } from '@/constants/avatarCatalog';
 import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { hapticLight } from '@/utils/feedback';
@@ -22,6 +23,7 @@ export type AuthModalReason = 'profile' | 'online_public' | 'online_private';
 interface AuthModalProps {
   visible: boolean;
   reason: AuthModalReason;
+  avatarConfig?: AvatarConfig;
   onClose: () => void;
 }
 
@@ -63,7 +65,12 @@ function AppleLogo({ size = 20, color = '#FFFFFF' }: { size?: number; color?: st
  * Industry-standard Bottom Sheet for OAuth (Apple HIG & Google Identity compliant 52px full-width buttons)
  * and signed-in account management (Sign Out + Apple 5.1.1(v) Delete Account).
  */
-export function AuthModal({ visible, reason, onClose }: AuthModalProps) {
+export function AuthModal({
+  visible,
+  reason,
+  avatarConfig,
+  onClose,
+}: AuthModalProps) {
   const {
     user,
     profile,
@@ -155,7 +162,12 @@ export function AuthModal({ visible, reason, onClose }: AuthModalProps) {
           {isSignedIn && user ? (
             <View style={styles.signedBody}>
               <View style={styles.profileRow}>
-                <AvatarIllustration isBot={false} accentColor={CLUB.emerald} size={52} />
+                <AvatarIllustration
+                  isBot={false}
+                  accentColor={CLUB.emerald}
+                  size={52}
+                  avatarConfig={avatarConfig}
+                />
                 <View style={styles.profileTextCol}>
                   <Text style={styles.profileName} numberOfLines={1}>
                     {label}
