@@ -1,3 +1,5 @@
+export type AvatarBodyType = 'feminine' | 'masculine';
+
 export type AvatarSkinToneId =
   | 'marfil'
   | 'claro'
@@ -107,13 +109,29 @@ export type AvatarFacialId =
 export type AvatarOutfitId =
   | 'tee'
   | 'vneck'
+  | 'tank'
+  | 'stripes'
   | 'polo'
-  | 'hoodie'
-  | 'sweater'
-  | 'open_shirt'
   | 'blouse'
+  | 'sweater'
+  | 'tie_shirt'
+  | 'hoodie'
+  | 'flannel'
+  | 'rock_skull'
+  | 'hawaiian_floral'
+  | 'open_shirt'
+  | 'suspenders'
+  | 'ballet'
+  | 'vest_bowtie'
+  | 'kimono'
   | 'jacket'
+  | 'pirate'
+  | 'winter_fur'
+  | 'princess'
   | 'blazer'
+  | 'carnival'
+  | 'pharaoh'
+  | 'queen'
   | 'royal_tux';
 
 export type AvatarGlassesId =
@@ -156,6 +174,7 @@ export type AvatarFrameId =
   | 'legend';
 
 export interface AvatarConfig {
+  bodyType: AvatarBodyType;
   skinTone: AvatarSkinToneId;
   faceShape: AvatarFaceShapeId;
   eyeStyle: AvatarEyeStyleId;
@@ -173,9 +192,10 @@ export interface AvatarConfig {
   frame: AvatarFrameId;
 }
 
-export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
+export const BASE_MALE_AVATAR: AvatarConfig = {
+  bodyType: 'masculine',
   skinTone: 'calido',
-  faceShape: 'oval',
+  faceShape: 'angular',
   eyeStyle: 'classic',
   eyeColor: '#4A2B18',
   eyebrows: 'natural',
@@ -190,6 +210,27 @@ export const DEFAULT_AVATAR_CONFIG: AvatarConfig = {
   hat: 'none',
   frame: 'studio_cream',
 };
+
+export const BASE_FEMALE_AVATAR: AvatarConfig = {
+  bodyType: 'feminine',
+  skinTone: 'claro',
+  faceShape: 'oval',
+  eyeStyle: 'almond',
+  eyeColor: '#4A2B18',
+  eyebrows: 'arched',
+  nose: 'small',
+  mouth: 'lips',
+  hair: 'waves',
+  hairColor: '#63412B',
+  facial: 'blush',
+  outfit: 'blouse',
+  outfitColor: '#F43F5E',
+  glasses: 'none',
+  hat: 'none',
+  frame: 'lavender',
+};
+
+export const DEFAULT_AVATAR_CONFIG: AvatarConfig = { ...BASE_MALE_AVATAR };
 
 export interface SkinToneOption {
   id: AvatarSkinToneId;
@@ -252,6 +293,8 @@ export interface AvatarItemOption<T extends string = string> {
   name: string;
   costChips: number;
   tag?: string;
+  /** Used ONLY to float the most relevant styles to the top for Mujer / Hombre base (never locks items!) */
+  affinity?: 'feminine' | 'masculine' | 'unisex';
 }
 
 export const AVATAR_FACE_SHAPE_OPTIONS: AvatarItemOption<AvatarFaceShapeId>[] = [
@@ -324,59 +367,75 @@ export const AVATAR_MOUTH_OPTIONS: AvatarItemOption<AvatarMouthId>[] = [
 ];
 
 export const AVATAR_HAIR_OPTIONS: AvatarItemOption<AvatarHairId>[] = [
-  { id: 'classic', cosmeticKey: null, name: 'Corto Clásico', costChips: 0 },
-  { id: 'textured_crop', cosmeticKey: null, name: 'Crop Puntas', costChips: 0 },
-  { id: 'curtain', cosmeticKey: null, name: 'Raya al Medio', costChips: 0 },
-  { id: 'shaggy', cosmeticKey: null, name: 'Flequillo', costChips: 0 },
-  { id: 'side_sweep', cosmeticKey: null, name: 'Fleco de Lado', costChips: 0 },
-  { id: 'slick_tail', cosmeticKey: null, name: 'Coleta Baja', costChips: 0 },
-  { id: 'bowl_mod', cosmeticKey: null, name: 'Corte Mod', costChips: 0 },
-  { id: 'messy', cosmeticKey: null, name: 'Despeinado', costChips: 0 },
-  { id: 'fade', cosmeticKey: null, name: 'Fade Urbano', costChips: 0 },
-  { id: 'straight_long', cosmeticKey: null, name: 'Liso Largo', costChips: 0 },
-  { id: 'waves', cosmeticKey: null, name: 'Ondulado', costChips: 0 },
-  { id: 'bob', cosmeticKey: null, name: 'Bob Moderno', costChips: 0 },
-  { id: 'ponytail', cosmeticKey: null, name: 'Coleta Alta', costChips: 0 },
-  { id: 'curls', cosmeticKey: null, name: 'Rizos', costChips: 0 },
-  { id: 'buzz', cosmeticKey: null, name: 'Rapado', costChips: 0 },
-  { id: 'receding', cosmeticKey: null, name: 'Entradas', costChips: 0 },
-  { id: 'bald', cosmeticKey: null, name: 'Calvo', costChips: 0 },
-  { id: 'bun', cosmeticKey: 'hair:bun', name: 'Moño Alto', costChips: 150 },
-  { id: 'spiky', cosmeticKey: 'hair:spiky', name: 'Puntas Arriba', costChips: 200 },
-  { id: 'afro', cosmeticKey: 'hair:afro', name: 'Afro', costChips: 250 },
-  { id: 'wavy_part', cosmeticKey: 'hair:wavy_part', name: 'Onda Elegante', costChips: 300 },
-  { id: 'braids', cosmeticKey: 'hair:braids', name: 'Trenzas', costChips: 400 },
-  { id: 'spiky_wild', cosmeticKey: 'hair:spiky_wild', name: 'Puntas Rebeldes', costChips: 450, tag: 'Pop' },
-  { id: 'samurai_bun', cosmeticKey: 'hair:samurai_bun', name: 'Moño Top-Knot', costChips: 550, tag: 'Pro' },
-  { id: 'pompadour', cosmeticKey: 'hair:pompadour', name: 'Copete Retro', costChips: 600 },
-  { id: 'dreads_band', cosmeticKey: 'hair:dreads_band', name: 'Rastas', costChips: 650, tag: 'Flow' },
-  { id: 'rocker_long', cosmeticKey: 'hair:rocker_long', name: 'Melena Rock', costChips: 800, tag: 'VIP' },
+  { id: 'classic', cosmeticKey: null, name: 'Corto Clásico', costChips: 0, affinity: 'masculine' },
+  { id: 'textured_crop', cosmeticKey: null, name: 'Crop Puntas', costChips: 0, affinity: 'masculine' },
+  { id: 'curtain', cosmeticKey: null, name: 'Raya al Medio', costChips: 0, affinity: 'unisex' },
+  { id: 'shaggy', cosmeticKey: null, name: 'Flequillo', costChips: 0, affinity: 'unisex' },
+  { id: 'side_sweep', cosmeticKey: null, name: 'Fleco de Lado', costChips: 0, affinity: 'masculine' },
+  { id: 'slick_tail', cosmeticKey: null, name: 'Coleta Baja', costChips: 0, affinity: 'unisex' },
+  { id: 'bowl_mod', cosmeticKey: null, name: 'Corte Mod', costChips: 0, affinity: 'masculine' },
+  { id: 'messy', cosmeticKey: null, name: 'Despeinado', costChips: 0, affinity: 'masculine' },
+  { id: 'fade', cosmeticKey: null, name: 'Fade Urbano', costChips: 0, affinity: 'masculine' },
+  { id: 'straight_long', cosmeticKey: null, name: 'Liso Largo', costChips: 0, affinity: 'feminine' },
+  { id: 'waves', cosmeticKey: null, name: 'Ondulado', costChips: 0, affinity: 'feminine' },
+  { id: 'bob', cosmeticKey: null, name: 'Bob Moderno', costChips: 0, affinity: 'feminine' },
+  { id: 'ponytail', cosmeticKey: null, name: 'Coleta Alta', costChips: 0, affinity: 'feminine' },
+  { id: 'curls', cosmeticKey: null, name: 'Rizos', costChips: 0, affinity: 'unisex' },
+  { id: 'buzz', cosmeticKey: null, name: 'Rapado', costChips: 0, affinity: 'masculine' },
+  { id: 'receding', cosmeticKey: null, name: 'Entradas', costChips: 0, affinity: 'masculine' },
+  { id: 'bald', cosmeticKey: null, name: 'Calvo', costChips: 0, affinity: 'masculine' },
+  { id: 'bun', cosmeticKey: 'hair:bun', name: 'Moño Alto', costChips: 150, affinity: 'feminine' },
+  { id: 'spiky', cosmeticKey: 'hair:spiky', name: 'Puntas Arriba', costChips: 200, affinity: 'masculine' },
+  { id: 'afro', cosmeticKey: 'hair:afro', name: 'Afro', costChips: 250, affinity: 'unisex' },
+  { id: 'wavy_part', cosmeticKey: 'hair:wavy_part', name: 'Onda Elegante', costChips: 300, affinity: 'unisex' },
+  { id: 'braids', cosmeticKey: 'hair:braids', name: 'Trenzas', costChips: 400, affinity: 'feminine' },
+  { id: 'spiky_wild', cosmeticKey: 'hair:spiky_wild', name: 'Puntas Rebeldes', costChips: 450, tag: 'Pop', affinity: 'masculine' },
+  { id: 'samurai_bun', cosmeticKey: 'hair:samurai_bun', name: 'Moño Top-Knot', costChips: 550, tag: 'Pro', affinity: 'masculine' },
+  { id: 'pompadour', cosmeticKey: 'hair:pompadour', name: 'Copete Retro', costChips: 600, affinity: 'masculine' },
+  { id: 'dreads_band', cosmeticKey: 'hair:dreads_band', name: 'Rastas', costChips: 650, tag: 'Flow', affinity: 'unisex' },
+  { id: 'rocker_long', cosmeticKey: 'hair:rocker_long', name: 'Melena Rock', costChips: 800, tag: 'VIP', affinity: 'unisex' },
 ];
 
 export const AVATAR_FACIAL_OPTIONS: AvatarItemOption<AvatarFacialId>[] = [
-  { id: 'none', cosmeticKey: null, name: 'Ninguno', costChips: 0 },
-  { id: 'blush', cosmeticKey: null, name: 'Rubor & Perlas', costChips: 0 },
-  { id: 'freckles', cosmeticKey: null, name: 'Pecas', costChips: 0 },
-  { id: 'stubble', cosmeticKey: null, name: 'Sombreada', costChips: 0 },
-  { id: 'beard', cosmeticKey: 'facial:beard', name: 'Barba Completa', costChips: 180 },
-  { id: 'hoops', cosmeticKey: 'facial:hoops', name: 'Aros Dorados', costChips: 200 },
-  { id: 'mustache', cosmeticKey: 'facial:mustache', name: 'Bigote Clásico', costChips: 250 },
-  { id: 'goatee', cosmeticKey: 'facial:goatee', name: 'Candado', costChips: 350 },
-  { id: 'dali', cosmeticKey: 'facial:dali', name: 'Bigote Dalí', costChips: 450, tag: 'Humor' },
-  { id: 'pirate_beard', cosmeticKey: 'facial:pirate_beard', name: 'Barba Larga', costChips: 750, tag: 'Pro' },
+  { id: 'none', cosmeticKey: null, name: 'Ninguno', costChips: 0, affinity: 'unisex' },
+  { id: 'blush', cosmeticKey: null, name: 'Rubor & Perlas', costChips: 0, affinity: 'feminine' },
+  { id: 'freckles', cosmeticKey: null, name: 'Pecas', costChips: 0, affinity: 'unisex' },
+  { id: 'stubble', cosmeticKey: null, name: 'Sombreada', costChips: 0, affinity: 'masculine' },
+  { id: 'hoops', cosmeticKey: 'facial:hoops', name: 'Aros Dorados', costChips: 200, affinity: 'feminine' },
+  { id: 'beard', cosmeticKey: 'facial:beard', name: 'Barba Completa', costChips: 180, affinity: 'masculine' },
+  { id: 'mustache', cosmeticKey: 'facial:mustache', name: 'Bigote Clásico', costChips: 250, affinity: 'masculine' },
+  { id: 'goatee', cosmeticKey: 'facial:goatee', name: 'Candado', costChips: 350, affinity: 'masculine' },
+  { id: 'dali', cosmeticKey: 'facial:dali', name: 'Bigote Dalí', costChips: 450, tag: 'Humor', affinity: 'masculine' },
+  { id: 'pirate_beard', cosmeticKey: 'facial:pirate_beard', name: 'Barba Larga', costChips: 750, tag: 'Pro', affinity: 'masculine' },
 ];
 
 export const AVATAR_OUTFIT_OPTIONS: AvatarItemOption<AvatarOutfitId>[] = [
-  { id: 'tee', cosmeticKey: null, name: 'Polera / Remera', costChips: 0 },
-  { id: 'vneck', cosmeticKey: null, name: 'Cuello en V', costChips: 0 },
-  { id: 'polo', cosmeticKey: null, name: 'Polo Clásico', costChips: 0 },
-  { id: 'blouse', cosmeticKey: null, name: 'Blusa & Collar', costChips: 0 },
-  { id: 'sweater', cosmeticKey: null, name: 'Suéter Tejido', costChips: 0 },
-  { id: 'hoodie', cosmeticKey: 'outfit:hoodie', name: 'Buzo / Hoodie', costChips: 300 },
-  { id: 'open_shirt', cosmeticKey: 'outfit:open_shirt', name: 'Camisa Abierta', costChips: 450 },
-  { id: 'jacket', cosmeticKey: 'outfit:jacket', name: 'Chaqueta Cuero', costChips: 700 },
-  { id: 'blazer', cosmeticKey: 'outfit:blazer', name: 'Blazer Ejecutivo', costChips: 1200, tag: 'Elegante' },
-  { id: 'royal_tux', cosmeticKey: 'outfit:royal_tux', name: 'Etiqueta Gala', costChips: 6500, tag: 'Élite' },
+  { id: 'tee', cosmeticKey: null, name: 'Polera / Remera', costChips: 0, affinity: 'unisex' },
+  { id: 'vneck', cosmeticKey: null, name: 'Cuello en V', costChips: 0, affinity: 'unisex' },
+  { id: 'tank', cosmeticKey: null, name: 'Musculosa', costChips: 0, affinity: 'unisex' },
+  { id: 'stripes', cosmeticKey: null, name: 'Rayas Marinero', costChips: 0, affinity: 'unisex' },
+  { id: 'blouse', cosmeticKey: null, name: 'Blusa & Collar', costChips: 0, affinity: 'feminine' },
+  { id: 'polo', cosmeticKey: null, name: 'Polo Clásico', costChips: 0, affinity: 'masculine' },
+  { id: 'sweater', cosmeticKey: null, name: 'Suéter Tejido', costChips: 0, affinity: 'unisex' },
+  { id: 'tie_shirt', cosmeticKey: 'outfit:tie_shirt', name: 'Formal Corbata', costChips: 250, affinity: 'masculine' },
+  { id: 'hoodie', cosmeticKey: 'outfit:hoodie', name: 'Buzo / Hoodie', costChips: 300, affinity: 'unisex' },
+  { id: 'flannel', cosmeticKey: 'outfit:flannel', name: 'Leñador Cuadros', costChips: 300, tag: 'Casual', affinity: 'masculine' },
+  { id: 'rock_skull', cosmeticKey: 'outfit:rock_skull', name: 'Rock Calavera', costChips: 350, tag: 'Rock', affinity: 'unisex' },
+  { id: 'hawaiian_floral', cosmeticKey: 'outfit:hawaiian_floral', name: 'Hawaiana Playa', costChips: 400, tag: 'Playa', affinity: 'unisex' },
+  { id: 'open_shirt', cosmeticKey: 'outfit:open_shirt', name: 'Camisa Abierta', costChips: 450, affinity: 'masculine' },
+  { id: 'suspenders', cosmeticKey: 'outfit:suspenders', name: 'Tirantes Retro', costChips: 450, tag: 'Retro', affinity: 'masculine' },
+  { id: 'ballet', cosmeticKey: 'outfit:ballet', name: 'Ballet / Danza', costChips: 500, tag: 'Arte', affinity: 'feminine' },
+  { id: 'vest_bowtie', cosmeticKey: 'outfit:vest_bowtie', name: 'Chaleco Gala', costChips: 550, tag: 'Formal', affinity: 'masculine' },
+  { id: 'kimono', cosmeticKey: 'outfit:kimono', name: 'Kimono Japonés', costChips: 700, tag: 'Mundo', affinity: 'unisex' },
+  { id: 'jacket', cosmeticKey: 'outfit:jacket', name: 'Chaqueta Cuero', costChips: 700, tag: 'Rock', affinity: 'unisex' },
+  { id: 'pirate', cosmeticKey: 'outfit:pirate', name: 'Pirata Aventura', costChips: 850, tag: 'Aventura', affinity: 'unisex' },
+  { id: 'winter_fur', cosmeticKey: 'outfit:winter_fur', name: 'Abrigo Nórdico', costChips: 950, tag: 'Mundo', affinity: 'unisex' },
+  { id: 'princess', cosmeticKey: 'outfit:princess', name: 'Vestido Princesa', costChips: 1100, tag: 'Gala', affinity: 'feminine' },
+  { id: 'blazer', cosmeticKey: 'outfit:blazer', name: 'Blazer Ejecutivo', costChips: 1200, tag: 'Elegante', affinity: 'unisex' },
+  { id: 'carnival', cosmeticKey: 'outfit:carnival', name: 'Carnaval Brasil', costChips: 1400, tag: 'Fiesta', affinity: 'feminine' },
+  { id: 'pharaoh', cosmeticKey: 'outfit:pharaoh', name: 'Túnica Egipcia', costChips: 1800, tag: 'Mundo', affinity: 'unisex' },
+  { id: 'queen', cosmeticKey: 'outfit:queen', name: 'Reina Imperial', costChips: 2400, tag: 'VIP', affinity: 'feminine' },
+  { id: 'royal_tux', cosmeticKey: 'outfit:royal_tux', name: 'Traje Pingüino', costChips: 6500, tag: 'Élite', affinity: 'masculine' },
 ];
 
 export const AVATAR_GLASSES_OPTIONS: AvatarItemOption<AvatarGlassesId>[] = [
@@ -526,88 +585,23 @@ export const AVATAR_FRAME_OPTIONS: AvatarFrameOption[] = [
   },
 ];
 
-/** Neutral, diverse, free starter presets showcasing truly distinct faces, eyes, hair & clothes */
+/** Sort options so items matching the selected Mujer/Hombre base appear first (all remain selectable!) */
+export function sortOptionsForBodyType<T extends string>(
+  items: AvatarItemOption<T>[],
+  bodyType: AvatarBodyType
+): AvatarItemOption<T>[] {
+  const score = (item: AvatarItemOption<T>) => {
+    const aff = item.affinity ?? 'unisex';
+    if (aff === bodyType) return 0;
+    if (aff === 'unisex') return 1;
+    return 2;
+  };
+  return [...items].sort((a, b) => score(a) - score(b));
+}
+
 export const AVATAR_STARTER_PRESETS: { label: string; config: AvatarConfig }[] = [
-  {
-    label: 'Natural',
-    config: {
-      skinTone: 'claro',
-      faceShape: 'oval',
-      eyeStyle: 'almond',
-      eyeColor: '#1F7A4C',
-      eyebrows: 'arched',
-      nose: 'small',
-      mouth: 'lips',
-      hair: 'straight_long',
-      hairColor: '#63412B',
-      facial: 'blush',
-      outfit: 'blouse',
-      outfitColor: '#F43F5E',
-      glasses: 'none',
-      hat: 'none',
-      frame: 'lavender',
-    },
-  },
-  {
-    label: 'Urbano',
-    config: {
-      skinTone: 'canela',
-      faceShape: 'angular',
-      eyeStyle: 'focused',
-      eyeColor: '#4A2B18',
-      eyebrows: 'thick',
-      nose: 'straight',
-      mouth: 'smirk',
-      hair: 'fade',
-      hairColor: '#1C202B',
-      facial: 'stubble',
-      outfit: 'tee',
-      outfitColor: '#10B981',
-      glasses: 'none',
-      hat: 'none',
-      frame: 'mint_fresh',
-    },
-  },
-  {
-    label: 'Luminosa',
-    config: {
-      skinTone: 'marfil',
-      faceShape: 'slim',
-      eyeStyle: 'bright',
-      eyeColor: '#1D6FD6',
-      eyebrows: 'natural',
-      nose: 'small',
-      mouth: 'grin',
-      hair: 'bob',
-      hairColor: '#E0B45A',
-      facial: 'freckles',
-      outfit: 'sweater',
-      outfitColor: '#8B5CF6',
-      glasses: 'none',
-      hat: 'none',
-      frame: 'sky_light',
-    },
-  },
-  {
-    label: 'Clásico',
-    config: {
-      skinTone: 'dorado',
-      faceShape: 'soft',
-      eyeStyle: 'classic',
-      eyeColor: '#8A5D28',
-      eyebrows: 'straight',
-      nose: 'defined',
-      mouth: 'smile',
-      hair: 'messy',
-      hairColor: '#2B1E17',
-      facial: 'none',
-      outfit: 'polo',
-      outfitColor: '#2563EB',
-      glasses: 'none',
-      hat: 'none',
-      frame: 'studio_cream',
-    },
-  },
+  { label: 'Mujer', config: { ...BASE_FEMALE_AVATAR } },
+  { label: 'Hombre', config: { ...BASE_MALE_AVATAR } },
 ];
 
 export const AVATAR_COSMETIC_PRICES: Record<string, number> = (() => {
@@ -678,6 +672,11 @@ const LEGACY_FRAME_MAP: Record<string, AvatarFrameId> = {
 export function sanitizeAvatarConfig(raw: unknown): AvatarConfig {
   if (!raw || typeof raw !== 'object') return { ...DEFAULT_AVATAR_CONFIG };
   const obj = raw as Record<string, unknown>;
+
+  const bodyType: AvatarBodyType =
+    obj.bodyType === 'feminine' || obj.bodyType === 'masculine'
+      ? obj.bodyType
+      : DEFAULT_AVATAR_CONFIG.bodyType;
 
   const rawSkin = String(obj.skinTone ?? '');
   const mappedSkin = LEGACY_SKIN_MAP[rawSkin] ?? rawSkin;
@@ -754,6 +753,7 @@ export function sanitizeAvatarConfig(raw: unknown): AvatarConfig {
     : DEFAULT_AVATAR_CONFIG.frame;
 
   return {
+    bodyType,
     skinTone,
     faceShape,
     eyeStyle,

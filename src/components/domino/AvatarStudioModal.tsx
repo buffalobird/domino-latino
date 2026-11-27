@@ -26,9 +26,12 @@ import {
   AVATAR_OUTFIT_COLORS,
   AVATAR_OUTFIT_OPTIONS,
   AVATAR_SKIN_TONES,
-  AVATAR_STARTER_PRESETS,
+  AvatarBodyType,
   AvatarConfig,
   AvatarItemOption,
+  BASE_FEMALE_AVATAR,
+  BASE_MALE_AVATAR,
+  sortOptionsForBodyType,
 } from '@/constants/avatarCatalog';
 import { CLUB } from '@/constants/tokens';
 import { RetentionProgress } from '@/storage/gameStorage';
@@ -132,31 +135,62 @@ export function AvatarStudioModal({
     [draft, retention.avatarConfig]
   );
 
+  const handleSelectBase = (bodyType: AvatarBodyType) => {
+    hapticLight();
+    const baseTemplate =
+      bodyType === 'feminine' ? BASE_FEMALE_AVATAR : BASE_MALE_AVATAR;
+    // Preserve user's chosen skinTone, eyeColor & frame when switching base figure
+    setDraft((prev) => ({
+      ...baseTemplate,
+      skinTone: prev.skinTone,
+      eyeColor: prev.eyeColor,
+      frame: prev.frame,
+    }));
+  };
+
   const handleRandomizeFreeOrOwned = () => {
     hapticLight();
     const pick = <T,>(arr: T[]): T =>
       arr[Math.floor(Math.random() * arr.length)];
-    const ownedOrFree = <T extends string>(list: AvatarItemOption<T>[]) =>
-      list.filter((i) => !i.cosmeticKey || ownedSet.has(i.cosmeticKey));
+    const ownedOrFreeForBase = <T extends string>(list: AvatarItemOption<T>[]) =>
+      list.filter(
+        (i) =>
+          (!i.cosmeticKey || ownedSet.has(i.cosmeticKey)) &&
+          (!i.affinity || i.affinity === 'unisex' || i.affinity === draft.bodyType)
+      );
 
     setDraft({
+      bodyType: draft.bodyType,
       skinTone: pick(AVATAR_SKIN_TONES).id,
       faceShape: pick(AVATAR_FACE_SHAPE_OPTIONS).id,
-      eyeStyle: pick(ownedOrFree(AVATAR_EYE_OPTIONS)).id,
+      eyeStyle: pick(ownedOrFreeForBase(AVATAR_EYE_OPTIONS)).id,
       eyeColor: pick(AVATAR_EYE_COLORS).hex,
       eyebrows: pick(AVATAR_EYEBROW_OPTIONS).id,
       nose: pick(AVATAR_NOSE_OPTIONS).id,
-      mouth: pick(ownedOrFree(AVATAR_MOUTH_OPTIONS)).id,
-      hair: pick(ownedOrFree(AVATAR_HAIR_OPTIONS)).id,
+      mouth: pick(ownedOrFreeForBase(AVATAR_MOUTH_OPTIONS)).id,
+      hair: pick(ownedOrFreeForBase(AVATAR_HAIR_OPTIONS)).id,
       hairColor: pick(AVATAR_HAIR_COLORS).hex,
-      facial: pick(ownedOrFree(AVATAR_FACIAL_OPTIONS)).id,
-      outfit: pick(ownedOrFree(AVATAR_OUTFIT_OPTIONS)).id,
+      facial: pick(ownedOrFreeForBase(AVATAR_FACIAL_OPTIONS)).id,
+      outfit: pick(ownedOrFreeForBase(AVATAR_OUTFIT_OPTIONS)).id,
       outfitColor: pick(AVATAR_OUTFIT_COLORS).hex,
-      glasses: pick(ownedOrFree(AVATAR_GLASSES_OPTIONS)).id,
-      hat: pick(ownedOrFree(AVATAR_HAT_OPTIONS)).id,
-      frame: pick(ownedOrFree(AVATAR_FRAME_OPTIONS)).id,
+      glasses: pick(ownedOrFreeForBase(AVATAR_GLASSES_OPTIONS)).id,
+      hat: pick(ownedOrFreeForBase(AVATAR_HAT_OPTIONS)).id,
+      frame: pick(ownedOrFreeForBase(AVATAR_FRAME_OPTIONS)).id,
     });
   };
+
+  const sortedHairOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_HAIR_OPTIONS, draft.bodyType),
+    [draft.bodyType]
+  );
+  const sortedFacialOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_FACIAL_OPTIONS, draft.bodyType),
+    [draft.bodyType]
+  );
+  const sortedOutfitOptions = useMemo(
+    () => sortOptionsForBodyType(AVATAR_OUTFIT_OPTIONS, draft.bodyType),
+    [draft.bodyType]
+  );
 
   const handleCommit = () => {
     if (totalCost > 0 && !canAffordAll) {
@@ -290,33 +324,58 @@ export function AvatarStudioModal({
               <ModularAvatar config={draft} size={112} showFrameRing />
             </View>
             <View style={styles.stageRight}>
-              <Text style={styles.presetsLabel}>ESTILOS BASE</Text>
-              <View style={styles.presetsWrap}>
-                {AVATAR_STARTER_PRESETS.map((p) => (
-                  <Pressable
-                    key={p.label}
-                    onPress={() => {
-                      hapticLight();
-                      setDraft(p.config);
-                    }}
-                    style={({ pressed }) => [
-                      styles.presetChip,
-                      pressed && { opacity: 0.78 },
-                    ]}
-                  >
-                    <Text style={styles.presetChipText}>{p.label}</Text>
-                  </Pressable>
-                ))}
+              <Text style={styles.presetsLabel}>FIGURA BASE</Text>
+              <View style={styles.baseToggleRow}>
                 <Pressable
-                  onPress={handleRandomizeFreeOrOwned}
+                  onPress={() => handleSelectBase('feminine')}
                   style={({ pressed }) => [
-                    styles.presetChipRandom,
-                    pressed && { opacity: 0.78 },
+                    styles.baseBtn,
+                    draft.bodyType === 'feminine' && styles.baseBtnActive,
+                    pressed && { opacity: 0.84 },
                   ]}
                 >
-                  <Text style={styles.presetChipRandomText}>Aleatorio</Text>
+                  <ModularAvatar config={BASE_FEMALE_AVATAR} size={28} />
+                  <Text
+                    style={[
+                      styles.baseBtnText,
+                      draft.bodyType === 'feminine' && styles.baseBtnTextActive,
+                    ]}
+                  >
+                    Mujer
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => handleSelectBase('masculine')}
+                  style={({ pressed }) => [
+                    styles.baseBtn,
+                    draft.bodyType === 'masculine' && styles.baseBtnActive,
+                    pressed && { opacity: 0.84 },
+                  ]}
+                >
+                  <ModularAvatar config={BASE_MALE_AVATAR} size={28} />
+                  <Text
+                    style={[
+                      styles.baseBtnText,
+                      draft.bodyType === 'masculine' && styles.baseBtnTextActive,
+                    ]}
+                  >
+                    Hombre
+                  </Text>
                 </Pressable>
               </View>
+
+              <Pressable
+                onPress={handleRandomizeFreeOrOwned}
+                style={({ pressed }) => [
+                  styles.presetChipRandom,
+                  pressed && { opacity: 0.82 },
+                ]}
+              >
+                <Text style={styles.presetChipRandomText}>
+                  Sorpréndeme (Aleatorio)
+                </Text>
+              </Pressable>
             </View>
           </LinearGradient>
 
@@ -472,7 +531,7 @@ export function AvatarStudioModal({
               }))}
 
             {activeTab === 'hair' &&
-              renderItemGrid(AVATAR_HAIR_OPTIONS, draft.hair, (id) => ({
+              renderItemGrid(sortedHairOptions, draft.hair, (id) => ({
                 ...draft,
                 hair: id,
               }))}
@@ -502,13 +561,13 @@ export function AvatarStudioModal({
               }))}
 
             {activeTab === 'facial' &&
-              renderItemGrid(AVATAR_FACIAL_OPTIONS, draft.facial, (id) => ({
+              renderItemGrid(sortedFacialOptions, draft.facial, (id) => ({
                 ...draft,
                 facial: id,
               }))}
 
             {activeTab === 'outfit' &&
-              renderItemGrid(AVATAR_OUTFIT_OPTIONS, draft.outfit, (id) => ({
+              renderItemGrid(sortedOutfitOptions, draft.outfit, (id) => ({
                 ...draft,
                 outfit: id,
               }))}
@@ -661,33 +720,47 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 1,
   },
-  presetsWrap: {
+  baseToggleRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    gap: 8,
+  },
+  baseBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
-  },
-  presetChip: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#CBD5E1',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    borderRadius: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
-  presetChipText: {
-    color: '#0F172A',
-    fontSize: 11.5,
+  baseBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#2563EB',
+    boxShadow: '0px 2px 8px rgba(37, 99, 235, 0.22)',
+  },
+  baseBtnText: {
+    color: '#334155',
+    fontSize: 12.5,
     fontWeight: '800',
+  },
+  baseBtnTextActive: {
+    color: '#1D4ED8',
+    fontWeight: '900',
   },
   presetChipRandom: {
     backgroundColor: '#2563EB',
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
   },
   presetChipRandomText: {
     color: '#FFFFFF',
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '900',
   },
   tabsScroll: {

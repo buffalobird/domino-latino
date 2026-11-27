@@ -56,7 +56,15 @@ export function ModularAvatar({
   const outfit = config.outfit;
   const outfitCol = config.outfitColor;
   const hat = config.hat;
+  const isFem = config.bodyType === 'feminine';
   const browCol = hair === 'bald' ? '#3B2F2F' : hairCol;
+
+  // Proportionally tailored torso silhouettes: gracefully tapered for feminine, structured broad for masculine
+  const torsoBasePath = isFem
+    ? 'M24 140C28 106 44 91 70 91C96 91 112 106 116 140Z'
+    : 'M16 140C20 103 38 89 70 89C102 89 120 103 124 140Z';
+  const neckX = isFem ? 62 : 60.2;
+  const neckW = isFem ? 16 : 19.6;
 
   const fullCoverHat =
     hat === 'cap' ||
@@ -956,55 +964,52 @@ export function ModularAvatar({
           </G>
         )}
 
-        {/* ===== LAYER 2: ELEVATED UPPER TORSO & REAL GARMENTS (y=84..140!) ===== */}
+        {/* ===== LAYER 2: ELEVATED UPPER TORSO & REAL GARMENTS (y=86..140!) ===== */}
         {outfit === 'tee' && (
           <G>
-            <Path
-              d="M18 140C22 104 40 90 70 90C100 90 118 104 122 140Z"
-              fill={outfitCol}
-              stroke="rgba(0,0,0,0.22)"
-              strokeWidth={1.5}
-            />
-            {/* Crew neck collar rib + subtle torso highlight */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.24)" strokeWidth={1.5} />
             <Path d="M53 90C58 102 82 102 87 90Z" fill={skin.base} />
-            <Path
-              d="M52 90C57 104 83 104 88 90"
-              stroke="rgba(255,255,255,0.42)"
-              strokeWidth={3.2}
-              fill="none"
-            />
-            <Path d="M40 110V138M100 110V138" stroke="rgba(0,0,0,0.12)" strokeWidth={2} />
+            <Path d="M52 90C57 104 83 104 88 90" stroke="rgba(255,255,255,0.42)" strokeWidth={3.2} fill="none" />
+            <Path d="M40 112V138M100 112V138" stroke="rgba(0,0,0,0.12)" strokeWidth={2} />
           </G>
         )}
 
         {outfit === 'vneck' && (
           <G>
-            <Path
-              d="M18 140C22 104 40 90 70 90C100 90 118 104 122 140Z"
-              fill={outfitCol}
-              stroke="rgba(0,0,0,0.22)"
-              strokeWidth={1.5}
-            />
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.24)" strokeWidth={1.5} />
             <Path d="M54 90L70 112L86 90Z" fill={`url(#${skinId})`} />
+            <Path d="M53.5 90L70 113L86.5 90" stroke="rgba(255,255,255,0.38)" strokeWidth={2.5} strokeLinejoin="round" fill="none" />
+          </G>
+        )}
+
+        {outfit === 'tank' && (
+          <G>
+            {/* Bare shoulders + clean sleeveless athletic/beach tank top */}
+            <Path d={torsoBasePath} fill={`url(#${skinId})`} stroke={skin.outline} strokeWidth={1.3} />
             <Path
-              d="M53.5 90L70 113L86.5 90"
-              stroke="rgba(255,255,255,0.38)"
-              strokeWidth={2.5}
+              d="M42 93L48 93C53 106 87 106 92 93L98 93C98 108 102 124 104 140H36C38 124 42 108 42 93Z"
+              fill={outfitCol}
+              stroke="rgba(0,0,0,0.26)"
+              strokeWidth={1.5}
               strokeLinejoin="round"
-              fill="none"
             />
+            <Path d="M48 93C53 107 87 107 92 93" stroke="rgba(255,255,255,0.4)" strokeWidth={2.4} fill="none" />
+          </G>
+        )}
+
+        {outfit === 'stripes' && (
+          <G>
+            {/* Classic horizontal striped sailor/casual tee */}
+            <Path d={torsoBasePath} fill="#F8FAFC" stroke="rgba(0,0,0,0.24)" strokeWidth={1.5} />
+            <Path d="M36 101H104M29 111H111M24 121H116M20 131H120" stroke={outfitCol} strokeWidth={4.5} />
+            <Path d="M51 90C56 103 84 103 89 90Z" fill={`url(#${skinId})`} />
+            <Path d="M51 90C56 103 84 103 89 90" stroke={outfitCol} strokeWidth={2.4} fill="none" />
           </G>
         )}
 
         {outfit === 'polo' && (
           <G>
-            <Path
-              d="M18 140C22 104 40 90 70 90C100 90 118 104 122 140Z"
-              fill={outfitCol}
-              stroke="rgba(0,0,0,0.22)"
-              strokeWidth={1.5}
-            />
-            {/* Crisp folded polo collar + placket */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.24)" strokeWidth={1.5} />
             <Path d="M55 90L70 104L85 90Z" fill="#FFFFFF" opacity={0.9} />
             <Path d="M53 89L66 104L55 108L48 95Z" fill={outfitCol} stroke="rgba(255,255,255,0.45)" strokeWidth={1.2} />
             <Path d="M87 89L74 104L85 108L92 95Z" fill={outfitCol} stroke="rgba(255,255,255,0.45)" strokeWidth={1.2} />
@@ -1014,15 +1019,210 @@ export function ModularAvatar({
           </G>
         )}
 
+        {outfit === 'tie_shirt' && (
+          <G>
+            {/* Crisp white dress shirt + colored silk necktie */}
+            <Path d={torsoBasePath} fill="#F8FAFC" stroke="#94A3B8" strokeWidth={1.4} />
+            <Path d="M53 89L67 101L57 106L49 94Z" fill="#FFFFFF" stroke="#94A3B8" strokeWidth={1.1} />
+            <Path d="M87 89L73 101L83 106L91 94Z" fill="#FFFFFF" stroke="#94A3B8" strokeWidth={1.1} />
+            <Path d="M66.5 98H73.5L72 104H68Z" fill={outfitCol} stroke="rgba(0,0,0,0.25)" strokeWidth={0.9} />
+            <Path d="M68 104H72L75 130L70 137L65 130Z" fill={outfitCol} stroke="rgba(0,0,0,0.25)" strokeWidth={1.1} />
+          </G>
+        )}
+
+        {outfit === 'flannel' && (
+          <G>
+            {/* Lumberjack red/charcoal tartan plaid flannel shirt */}
+            <Path d={torsoBasePath} fill="#B91C1C" stroke="#450A0A" strokeWidth={1.5} />
+            <Path d="M36 102H104M28 114H112M22 126H118" stroke="#1E293B" strokeWidth={4} opacity={0.55} />
+            <Path d="M46 92V140M58 92V140M82 92V140M94 92V140" stroke="#1E293B" strokeWidth={3.5} opacity={0.52} />
+            <Path d="M36 108H104M26 120H114M52 94V140M88 94V140" stroke="#FCA5A5" strokeWidth={1.2} opacity={0.45} />
+            <Rect x={66.5} y={96} width={7} height={44} fill="#991B1B" stroke="rgba(0,0,0,0.25)" strokeWidth={1} />
+            <Path d="M54 89L67 100L57 105L49 94Z" fill="#991B1B" stroke="#450A0A" strokeWidth={1.1} />
+            <Path d="M86 89L73 100L83 105L91 94Z" fill="#991B1B" stroke="#450A0A" strokeWidth={1.1} />
+            <Circle cx={70} cy={107} r={1.6} fill="#F8FAFC" />
+            <Circle cx={70} cy={118} r={1.6} fill="#F8FAFC" />
+            <Circle cx={70} cy={129} r={1.6} fill="#F8FAFC" />
+          </G>
+        )}
+
+        {outfit === 'rock_skull' && (
+          <G>
+            {/* Matte black rock band tee with crisp stylized white skull emblem */}
+            <Path d={torsoBasePath} fill="#141923" stroke="#05080F" strokeWidth={1.5} />
+            <Path d="M53 90C58 101 82 101 87 90Z" fill={skin.base} />
+            <Circle cx={70} cy={115} r={8.5} fill="#F8FAFC" />
+            <Rect x={65} y={120} width={10} height={5.5} rx={2} fill="#F8FAFC" />
+            <Circle cx={66.8} cy={115} r={2.3} fill="#141923" />
+            <Circle cx={73.2} cy={115} r={2.3} fill="#141923" />
+            <Path d="M68 122V125.5M70 122V125.5M72 122V125.5" stroke="#141923" strokeWidth={1.2} />
+          </G>
+        )}
+
+        {outfit === 'hawaiian_floral' && (
+          <G>
+            {/* Vibrant tropical beach shirt with hibiscus blossoms & palm leaves */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} />
+            <Path d="M54 90L70 108L86 90Z" fill={`url(#${skinId})`} />
+            <Path d="M49 90L62 106L52 109L44 96Z" fill={outfitCol} stroke="rgba(255,255,255,0.4)" strokeWidth={1.1} />
+            <Path d="M91 90L78 106L88 109L96 96Z" fill={outfitCol} stroke="rgba(255,255,255,0.4)" strokeWidth={1.1} />
+            {/* Tropical flowers */}
+            <Circle cx={44} cy={118} r={4.5} fill="#FEF08A" opacity={0.9} />
+            <Circle cx={44} cy={118} r={1.8} fill="#F43F5E" />
+            <Circle cx={94} cy={114} r={4.5} fill="#FDA4AF" opacity={0.9} />
+            <Circle cx={94} cy={114} r={1.8} fill="#FEF08A" />
+            <Circle cx={84} cy={130} r={4} fill="#86EFAC" opacity={0.85} />
+            <Circle cx={56} cy={131} r={4} fill="#FFFBEB" opacity={0.85} />
+          </G>
+        )}
+
+        {outfit === 'suspenders' && (
+          <G>
+            {/* Retro dress shirt + bold suspenders + tie */}
+            <Path d={torsoBasePath} fill="#F8FAFC" stroke="#94A3B8" strokeWidth={1.4} />
+            <Path d="M54 89L68 101L58 106L49 94Z" fill="#FFFFFF" stroke="#94A3B8" strokeWidth={1.1} />
+            <Path d="M86 89L72 101L82 106L91 94Z" fill="#FFFFFF" stroke="#94A3B8" strokeWidth={1.1} />
+            {/* Suspenders straps */}
+            <Rect x={48} y={91} width={6.5} height={49} fill={outfitCol} stroke="rgba(0,0,0,0.28)" strokeWidth={1} />
+            <Rect x={85.5} y={91} width={6.5} height={49} fill={outfitCol} stroke="rgba(0,0,0,0.28)" strokeWidth={1} />
+            {/* Center necktie */}
+            <Path d="M67 99H73L75 129L70 135L65 129Z" fill="#1E293B" />
+            <Path d="M66.5 107L73.5 111M66 116L74 120M66 125L74 129" stroke={outfitCol} strokeWidth={1.8} />
+          </G>
+        )}
+
+        {outfit === 'ballet' && (
+          <G>
+            {/* Graceful off-shoulder dance / ballet bodice with sweetheart neckline & pearl bow */}
+            <Path d={torsoBasePath} fill={`url(#${skinId})`} stroke={skin.outline} strokeWidth={1.3} />
+            <Path
+              d="M34 114C46 106 60 112 70 116C80 112 94 106 106 114L112 140H28Z"
+              fill={outfitCol}
+              stroke="rgba(0,0,0,0.2)"
+              strokeWidth={1.4}
+            />
+            <Path d="M46 93L48 112M94 93L92 112" stroke={outfitCol} strokeWidth={3.2} strokeLinecap="round" />
+            <Circle cx={70} cy={117} r={3} fill="#FFFDF9" stroke="rgba(0,0,0,0.18)" strokeWidth={0.9} />
+            <Path d="M36 116C48 111 60 115 70 119C80 115 92 111 104 116" stroke="rgba(255,255,255,0.55)" strokeWidth={1.6} fill="none" />
+          </G>
+        )}
+
+        {outfit === 'vest_bowtie' && (
+          <G>
+            {/* White dress shirt + tailored colored gala vest + classic black bowtie */}
+            <Path d={torsoBasePath} fill="#F8FAFC" stroke="#94A3B8" strokeWidth={1.4} />
+            <Path d="M44 91L67 119L70 140H36L40 100Z" fill={outfitCol} stroke="rgba(0,0,0,0.28)" strokeWidth={1.2} />
+            <Path d="M96 91L73 119L70 140H104L100 100Z" fill={outfitCol} stroke="rgba(0,0,0,0.28)" strokeWidth={1.2} />
+            <Path d="M61 96L70 101L79 96V105L70 101L61 105Z" fill="#0F172A" />
+            <Circle cx={70} cy={100.5} r={2.4} fill="#334155" />
+            <Circle cx={70} cy={124} r={1.7} fill="#FEF08A" />
+            <Circle cx={70} cy={133} r={1.7} fill="#FEF08A" />
+          </G>
+        )}
+
+        {outfit === 'kimono' && (
+          <G>
+            {/* Traditional crossover Japanese kimono wrap with contrasting lapel trim */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.26)" strokeWidth={1.5} />
+            <Path d="M51 90L70 114L89 90Z" fill={`url(#${skinId})`} />
+            {/* Left-over-right crossover lapels */}
+            <Path d="M46 90L78 134L70 140L39 95Z" fill="#FFFDF9" stroke="rgba(0,0,0,0.22)" strokeWidth={1.2} />
+            <Path d="M94 90L72 118L66 112L86 90Z" fill="#FFFDF9" stroke="rgba(0,0,0,0.22)" strokeWidth={1.2} />
+            {/* Golden obi sash band at bottom */}
+            <Rect x={34} y={128} width={72} height={12} fill={`url(#${goldId})`} stroke="#78350F" strokeWidth={1.1} />
+          </G>
+        )}
+
+        {outfit === 'pirate' && (
+          <G>
+            {/* Cream adventure pirate tunic + diagonal leather cross-belt with brass buckle */}
+            <Path d={torsoBasePath} fill="#F5ECD7" stroke="#9C8462" strokeWidth={1.5} />
+            <Path d="M54 90L70 114L86 90Z" fill={`url(#${skinId})`} />
+            <Path d="M48 90L62 108L50 111L43 96Z" fill="#EFE2C4" stroke="#9C8462" strokeWidth={1.1} />
+            <Path d="M92 90L78 108L90 111L97 96Z" fill="#EFE2C4" stroke="#9C8462" strokeWidth={1.1} />
+            {/* Diagonal leather baldric strap + buckle */}
+            <Path d="M41 93L99 138L88 140L33 98Z" fill="#6B3410" stroke="#3B1A06" strokeWidth={1.3} />
+            <Rect x={58} y={108} width={11} height={9} rx={2} fill={`url(#${goldId})`} stroke="#78350F" strokeWidth={1.2} transform="rotate(37 63 112)" />
+          </G>
+        )}
+
+        {outfit === 'winter_fur' && (
+          <G>
+            {/* Heavy Nordic / Russian winter coat with plush cream fur collar */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.3)" strokeWidth={1.5} />
+            <Path d="M70 104V140" stroke="rgba(0,0,0,0.3)" strokeWidth={2.2} />
+            {/* Plush fur shawl collar */}
+            <Path
+              d="M39 94C46 86 58 88 70 96C82 88 94 86 101 94C102 104 88 112 70 112C52 112 38 104 39 94Z"
+              fill="#F3EAD8"
+              stroke="#B8A88A"
+              strokeWidth={1.4}
+            />
+            <Circle cx={70} cy={113} r={3.5} fill={`url(#${goldId})`} stroke="#78350F" strokeWidth={1} />
+          </G>
+        )}
+
+        {outfit === 'princess' && (
+          <G>
+            {/* Off-shoulder royal princess gown with puff sleeves & gemstone pendant */}
+            <Path d={torsoBasePath} fill={`url(#${skinId})`} stroke={skin.outline} strokeWidth={1.3} />
+            {/* Puff sleeves */}
+            <Circle cx={33} cy={120} r={14} fill={outfitCol} stroke="rgba(0,0,0,0.22)" strokeWidth={1.3} />
+            <Circle cx={107} cy={120} r={14} fill={outfitCol} stroke="rgba(0,0,0,0.22)" strokeWidth={1.3} />
+            {/* Sweetheart bodice */}
+            <Path d="M38 114C50 107 62 111 70 116C78 111 90 107 102 114L108 140H32Z" fill={outfitCol} stroke="rgba(0,0,0,0.22)" strokeWidth={1.4} />
+            <Path d="M39 115C50 109 62 112 70 117C78 112 90 109 101 115" stroke="#FEF08A" strokeWidth={2.2} fill="none" />
+            <Path d="M55 96C62 104 78 104 85 96" stroke={`url(#${goldId})`} strokeWidth={1.6} fill="none" />
+            <Circle cx={70} cy={104} r={3.6} fill="#38BDF8" stroke="#FEF08A" strokeWidth={1.3} />
+          </G>
+        )}
+
+        {outfit === 'carnival' && (
+          <G>
+            {/* Vibrant Brazilian carnival / festive feathered shoulder collar & jeweled necklace */}
+            <Path d={torsoBasePath} fill={`url(#${skinId})`} stroke={skin.outline} strokeWidth={1.3} />
+            {/* Feathered festive plumes on shoulders */}
+            <Ellipse cx={34} cy={108} rx={14} ry={8} fill="#10B981" stroke="#065F46" strokeWidth={1.2} transform="rotate(-28 34 108)" />
+            <Ellipse cx={106} cy={108} rx={14} ry={8} fill="#10B981" stroke="#065F46" strokeWidth={1.2} transform="rotate(28 106 108)" />
+            <Ellipse cx={38} cy={115} rx={12} ry={6.5} fill="#FACC15" stroke="#B45309" strokeWidth={1.1} transform="rotate(-16 38 115)" />
+            <Ellipse cx={102} cy={115} rx={12} ry={6.5} fill="#FACC15" stroke="#B45309" strokeWidth={1.1} transform="rotate(16 102 115)" />
+            <Path d="M40 118C52 110 88 110 100 118L106 140H34Z" fill={outfitCol} stroke="#FEF08A" strokeWidth={1.8} />
+            {/* Colorful jeweled collar */}
+            <Path d="M48 97C58 109 82 109 92 97" stroke={`url(#${goldId})`} strokeWidth={3.2} fill="none" />
+            <Circle cx={58} cy={103} r={2.5} fill="#38BDF8" />
+            <Circle cx={70} cy={106} r={3.4} fill="#F43F5E" stroke="#FEF08A" strokeWidth={1} />
+            <Circle cx={82} cy={103} r={2.5} fill="#34D399" />
+          </G>
+        )}
+
+        {outfit === 'pharaoh' && (
+          <G>
+            {/* Egyptian linen tunic with ornate turquoise/gold beaded royal collar */}
+            <Path d={torsoBasePath} fill="#FFF7E6" stroke="#C8B288" strokeWidth={1.4} />
+            <Path d="M46 92C56 108 84 108 94 92L101 102C88 122 52 122 39 102Z" fill={`url(#${goldId})`} stroke="#78350F" strokeWidth={1.3} />
+            <Path d="M46 102C58 115 82 115 94 102" stroke="#0EA5E9" strokeWidth={3.2} strokeDasharray="4 3" fill="none" />
+            <Path d="M51 96C60 107 80 107 89 96" stroke="#DC2626" strokeWidth={2.2} strokeDasharray="3 4" fill="none" />
+            <Circle cx={70} cy={116} r={5.2} fill="#0284C7" stroke="#FEF08A" strokeWidth={1.6} />
+          </G>
+        )}
+
+        {outfit === 'queen' && (
+          <G>
+            {/* Regal velvet imperial gown with high gold-trimmed collar & ruby brooch */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.3)" strokeWidth={1.5} />
+            {/* High royal standing collar */}
+            <Path d="M45 92L38 78L55 88Z" fill={outfitCol} stroke={`url(#${goldId})`} strokeWidth={1.8} strokeLinejoin="round" />
+            <Path d="M95 92L102 78L85 88Z" fill={outfitCol} stroke={`url(#${goldId})`} strokeWidth={1.8} strokeLinejoin="round" />
+            <Path d="M52 91C58 106 82 106 88 91Z" fill={`url(#${skinId})`} />
+            <Path d="M50 91C57 108 83 108 90 91" stroke={`url(#${goldId})`} strokeWidth={3.4} fill="none" />
+            <Path d="M36 104C50 116 90 116 104 104" stroke="#FEF08A" strokeWidth={1.6} opacity={0.75} fill="none" />
+            <Circle cx={70} cy={106} r={4.2} fill="#E11D48" stroke="#FEF08A" strokeWidth={1.4} />
+          </G>
+        )}
+
         {outfit === 'hoodie' && (
           <G>
-            <Path
-              d="M16 140C20 103 38 89 70 89C102 89 120 103 124 140Z"
-              fill={outfitCol}
-              stroke="rgba(0,0,0,0.25)"
-              strokeWidth={1.5}
-            />
-            {/* Layered hood rim around neck */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.25)" strokeWidth={1.5} />
             <Path
               d="M44 92C52 106 88 106 96 92C92 85 84 85 70 86C56 85 48 85 44 92Z"
               fill={outfitCol}
@@ -1030,7 +1230,6 @@ export function ModularAvatar({
               strokeWidth={1.6}
             />
             <Path d="M52 94C58 103 82 103 88 94Z" fill="rgba(0,0,0,0.24)" />
-            {/* Iconic white hoodie drawstrings */}
             <Path d="M61 101L59 126M79 101L81 126" stroke="#F8FAFC" strokeWidth={2.6} strokeLinecap="round" />
             <Circle cx={59} cy={126} r={2} fill="#CBD5E1" />
             <Circle cx={81} cy={126} r={2} fill="#CBD5E1" />
@@ -1039,45 +1238,21 @@ export function ModularAvatar({
 
         {outfit === 'sweater' && (
           <G>
-            <Path
-              d="M17 140C21 104 39 90 70 90C101 90 119 104 123 140Z"
-              fill={outfitCol}
-              stroke="rgba(0,0,0,0.22)"
-              strokeWidth={1.5}
-            />
-            {/* Cozy ribbed turtleneck/crew band + knit chevron texture */}
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} />
             <Path
               d="M52 88C58 98 82 98 88 88C90 94 84 103 70 103C56 103 50 94 52 88Z"
               fill={outfitCol}
               stroke="rgba(255,255,255,0.32)"
               strokeWidth={1.4}
             />
-            <Path
-              d="M34 114L44 108L54 114L64 108L76 108L86 114L96 108L106 114"
-              stroke="rgba(255,255,255,0.28)"
-              strokeWidth={2.2}
-              strokeLinecap="round"
-              fill="none"
-            />
-            <Path
-              d="M30 126L44 120L58 126L70 120L82 126L96 120L110 126"
-              stroke="rgba(255,255,255,0.22)"
-              strokeWidth={2}
-              strokeLinecap="round"
-              fill="none"
-            />
+            <Path d="M34 114L44 108L54 114L64 108L76 108L86 114L96 108L106 114" stroke="rgba(255,255,255,0.28)" strokeWidth={2.2} strokeLinecap="round" fill="none" />
+            <Path d="M30 126L44 120L58 126L70 120L82 126L96 120L110 126" stroke="rgba(255,255,255,0.22)" strokeWidth={2} strokeLinecap="round" fill="none" />
           </G>
         )}
 
         {outfit === 'open_shirt' && (
           <G>
-            {/* Casual open overshirt over crisp white inner tee */}
-            <Path
-              d="M17 140C21 104 39 90 70 90C101 90 119 104 123 140Z"
-              fill={outfitCol}
-              stroke="rgba(0,0,0,0.22)"
-              strokeWidth={1.5}
-            />
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.22)" strokeWidth={1.5} />
             <Rect x={55} y={92} width={30} height={48} fill="#FFFFFF" />
             <Path d="M55 92C60 100 80 100 85 92Z" fill={skin.base} />
             <Path d="M52 90L57 104L46 108L43 96Z" fill={outfitCol} stroke="rgba(255,255,255,0.3)" strokeWidth={1.2} />
@@ -1088,31 +1263,16 @@ export function ModularAvatar({
 
         {outfit === 'blouse' && (
           <G>
-            <Path
-              d="M20 140C24 105 40 91 70 91C100 91 116 105 120 140Z"
-              fill={outfitCol}
-              stroke="rgba(0,0,0,0.2)"
-              strokeWidth={1.5}
-            />
+            <Path d={torsoBasePath} fill={outfitCol} stroke="rgba(0,0,0,0.2)" strokeWidth={1.5} />
             <Path d="M50 91C55 109 85 109 90 91Z" fill={`url(#${skinId})`} />
-            <Path
-              d="M53 94C60 106 80 106 87 94"
-              stroke={`url(#${goldId})`}
-              strokeWidth={2}
-              fill="none"
-            />
+            <Path d="M53 94C60 106 80 106 87 94" stroke={`url(#${goldId})`} strokeWidth={2} fill="none" />
             <Circle cx={70} cy={104.5} r={3.5} fill="#FFFBEB" stroke="#D97706" strokeWidth={1} />
           </G>
         )}
 
         {outfit === 'jacket' && (
           <G>
-            <Path
-              d="M16 140C20 102 38 89 70 89C102 89 120 102 124 140Z"
-              fill="#1E2430"
-              stroke="#0F141D"
-              strokeWidth={1.5}
-            />
+            <Path d={torsoBasePath} fill="#1E2430" stroke="#0F141D" strokeWidth={1.5} />
             <Path d="M56 91L70 124L84 91Z" fill={outfitCol} />
             <Path d="M47 90L62 112L49 116L39 98Z" fill="#2F384A" stroke="rgba(255,255,255,0.14)" strokeWidth={1.1} />
             <Path d="M93 90L78 112L91 116L101 98Z" fill="#2F384A" stroke="rgba(255,255,255,0.14)" strokeWidth={1.1} />
@@ -1122,28 +1282,17 @@ export function ModularAvatar({
 
         {outfit === 'blazer' && (
           <G>
-            <Path
-              d="M16 140C20 102 38 89 70 89C102 89 120 102 124 140Z"
-              fill="#182745"
-              stroke="#0D162B"
-              strokeWidth={1.5}
-            />
+            <Path d={torsoBasePath} fill="#182745" stroke="#0D162B" strokeWidth={1.5} />
             <Path d="M56 90L70 125L84 90Z" fill="#F8FAFC" />
             <Path d="M48 89L67 123L53 126L41 97Z" fill="#263D69" />
             <Path d="M92 89L73 123L87 126L99 97Z" fill="#263D69" />
-            {/* Pocket square */}
             <Path d="M87 119L98 114L99 121H87Z" fill={outfitCol} />
           </G>
         )}
 
         {outfit === 'royal_tux' && (
           <G>
-            <Path
-              d="M16 140C20 102 38 89 70 89C102 89 120 102 124 140Z"
-              fill="#0F172A"
-              stroke="#050812"
-              strokeWidth={1.5}
-            />
+            <Path d={torsoBasePath} fill="#0F172A" stroke="#050812" strokeWidth={1.5} />
             <Path d="M56 90L70 126L84 90Z" fill="#FFFFFF" />
             <Path d="M47 89L68 124L56 127L41 97Z" fill={`url(#${goldId})`} />
             <Path d="M93 89L72 124L84 127L99 97Z" fill={`url(#${goldId})`} />
@@ -1153,7 +1302,7 @@ export function ModularAvatar({
         )}
 
         {/* ===== LAYER 3: NECK, EARS & SCULPTED 2.5D HEAD ===== */}
-        <Rect x={60.5} y={76} width={19} height={20} rx={7} fill={skin.shadow} />
+        <Rect x={neckX} y={76} width={neckW} height={20} rx={7} fill={skin.shadow} />
         <Ellipse cx={70} cy={83.5} rx={11} ry={5} fill="rgba(0,0,0,0.16)" />
 
         {/* Ears */}
