@@ -17,9 +17,11 @@ import { canClaimDailyReward, RetentionProgress } from '@/storage/gameStorage';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AccountCard } from './AccountCard';
 import {
+  DuoSoloSilhouetteIcon,
   GearIcon,
   GlobeIcon,
   KeyIcon,
+  PairSilhouetteIcon,
   PlayIcon,
   StarIcon,
   UserSilhouetteIcon,
@@ -309,7 +311,43 @@ export function SetupView({
                 <View style={styles.modeSegmentedRow}>
                   {MODE_OPTIONS.map((opt) => {
                     const active = mode === opt.value;
-                    const silColor = active ? '#E8B84B' : 'rgba(148, 178, 214, 0.45)';
+                    const silColor = active ? '#F5C451' : 'rgba(148, 178, 214, 0.45)';
+                    const renderSideIcon = () =>
+                      opt.value === '1v1' ? (
+                        <UserSilhouetteIcon size={14} color={silColor} />
+                      ) : opt.value === '2v2' ? (
+                        <PairSilhouetteIcon size={16} color={silColor} />
+                      ) : (
+                        <DuoSoloSilhouetteIcon size={15} color={silColor} />
+                      );
+
+                    const pillContent = (
+                      <View style={styles.modePillInner}>
+                        {renderSideIcon()}
+                        <View style={styles.modeTextCenter}>
+                          <Text
+                            style={[
+                              styles.modePillTitle,
+                              active && styles.modePillTitleActive,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {opt.shortTitle}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.modePillSub,
+                              active && styles.modePillSubActive,
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {opt.subtitle}
+                          </Text>
+                        </View>
+                        {renderSideIcon()}
+                      </View>
+                    );
+
                     return (
                       <Pressable
                         key={opt.value}
@@ -318,32 +356,25 @@ export function SetupView({
                           onChangeMode(opt.value);
                         }}
                         accessibilityRole="button"
-                        style={[styles.modePill, active && styles.modePillActive]}
+                        style={[styles.modePillWrap, active && styles.modePillWrapActive]}
                       >
-                        <View style={styles.modePillInner}>
-                          <UserSilhouetteIcon size={13} color={silColor} />
-                          <View style={styles.modeTextCenter}>
-                            <Text
-                              style={[
-                                styles.modePillTitle,
-                                active && styles.modePillTitleActive,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {opt.shortTitle}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.modePillSub,
-                                active && styles.modePillSubActive,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {opt.subtitle}
-                            </Text>
-                          </View>
-                          <UserSilhouetteIcon size={13} color={silColor} />
-                        </View>
+                        {active ? (
+                          <LinearGradient
+                            colors={[
+                              'rgba(245, 196, 81, 0.28)',
+                              'rgba(136, 92, 22, 0.44)',
+                              'rgba(62, 42, 14, 0.66)',
+                            ]}
+                            start={{ x: 0.5, y: 0 }}
+                            end={{ x: 0.5, y: 1 }}
+                            style={styles.modePillActiveGrad}
+                          >
+                            <View style={styles.modeActiveGloss} pointerEvents="none" />
+                            {pillContent}
+                          </LinearGradient>
+                        ) : (
+                          <View style={styles.modePill}>{pillContent}</View>
+                        )}
                       </Pressable>
                     );
                   })}
@@ -737,22 +768,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 6,
   },
-  modePill: {
+  modePillWrap: {
     flex: 1,
+    borderRadius: 12,
+  },
+  modePillWrapActive: {
+    boxShadow: '0px 0px 16px rgba(245, 196, 81, 0.28)',
+  },
+  modePill: {
     minHeight: 46,
     backgroundColor: 'rgba(38, 62, 96, 0.44)',
     borderWidth: 1,
     borderColor: 'rgba(148, 190, 255, 0.18)',
     borderRadius: 12,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     paddingVertical: 5,
     justifyContent: 'center',
   },
-  modePillActive: {
-    backgroundColor: 'rgba(66, 52, 24, 0.62)',
+  modePillActiveGrad: {
+    minHeight: 46,
     borderColor: '#F5C451',
     borderWidth: 1.5,
-    boxShadow: '0px 0px 14px rgba(245, 196, 81, 0.22)',
+    borderRadius: 12,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  modeActiveGloss: {
+    position: 'absolute',
+    top: 1,
+    left: 4,
+    right: 4,
+    height: '42%',
+    borderRadius: 9,
+    backgroundColor: 'rgba(255, 245, 200, 0.12)',
   },
   modePillInner: {
     flexDirection: 'row',

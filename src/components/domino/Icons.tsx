@@ -318,13 +318,55 @@ export function RefreshIcon({ size = 15, color = '#38BDF8' }: IconProps) {
   );
 }
 
-/** Compact user silhouette for 1v1 / 2v2 / 4 Jug. mode pills */
+/** Compact user silhouette for 1v1 mode pill */
 export function UserSilhouetteIcon({ size = 14, color = '#7E95AE' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Circle cx={12} cy={8.2} r={3.6} fill={color} />
       <Path
         d="M5.5 19.5C5.9 15.8 8.5 13.8 12 13.8C15.5 13.8 18.1 15.8 18.5 19.5H5.5Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+/** Paired overlapping silhouettes for 2v2 ("Parejas") mode pill */
+export function PairSilhouetteIcon({ size = 16, color = '#7E95AE' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Back partner */}
+      <Circle cx={15.6} cy={8.5} r={2.8} fill={color} opacity={0.62} />
+      <Path
+        d="M11.6 18.8C12 15.9 13.6 14.3 15.8 14.3C18.2 14.3 20 15.9 20.4 18.8H11.6Z"
+        fill={color}
+        opacity={0.62}
+      />
+      {/* Front partner */}
+      <Circle cx={9} cy={8.2} r={3.2} fill={color} />
+      <Path
+        d="M3.5 19.4C3.9 16.1 6.1 14.3 9 14.3C11.9 14.3 14.1 16.1 14.5 19.4H3.5Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+/** Two independent mini-silhouettes (left+right = 4 solo players for 4ffa) */
+export function DuoSoloSilhouetteIcon({ size = 15, color = '#7E95AE' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Upper solo player */}
+      <Circle cx={12} cy={5.4} r={2.4} fill={color} opacity={0.78} />
+      <Path
+        d="M7.5 11.4C7.8 9.4 9.5 8.3 12 8.3C14.5 8.3 16.2 9.4 16.5 11.4H7.5Z"
+        fill={color}
+        opacity={0.78}
+      />
+      {/* Lower solo player */}
+      <Circle cx={12} cy={15.2} r={2.4} fill={color} />
+      <Path
+        d="M7.5 21.2C7.8 19.2 9.5 18.1 12 18.1C14.5 18.1 16.2 19.2 16.5 21.2H7.5Z"
         fill={color}
       />
     </Svg>
