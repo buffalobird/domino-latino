@@ -11,7 +11,7 @@ interface AccountCardProps {
 }
 
 /**
- * Clean 1-row profile/sign-in trigger on Home, dynamically themed via PaletteContext.
+ * Tactile 1-row profile/sign-in bar matching the high-contrast 3D game mockups.
  */
 export function AccountCard({ onOpenAuth }: AccountCardProps) {
   const { user, profile, isSignedIn } = useAuth();
@@ -34,15 +34,16 @@ export function AccountCard({ onOpenAuth }: AccountCardProps) {
         style={({ pressed }) => [
           styles.bar,
           {
-            backgroundColor: palette.surfaceCard,
-            borderColor: palette.borderSubtle,
+            backgroundColor: palette.accountBg,
+            borderColor: palette.accountBorder,
+            borderBottomColor: palette.accountLip,
           },
-          pressed && { opacity: 0.88 },
+          pressed && styles.pressed,
         ]}
       >
         <View style={styles.leftRow}>
-          <View style={[styles.syncDot, { backgroundColor: palette.accent }]} />
-          <Text style={[styles.userName, { color: palette.textPrimary }]} numberOfLines={1}>
+          <View style={[styles.syncDot, { backgroundColor: palette.primaryMid }]} />
+          <Text style={[styles.userName, { color: palette.accountText }]} numberOfLines={1}>
             {label}
           </Text>
         </View>
@@ -50,12 +51,12 @@ export function AccountCard({ onOpenAuth }: AccountCardProps) {
           style={[
             styles.actionPill,
             {
-              backgroundColor: palette.surfaceCardAlt,
-              borderColor: palette.borderSubtle,
+              backgroundColor: palette.accountBtnBg,
+              borderBottomColor: palette.accountBtnLip,
             },
           ]}
         >
-          <Text style={[styles.actionPillText, { color: palette.textSecondary }]}>
+          <Text style={[styles.actionPillText, { color: palette.accountBtnText }]}>
             Mi cuenta
           </Text>
         </View>
@@ -73,10 +74,11 @@ export function AccountCard({ onOpenAuth }: AccountCardProps) {
       style={({ pressed }) => [
         styles.bar,
         {
-          backgroundColor: palette.surfaceCard,
-          borderColor: palette.borderSubtle,
+          backgroundColor: palette.accountBg,
+          borderColor: palette.accountBorder,
+          borderBottomColor: palette.accountLip,
         },
-        pressed && { opacity: 0.88 },
+        pressed && styles.pressed,
       ]}
     >
       <View style={styles.leftRow}>
@@ -84,15 +86,14 @@ export function AccountCard({ onOpenAuth }: AccountCardProps) {
           style={[
             styles.avatarBadge,
             {
-              backgroundColor: palette.accentBg,
-              borderColor: palette.borderAccent,
+              backgroundColor: palette.accountBtnBg,
             },
           ]}
         >
-          <UserSilhouetteIcon size={15} color={palette.accent} />
+          <UserSilhouetteIcon size={14} color={palette.accountBtnText} />
         </View>
-        <Text style={[styles.guestTitle, { color: palette.textSecondary }]} numberOfLines={1}>
-          Guarda tu progreso y juega online
+        <Text style={[styles.guestTitle, { color: palette.accountText }]} numberOfLines={1}>
+          Guarda tu progreso...
         </Text>
       </View>
 
@@ -100,12 +101,12 @@ export function AccountCard({ onOpenAuth }: AccountCardProps) {
         style={[
           styles.signInPill,
           {
-            backgroundColor: palette.accentBg,
-            borderColor: palette.borderAccent,
+            backgroundColor: palette.accountBtnBg,
+            borderBottomColor: palette.accountBtnLip,
           },
         ]}
       >
-        <Text style={[styles.signInPillText, { color: palette.textPrimary }]}>
+        <Text style={[styles.signInPillText, { color: palette.accountBtnText }]}>
           Iniciar sesión
         </Text>
       </View>
@@ -119,59 +120,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-    borderRadius: 15,
-    borderWidth: 1,
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    minHeight: 46,
+    minHeight: 50,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.18)',
+  },
+  pressed: {
+    opacity: 0.92,
+    transform: [{ translateY: 1 }],
   },
   leftRow: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
   },
   avatarBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   guestTitle: {
     flex: 1,
-    fontSize: 12.5,
-    fontWeight: '700',
-  },
-  signInPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  signInPillText: {
-    fontSize: 12,
+    fontSize: 13.5,
     fontWeight: '800',
   },
+  signInPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderBottomWidth: 3,
+  },
+  signInPillText: {
+    fontSize: 12.5,
+    fontWeight: '900',
+  },
   syncDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
   },
   userName: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '800',
   },
   actionPill: {
-    paddingHorizontal: 11,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 10,
-    borderWidth: 1,
+    borderRadius: 11,
+    borderBottomWidth: 3,
   },
   actionPillText: {
-    fontSize: 11.5,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
   },
 });

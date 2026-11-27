@@ -80,11 +80,15 @@ function AmbientPaletteBackdrop() {
     <View style={styles.backdropLayer} pointerEvents="none">
       <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
         <Defs>
-          <RadialGradient id="palTop" cx="50%" cy="16%" r="58%">
-            <Stop offset="0%" stopColor={palette.glowTop} stopOpacity={palette.glowTopOpacity} />
+          <RadialGradient id="palTop" cx="50%" cy="14%" r="60%">
+            <Stop
+              offset="0%"
+              stopColor={palette.glowTop}
+              stopOpacity={palette.glowTopOpacity}
+            />
             <Stop offset="100%" stopColor={palette.bgTop} stopOpacity={0} />
           </RadialGradient>
-          <RadialGradient id="palBot" cx="50%" cy="88%" r="48%">
+          <RadialGradient id="palBot" cx="50%" cy="88%" r="52%">
             <Stop
               offset="0%"
               stopColor={palette.glowBottom}
@@ -101,8 +105,9 @@ function AmbientPaletteBackdrop() {
 }
 
 /**
- * Dynamically themed Home Screen driven 100% by `PaletteContext` so new color palettes
- * (daylight or nocturnal) can be tested live in 1 tap without rewriting screens.
+ * Tactile 3D High-Contrast Home Screen matching the 4 user mockup architectures.
+ * Tap the top palette pill to cycle live across Índigo Crema, Cacao Coral,
+ * Noche Menta, Espresso Cielo, and Brisa Coral.
  */
 export function SetupView({
   mode,
@@ -129,13 +134,13 @@ export function SetupView({
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
   const selectedMode = MODE_OPTIONS.find((m) => m.value === mode) ?? MODE_OPTIONS[0];
   const hasDailyBonus = canClaimDailyReward(retention);
-  const xpIntoLevel = Math.max(8, retention.xp % 100);
+  const xpIntoLevel = Math.max(12, retention.xp % 100);
   const emblemTileUnit = isCompactH ? 24 : 27;
 
   return (
     <LinearGradient
       colors={[palette.bgTop, palette.bgMid, palette.bgBottom]}
-      locations={[0, 0.45, 1]}
+      locations={[0, 0.5, 1]}
       style={styles.gradient}
     >
       <AmbientPaletteBackdrop />
@@ -145,40 +150,35 @@ export function SetupView({
           style={styles.bodyScroll}
           contentContainerStyle={[
             styles.bodyContent,
-            isCompactH && { gap: 8, paddingTop: 6, paddingBottom: 6 },
+            isCompactH && { gap: 8, paddingTop: 4, paddingBottom: 6 },
           ]}
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Top Club Bar (Level + 1-Tap Live Palette Lab + Boutique + Chips + Feedback) */}
+          {/* 1. Tactile 3D Top Bar (Level + 1-Tap Palette Switcher + Mesas + Chips + Blue 3D Gear) */}
           <View style={styles.topStrip}>
             <View
               style={[
                 styles.levelBadge,
                 {
-                  backgroundColor: palette.surfacePill,
-                  borderColor: palette.borderSubtle,
+                  backgroundColor: palette.levelPillBg,
+                  borderBottomColor: palette.levelPillLip,
+                  borderColor: 'rgba(255,255,255,0.28)',
                 },
               ]}
             >
-              <Text style={[styles.levelText, { color: palette.textPrimary }]}>
+              <Text style={[styles.levelText, { color: palette.levelPillText }]}>
                 Nv. {retention.level}
               </Text>
-              <View
-                style={[
-                  styles.xpBarBg,
-                  {
-                    backgroundColor: palette.isDark
-                      ? 'rgba(255,255,255,0.12)'
-                      : 'rgba(26,49,54,0.10)',
-                  },
-                ]}
-              >
-                <LinearGradient
-                  colors={[palette.accent, palette.brandAccent]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[styles.xpBarFill, { width: `${xpIntoLevel}%` }]}
+              <View style={styles.xpBarBg}>
+                <View
+                  style={[
+                    styles.xpBarFill,
+                    {
+                      width: `${xpIntoLevel}%`,
+                      backgroundColor: '#FFD166',
+                    },
+                  ]}
                 />
               </View>
             </View>
@@ -193,27 +193,28 @@ export function SetupView({
                 accessibilityRole="button"
                 accessibilityLabel={`Cambiar paleta de color, actual ${palette.name}`}
                 style={({ pressed }) => [
-                  styles.palettePill,
+                  styles.topPill,
                   {
-                    backgroundColor: palette.surfacePill,
-                    borderColor: palette.borderSubtle,
+                    backgroundColor: palette.topPillBg,
+                    borderBottomColor: palette.topPillLip,
+                    borderColor: palette.topPillBorder,
                   },
-                  pressed && { opacity: 0.8 },
+                  pressed && styles.tactilePressed,
                 ]}
               >
                 <View style={styles.swatchDots}>
-                  {palette.swatches.slice(0, 3).map((hex, i) => (
+                  {palette.swatches.slice(1, 4).map((hex, i) => (
                     <View
                       key={i}
                       style={[
                         styles.swatchDot,
-                        { backgroundColor: hex, borderColor: palette.surfaceCard },
+                        { backgroundColor: hex, borderColor: palette.topPillBg },
                       ]}
                     />
                   ))}
                 </View>
-                <Text style={[styles.palettePillText, { color: palette.textPrimary }]}>
-                  {palette.name.split(' ')[0]}
+                <Text style={[styles.topPillText, { color: palette.topPillText }]}>
+                  {palette.shortLabel}
                 </Text>
               </Pressable>
 
@@ -224,15 +225,16 @@ export function SetupView({
                 }}
                 accessibilityRole="button"
                 style={({ pressed }) => [
-                  styles.themesPill,
+                  styles.topPill,
                   {
-                    backgroundColor: palette.surfacePill,
-                    borderColor: palette.borderSubtle,
+                    backgroundColor: palette.topPillBg,
+                    borderBottomColor: palette.topPillLip,
+                    borderColor: palette.topPillBorder,
                   },
-                  pressed && { opacity: 0.85 },
+                  pressed && styles.tactilePressed,
                 ]}
               >
-                <Text style={[styles.themesPillText, { color: palette.textPrimary }]}>
+                <Text style={[styles.topPillText, { color: palette.topPillText }]}>
                   Mesas
                 </Text>
               </Pressable>
@@ -247,9 +249,10 @@ export function SetupView({
                   styles.chipsPill,
                   {
                     backgroundColor: palette.chipPillBg,
-                    borderColor: hasDailyBonus ? palette.brandAccent : palette.borderWarm,
+                    borderBottomColor: palette.topPillLip,
+                    borderColor: hasDailyBonus ? palette.brandAccent : palette.topPillBorder,
                   },
-                  pressed && { opacity: 0.85 },
+                  pressed && styles.tactilePressed,
                 ]}
               >
                 <ChipIcon size={14} color={palette.chipIconColor} />
@@ -271,36 +274,38 @@ export function SetupView({
                 style={({ pressed }) => [
                   styles.gearBtn,
                   {
-                    backgroundColor: palette.surfacePill,
-                    borderColor: palette.borderSubtle,
+                    backgroundColor: palette.gearBg,
+                    borderBottomColor: palette.gearLip,
                   },
-                  pressed && { opacity: 0.8, transform: [{ scale: 0.95 }] },
+                  pressed && styles.tactilePressed,
                 ]}
               >
-                <GearIcon size={17} color={palette.textSecondary} />
+                <GearIcon size={18} color={palette.gearIcon} />
               </Pressable>
             </View>
           </View>
 
-          {/* 2. Brand Header */}
-          <View style={[styles.brandBlock, isCompactH && { paddingVertical: 2 }]}>
-            <Text style={[styles.brandKicker, { color: palette.textMuted }]}>
+          {/* 2. Chunky 3D Extruded Brand Header */}
+          <View style={[styles.brandBlock, isCompactH && { paddingVertical: 1 }]}>
+            <Text style={[styles.brandKicker, { color: palette.kickerColor }]}>
               LA SOBREMESA · DOBLE SEIS
             </Text>
             <Text
               style={[
                 styles.brandTitle,
-                { color: palette.textPrimary },
-                isCompactH && { fontSize: 28 },
+                {
+                  color: palette.titlePrimary,
+                  textShadowColor: palette.titleShadow,
+                },
+                isCompactH && { fontSize: 30 },
               ]}
             >
               DOMINÓ{' '}
-              <Text style={{ color: palette.brandAccent }}>LATINO</Text>
+              <Text style={{ color: palette.titleSecondary }}>LATINO</Text>
             </Text>
-            <View style={[styles.brassRule, { backgroundColor: palette.accent }]} />
           </View>
 
-          {/* Signature Tactile Host Card: Live 2.5D Avatar + Warm Greeting + Real Porcelain Tiles */}
+          {/* 3. High-Contrast Solid 3D Hero Greeting Card */}
           <Pressable
             onPress={() => {
               hapticLight();
@@ -311,29 +316,38 @@ export function SetupView({
             style={({ pressed }) => [
               styles.hostCard,
               {
-                backgroundColor: palette.surfaceHighlight,
-                borderColor: palette.borderSubtle,
+                backgroundColor: palette.heroCardBg,
+                borderColor: palette.heroCardBorder,
+                borderBottomColor: palette.heroCardLip,
               },
               isCompactH && { paddingVertical: 10, paddingHorizontal: 12 },
-              pressed && { opacity: 0.94 },
+              pressed && styles.tactilePressed,
             ]}
           >
+            <View style={styles.cardTopGloss} pointerEvents="none" />
             <View style={styles.hostAvatarWrap}>
-              <ModularAvatar
-                config={retention.avatarConfig}
-                size={isCompactH ? 54 : 62}
-                showFrameRing
-              />
               <View
                 style={[
-                  styles.avatarEditPill,
+                  styles.heroAvatarHalo,
                   {
-                    backgroundColor: palette.chipPillBg,
-                    borderColor: palette.borderWarm,
+                    borderColor: palette.heroAvatarRing,
+                    backgroundColor: palette.heroAvatarRing,
                   },
                 ]}
               >
-                <Text style={[styles.avatarEditPillText, { color: palette.chipPillText }]}>
+                <ModularAvatar
+                  config={retention.avatarConfig}
+                  size={isCompactH ? 54 : 62}
+                  showFrameRing={false}
+                />
+              </View>
+              <View
+                style={[
+                  styles.avatarEditPill,
+                  { backgroundColor: palette.heroEditBg },
+                ]}
+              >
+                <Text style={[styles.avatarEditPillText, { color: palette.heroEditText }]}>
                   Editar
                 </Text>
               </View>
@@ -341,13 +355,13 @@ export function SetupView({
 
             <View style={styles.hostCopyCol}>
               <Text
-                style={[styles.hostGreeting, { color: palette.textPrimary }]}
+                style={[styles.hostGreeting, { color: palette.heroCardText }]}
                 numberOfLines={1}
               >
                 {greeting}
               </Text>
               <Text
-                style={[styles.hostInvite, { color: palette.textSecondary }]}
+                style={[styles.hostInvite, { color: palette.heroCardSub }]}
                 numberOfLines={2}
               >
                 {inviteLine}
@@ -381,209 +395,201 @@ export function SetupView({
               style={[
                 styles.maintenanceBanner,
                 {
-                  backgroundColor: palette.chipPillBg,
-                  borderColor: palette.borderWarm,
+                  backgroundColor: palette.dailyCardBg,
+                  borderColor: palette.brandAccent,
                 },
               ]}
             >
-              <Text style={[styles.maintenanceBannerText, { color: palette.chipPillText }]}>
+              <Text style={[styles.maintenanceBannerText, { color: palette.dailyCardText }]}>
                 {maintenanceBanner}
               </Text>
             </View>
           )}
 
-          {/* 3–5. Lower Interactive Cluster */}
-          <View style={styles.lowerCluster}>
-            {/* 3. Daily Challenge Card */}
-            <Pressable
-              onPress={() => {
-                hapticLight();
-                onOpenDailyRewards();
-              }}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.challengeCard,
-                {
-                  backgroundColor: palette.surfaceCard,
-                  borderColor: palette.borderSubtle,
-                },
-                pressed && { opacity: 0.92 },
-              ]}
-            >
-              <View style={styles.starsRow}>
-                {[0, 1, 2].map((idx) => (
-                  <StarIcon
-                    key={idx}
-                    size={17}
-                    color={idx < retention.dailyStars ? palette.starColor : palette.starMuted}
-                    filled={idx < retention.dailyStars}
-                  />
-                ))}
-              </View>
-              <View style={styles.challengeTextCol}>
-                <Text
-                  style={[styles.challengeTitle, { color: palette.textPrimary }]}
-                  numberOfLines={1}
-                >
-                  {remainingStars === 0
-                    ? 'Reto diario completado'
-                    : `Reto diario · ${retention.dailyStars}/3`}
-                </Text>
-                <Text
-                  style={[styles.challengeSub, { color: palette.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  {hasDailyBonus
-                    ? 'Tu bono de bienvenida de hoy está listo'
-                    : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.bonusBadge,
-                  {
-                    backgroundColor: hasDailyBonus ? palette.chipPillBg : palette.surfaceCardAlt,
-                    borderColor: hasDailyBonus ? palette.borderWarm : palette.borderSubtle,
-                  },
-                ]}
+          {/* 4. High-Contrast Tactile Daily Challenge Strip */}
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              onOpenDailyRewards();
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.challengeCard,
+              {
+                backgroundColor: palette.dailyCardBg,
+                borderColor: palette.dailyCardBorder,
+                borderBottomColor: palette.dailyCardLip,
+              },
+              pressed && styles.tactilePressed,
+            ]}
+          >
+            <View style={styles.starsRow}>
+              {[0, 1, 2].map((idx) => (
+                <StarIcon
+                  key={idx}
+                  size={18}
+                  color={idx < retention.dailyStars ? palette.starColor : palette.starMuted}
+                  filled={idx < retention.dailyStars}
+                />
+              ))}
+            </View>
+            <View style={styles.challengeTextCol}>
+              <Text
+                style={[styles.challengeTitle, { color: palette.dailyCardText }]}
+                numberOfLines={1}
               >
-                <Text
-                  style={[
-                    styles.bonusBadgeText,
-                    { color: hasDailyBonus ? palette.chipPillText : palette.textSecondary },
-                  ]}
-                >
-                  {hasDailyBonus ? 'Reclamar' : 'Bonos'}
-                </Text>
-              </View>
-            </Pressable>
-
-            {/* 4. Table Setup Card */}
+                {remainingStars === 0
+                  ? 'Reto diario completado'
+                  : `Reto diario · ${retention.dailyStars}/3`}
+              </Text>
+              <Text
+                style={[styles.challengeSub, { color: palette.dailyCardSub }]}
+                numberOfLines={1}
+              >
+                {hasDailyBonus
+                  ? 'Tu bono de bienvenida de hoy está listo'
+                  : `Racha ${retention.winStreak} · Mejor ${retention.bestStreak}`}
+              </Text>
+            </View>
             <View
               style={[
-                styles.setupCard,
+                styles.bonusBadge,
                 {
-                  backgroundColor: palette.surfaceCard,
-                  borderColor: palette.borderSubtle,
+                  backgroundColor: palette.dailyBtnBg,
+                  borderBottomColor: palette.dailyBtnLip,
                 },
               ]}
             >
-              <View style={styles.setupGroup}>
-                <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>
-                  MODALIDAD
-                </Text>
-                <View style={styles.modeSegmentedRow}>
-                  {MODE_OPTIONS.map((opt) => {
-                    const active = mode === opt.value;
-                    const silColor = active ? palette.selectedText : palette.textMuted;
-                    const renderSideIcon = () =>
-                      opt.value === '1v1' ? (
-                        <UserSilhouetteIcon size={14} color={silColor} />
-                      ) : opt.value === '2v2' ? (
-                        <PairSilhouetteIcon size={16} color={silColor} />
-                      ) : (
-                        <DuoSoloSilhouetteIcon size={15} color={silColor} />
-                      );
+              <Text style={[styles.bonusBadgeText, { color: palette.dailyBtnText }]}>
+                {hasDailyBonus ? 'Reclamar' : 'Bonos'}
+              </Text>
+            </View>
+          </Pressable>
 
-                    return (
-                      <Pressable
-                        key={opt.value}
-                        onPress={() => {
-                          hapticLight();
-                          onChangeMode(opt.value);
-                        }}
-                        accessibilityRole="button"
-                        style={[
-                          styles.modePill,
-                          {
-                            backgroundColor: active ? palette.selectedBg : palette.surfaceCardAlt,
-                            borderColor: active ? palette.selectedBorder : palette.borderSubtle,
-                          },
-                        ]}
-                      >
-                        <View style={styles.modePillInner}>
-                          {renderSideIcon()}
-                          <View style={styles.modeTextCenter}>
-                            <Text
-                              style={[
-                                styles.modePillTitle,
-                                { color: active ? palette.selectedText : palette.textPrimary },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {opt.shortTitle}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.modePillSub,
-                                { color: active ? palette.selectedSubText : palette.textMuted },
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {opt.subtitle}
-                            </Text>
-                          </View>
+          {/* 5. Grouped Recessed Config Tray: 3 Tactile Mode Buttons + 6 Single-Row Score Chips */}
+          <View
+            style={[
+              styles.setupCard,
+              {
+                backgroundColor: palette.trayBg,
+                borderColor: palette.trayBorder,
+              },
+            ]}
+          >
+            <View style={styles.setupGroup}>
+              <Text style={[styles.sectionLabel, { color: palette.trayLabel }]}>
+                MODALIDAD
+              </Text>
+              <View style={styles.modeSegmentedRow}>
+                {MODE_OPTIONS.map((opt) => {
+                  const active = mode === opt.value;
+                  const silColor = active ? palette.modeSelectedText : palette.modeText;
+                  const renderSideIcon = () =>
+                    opt.value === '1v1' ? (
+                      <UserSilhouetteIcon size={14} color={silColor} />
+                    ) : opt.value === '2v2' ? (
+                      <PairSilhouetteIcon size={16} color={silColor} />
+                    ) : (
+                      <DuoSoloSilhouetteIcon size={15} color={silColor} />
+                    );
+
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => {
+                        hapticLight();
+                        onChangeMode(opt.value);
+                      }}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.modePill,
+                        {
+                          backgroundColor: active ? palette.modeSelectedBg : palette.modeBg,
+                          borderColor: active ? palette.modeSelectedBorder : palette.modeBorder,
+                          borderBottomColor: active ? palette.modeSelectedLip : palette.modeLip,
+                        },
+                        pressed && styles.tactilePressed,
+                      ]}
+                    >
+                      <View style={styles.chipTopGloss} pointerEvents="none" />
+                      <View style={styles.modePillInner}>
+                        {renderSideIcon()}
+                        <View style={styles.modeTextCenter}>
+                          <Text
+                            style={[
+                              styles.modePillTitle,
+                              { color: active ? palette.modeSelectedText : palette.modeText },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {opt.shortTitle}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.modePillSub,
+                              { color: active ? palette.modeSelectedSub : palette.modeSub },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {opt.subtitle}
+                          </Text>
                         </View>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
-              <View style={styles.setupGroup}>
-                <Text style={[styles.sectionLabel, { color: palette.textMuted }]}>
-                  META DE PUNTOS
-                </Text>
-                <View style={styles.scoreSingleRow}>
-                  {TARGET_SCORES.map((pts) => {
-                    const active = targetScore === pts;
-                    return (
-                      <Pressable
-                        key={pts}
-                        onPress={() => {
-                          hapticLight();
-                          onChangeTargetScore(pts);
-                        }}
-                        accessibilityRole="button"
-                        style={[
-                          styles.scoreChip,
-                          {
-                            backgroundColor: active ? palette.selectedBg : palette.surfaceCardAlt,
-                            borderColor: active ? palette.selectedBorder : palette.borderSubtle,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            styles.scoreChipText,
-                            { color: active ? palette.selectedText : palette.textSecondary },
-                            active && { fontWeight: '900' },
-                          ]}
-                        >
-                          {pts}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
 
-            {/* 5. Account / Profile Sign-in Card */}
-            <AccountCard onOpenAuth={onOpenAuth} />
+            <View style={styles.setupGroup}>
+              <Text style={[styles.sectionLabel, { color: palette.trayLabel }]}>
+                META DE PUNTOS
+              </Text>
+              <View style={styles.scoreSingleRow}>
+                {TARGET_SCORES.map((pts) => {
+                  const active = targetScore === pts;
+                  return (
+                    <Pressable
+                      key={pts}
+                      onPress={() => {
+                        hapticLight();
+                        onChangeTargetScore(pts);
+                      }}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [
+                        styles.scoreChip,
+                        {
+                          backgroundColor: active ? palette.scoreSelectedBg : palette.scoreBg,
+                          borderColor: active
+                            ? palette.scoreSelectedBorder
+                            : palette.scoreBorder,
+                          borderBottomColor: active ? palette.scoreSelectedLip : palette.scoreLip,
+                        },
+                        pressed && styles.tactilePressed,
+                      ]}
+                    >
+                      <View style={styles.scoreTopGloss} pointerEvents="none" />
+                      <Text
+                        style={[
+                          styles.scoreChipText,
+                          { color: active ? palette.scoreSelectedText : palette.scoreText },
+                        ]}
+                      >
+                        {pts}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
           </View>
+
+          {/* 6. Compact 1-Row Account Bar */}
+          <AccountCard onOpenAuth={onOpenAuth} />
         </ScrollView>
 
-        {/* BOTTOM STICKY THUMB DOCK */}
-        <View
-          style={[
-            styles.thumbDock,
-            {
-              backgroundColor: palette.dockBg,
-              borderTopColor: palette.dockBorder,
-            },
-          ]}
-        >
+        {/* 7. Bottom Tactile 3D CTA & Online Buttons (Seamless on Canvas, ZERO heavy divider) */}
+        <View style={styles.thumbDock}>
           <Pressable
             onPress={() => {
               hapticSnap();
@@ -602,8 +608,9 @@ export function SetupView({
               end={{ x: 0.5, y: 1 }}
               style={styles.primaryBtnGrad}
             >
+              <View style={styles.primaryBtnGloss} pointerEvents="none" />
               <View style={styles.primaryBtnTop}>
-                <PlayIcon size={19} color={palette.textOnPrimary} />
+                <PlayIcon size={20} color={palette.textOnPrimary} />
                 <Text style={[styles.primaryBtnText, { color: palette.textOnPrimary }]}>
                   Jugar ahora
                 </Text>
@@ -626,23 +633,24 @@ export function SetupView({
               style={({ pressed }) => [
                 styles.secondaryBtn,
                 {
-                  backgroundColor: palette.surfaceCard,
-                  borderColor: palette.borderAccent,
+                  backgroundColor: palette.onlineBtnBg,
+                  borderColor: palette.onlineBtnBorder,
+                  borderBottomColor: palette.onlineBtnLip,
                 },
                 !onlineEnabled && styles.onlineBtnDisabled,
-                pressed && onlineEnabled && styles.secondaryBtnPressed,
+                pressed && onlineEnabled && styles.tactilePressed,
               ]}
             >
-              <GlobeIcon size={19} color={palette.accent} />
+              <GlobeIcon size={20} color={palette.onlineIconColor} />
               <View style={styles.secondaryTextCol}>
                 <Text
-                  style={[styles.onlineBtnTitle, { color: palette.textPrimary }]}
+                  style={[styles.onlineBtnTitle, { color: palette.onlineBtnText }]}
                   numberOfLines={1}
                 >
                   Salas Online
                 </Text>
                 <Text
-                  style={[styles.onlineBtnSub, { color: palette.textSecondary }]}
+                  style={[styles.onlineBtnSub, { color: palette.onlineBtnSub }]}
                   numberOfLines={1}
                 >
                   {onlineEnabled ? 'Juega con otros' : 'Mantenimiento'}
@@ -661,23 +669,24 @@ export function SetupView({
               style={({ pressed }) => [
                 styles.secondaryBtn,
                 {
-                  backgroundColor: palette.surfaceCard,
-                  borderColor: palette.borderSubtle,
+                  backgroundColor: palette.privateBtnBg,
+                  borderColor: palette.privateBtnBorder,
+                  borderBottomColor: palette.privateBtnLip,
                 },
                 !onlineEnabled && styles.onlineBtnDisabled,
-                pressed && onlineEnabled && styles.secondaryBtnPressed,
+                pressed && onlineEnabled && styles.tactilePressed,
               ]}
             >
-              <KeyIcon size={18} color={palette.brandAccent} />
+              <KeyIcon size={19} color={palette.privateIconColor} />
               <View style={styles.secondaryTextCol}>
                 <Text
-                  style={[styles.onlineBtnTitle, { color: palette.textPrimary }]}
+                  style={[styles.onlineBtnTitle, { color: palette.privateBtnText }]}
                   numberOfLines={1}
                 >
                   Sala Privada
                 </Text>
                 <Text
-                  style={[styles.onlineBtnSub, { color: palette.textSecondary }]}
+                  style={[styles.onlineBtnSub, { color: palette.privateBtnSub }]}
                   numberOfLines={1}
                 >
                   {onlineEnabled ? 'Con amigos' : 'Mantenimiento'}
@@ -715,33 +724,39 @@ const styles = StyleSheet.create({
   bodyContent: {
     flexGrow: 1,
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 8,
-    gap: 10,
+    paddingTop: 6,
+    paddingBottom: 6,
+    gap: 11,
+  },
+  tactilePressed: {
+    opacity: 0.92,
+    transform: [{ translateY: 1.5 }],
   },
   topStrip: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 6,
+    gap: 5,
   },
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     borderWidth: 1,
+    borderBottomWidth: 3,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   levelText: {
-    fontSize: 11.5,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
   },
   xpBarBg: {
-    width: 34,
-    height: 5,
+    width: 30,
+    height: 6,
     borderRadius: 999,
+    backgroundColor: 'rgba(0, 0, 0, 0.22)',
     overflow: 'hidden',
   },
   xpBarFill: {
@@ -753,14 +768,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
-  palettePill: {
+  topPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
+    borderBottomWidth: 3,
     borderRadius: 999,
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 6,
+  },
+  topPillText: {
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   swatchDots: {
     flexDirection: 'row',
@@ -773,25 +793,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginLeft: -2,
   },
-  palettePillText: {
-    fontSize: 10.5,
-    fontWeight: '800',
-  },
-  themesPill: {
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  themesPillText: {
-    fontSize: 11.5,
-    fontWeight: '800',
-  },
   chipsPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
+    borderBottomWidth: 3,
     borderRadius: 999,
     paddingHorizontal: 9,
     paddingVertical: 5,
@@ -807,71 +814,87 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   gearBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    borderWidth: 1,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderBottomWidth: 3.5,
     alignItems: 'center',
     justifyContent: 'center',
+    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.25)',
   },
   brandBlock: {
     alignItems: 'center',
-    paddingVertical: 3,
+    paddingVertical: 2,
     gap: 2,
   },
   brandKicker: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 2.2,
   },
   brandTitle: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '900',
-    letterSpacing: 1.4,
-  },
-  brassRule: {
-    width: 48,
-    height: 2.5,
-    borderRadius: 999,
-    marginTop: 2,
+    letterSpacing: 1.2,
+    textShadowOffset: { width: 0, height: 3.5 },
+    textShadowRadius: 0,
   },
   hostCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    borderRadius: 20,
-    borderWidth: 1.25,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderBottomWidth: 5,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    boxShadow: '0px 8px 20px rgba(26, 49, 54, 0.10)',
+    paddingVertical: 13,
+    overflow: 'hidden',
+    position: 'relative',
+    boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.24)',
+  },
+  cardTopGloss: {
+    position: 'absolute',
+    top: 2,
+    left: 16,
+    right: 16,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.26)',
   },
   hostAvatarWrap: {
     alignItems: 'center',
   },
-  avatarEditPill: {
-    marginTop: -8,
-    borderWidth: 1,
+  heroAvatarHalo: {
+    padding: 3,
     borderRadius: 999,
-    paddingHorizontal: 7,
-    paddingVertical: 1.5,
+    borderWidth: 2,
+  },
+  avatarEditPill: {
+    marginTop: -9,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 2,
+    boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)',
   },
   avatarEditPillText: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.3,
+    fontSize: 9.5,
+    fontWeight: '900',
+    letterSpacing: 0.2,
   },
   hostCopyCol: {
     flex: 1,
     gap: 3,
   },
   hostGreeting: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '900',
   },
   hostInvite: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '600',
-    lineHeight: 17,
+    lineHeight: 17.5,
   },
   emblemTiles: {
     flexDirection: 'row',
@@ -884,8 +907,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 2,
     top: 4,
-    transform: [{ rotate: '-12deg' }],
-    opacity: 0.9,
+    transform: [{ rotate: '-11deg' }],
   },
   emblemTileFront: {
     position: 'absolute',
@@ -894,8 +916,8 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '8deg' }],
   },
   maintenanceBanner: {
-    borderWidth: 1,
-    borderRadius: 12,
+    borderWidth: 1.5,
+    borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -904,17 +926,16 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
-  lowerCluster: {
-    gap: 10,
-  },
   challengeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1.25,
+    borderBottomWidth: 4.5,
+    paddingHorizontal: 13,
     paddingVertical: 10,
+    boxShadow: '0px 5px 14px rgba(0, 0, 0, 0.2)',
   },
   starsRow: {
     flexDirection: 'row',
@@ -925,8 +946,8 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   challengeTitle: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 13.5,
+    fontWeight: '900',
   },
   challengeSub: {
     fontSize: 11.5,
@@ -934,39 +955,53 @@ const styles = StyleSheet.create({
   },
   bonusBadge: {
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderWidth: 1,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderBottomWidth: 3,
   },
   bonusBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '900',
   },
   setupCard: {
-    borderRadius: 18,
-    borderWidth: 1,
+    borderRadius: 22,
+    borderWidth: 1.25,
     padding: 12,
     gap: 11,
   },
   setupGroup: {
-    gap: 6,
+    gap: 7,
   },
   sectionLabel: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 1.1,
+    marginLeft: 2,
   },
   modeSegmentedRow: {
     flexDirection: 'row',
-    gap: 7,
+    gap: 8,
   },
   modePill: {
     flex: 1,
-    borderRadius: 13,
+    borderRadius: 15,
     borderWidth: 1.25,
+    borderBottomWidth: 4.5,
     paddingVertical: 9,
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
     alignItems: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.16)',
+  },
+  chipTopGloss: {
+    position: 'absolute',
+    top: 2,
+    left: 8,
+    right: 8,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   modePillInner: {
     flexDirection: 'row',
@@ -978,11 +1013,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modePillTitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '900',
   },
   modePillSub: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
   },
   scoreSingleRow: {
@@ -991,71 +1026,92 @@ const styles = StyleSheet.create({
   },
   scoreChip: {
     flex: 1,
-    minHeight: 36,
-    borderRadius: 10,
+    minHeight: 40,
+    borderRadius: 13,
     borderWidth: 1.25,
+    borderBottomWidth: 4,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+    boxShadow: '0px 3px 8px rgba(0, 0, 0, 0.15)',
+  },
+  scoreTopGloss: {
+    position: 'absolute',
+    top: 2,
+    left: 6,
+    right: 6,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.28)',
   },
   scoreChipText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 13.5,
+    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   thumbDock: {
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
-    gap: 8,
-    borderTopWidth: 1,
+    gap: 10,
   },
   primaryBtnOuter: {
-    borderRadius: 16,
+    borderRadius: 22,
     overflow: 'hidden',
-    borderBottomWidth: 3.5,
-    boxShadow: '0px 8px 20px rgba(237, 106, 90, 0.28)',
+    borderBottomWidth: 5,
+    boxShadow: '0px 8px 22px rgba(0, 0, 0, 0.28)',
   },
   primaryBtnPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.985 }],
+    opacity: 0.94,
+    transform: [{ translateY: 2 }],
   },
   primaryBtnGrad: {
     paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
+    position: 'relative',
+  },
+  primaryBtnGloss: {
+    position: 'absolute',
+    top: 3,
+    left: 18,
+    right: 18,
+    height: 14,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.34)',
   },
   primaryBtnTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
   },
   primaryBtnText: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '900',
+    letterSpacing: 0.2,
   },
   primaryBtnSub: {
-    fontSize: 11.5,
+    fontSize: 12,
     fontWeight: '800',
     opacity: 0.88,
   },
   onlineRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
   secondaryBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    borderRadius: 14,
+    borderRadius: 17,
     borderWidth: 1.25,
-    paddingHorizontal: 12,
+    borderBottomWidth: 4,
+    paddingHorizontal: 13,
     paddingVertical: 11,
-  },
-  secondaryBtnPressed: {
-    opacity: 0.86,
-    transform: [{ scale: 0.985 }],
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.2)',
   },
   onlineBtnDisabled: {
     opacity: 0.45,
@@ -1064,11 +1120,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   onlineBtnTitle: {
-    fontSize: 13.5,
+    fontSize: 14,
     fontWeight: '900',
   },
   onlineBtnSub: {
     fontSize: 10.5,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

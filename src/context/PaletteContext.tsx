@@ -8,7 +8,8 @@ import {
   AppPaletteId,
 } from '@/constants/appPalettes';
 
-const PALETTE_STORAGE_KEY = 'domino_latino_palette_lab_v1';
+const PALETTE_STORAGE_KEY = 'domino_latino_palette_lab_v2';
+const DEFAULT_PALETTE_ID: AppPaletteId = 'indigo_crema';
 
 interface PaletteContextValue {
   paletteId: AppPaletteId;
@@ -19,15 +20,15 @@ interface PaletteContextValue {
 }
 
 const PaletteContext = createContext<PaletteContextValue>({
-  paletteId: 'coral_brisa',
-  palette: APP_PALETTES.coral_brisa,
+  paletteId: DEFAULT_PALETTE_ID,
+  palette: APP_PALETTES[DEFAULT_PALETTE_ID],
   allPalettes: APP_PALETTE_LIST,
   setPaletteId: () => {},
   cyclePalette: () => {},
 });
 
 export function PaletteProvider({ children }: { children: React.ReactNode }) {
-  const [paletteId, setPaletteIdState] = useState<AppPaletteId>('coral_brisa');
+  const [paletteId, setPaletteIdState] = useState<AppPaletteId>(DEFAULT_PALETTE_ID);
 
   useEffect(() => {
     AsyncStorage.getItem(PALETTE_STORAGE_KEY)
@@ -57,7 +58,7 @@ export function PaletteProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       paletteId,
-      palette: APP_PALETTES[paletteId] ?? APP_PALETTES.coral_brisa,
+      palette: APP_PALETTES[paletteId] ?? APP_PALETTES[DEFAULT_PALETTE_ID],
       allPalettes: APP_PALETTE_LIST,
       setPaletteId,
       cyclePalette,
