@@ -28,7 +28,7 @@ import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
-import { chooseAiMove } from '@/engine/ai';
+import { AiDifficulty, chooseAiMove } from '@/engine/ai';
 import {
   applyDraw,
   applyPass,
@@ -95,11 +95,14 @@ import {
   hapticSoft,
   hapticSuccess,
   hapticWarning,
+  initGameAudio,
   playGameSound,
 } from '@/utils/feedback';
 
 const HUMAN_TURN_SECONDS = 20;
 const BOT_SPEED_STORAGE_KEY = 'domino_latino_bot_speed_v1';
+const SOUND_ENABLED_STORAGE_KEY = 'domino_latino_sound_enabled_v1';
+const AI_DIFFICULTY_STORAGE_KEY = 'domino_latino_ai_difficulty_v1';
 
 /**
  * Distinct, non-overlapping human-like pacing tiers:
@@ -145,9 +148,9 @@ export default function DominoAppScreen() {
   const [screenMode, setScreenMode] = useState<AppScreenMode>('local');
   const [lobbyInitialTab, setLobbyInitialTab] = useState<'public' | 'private'>('public');
 
-  // Local Quick Play State
+  // Local Quick Play State (sound defaults ON with persisted user preference)
   const [state, setState] = useState<GameState>(() =>
-    createInitialSetupState('1v1', 100, 'value', false)
+    createInitialSetupState('1v1', 100, 'value', true)
   );
   const [retention, setRetention] = useState<RetentionProgress>(() =>
     createDefaultRetention()
@@ -156,6 +159,7 @@ export default function DominoAppScreen() {
   const [turnSecondsLeft, setTurnSecondsLeft] = useState<number | null>(null);
   const [botTimerProgress, setBotTimerProgress] = useState(1);
   const [botSpeed, setBotSpeed] = useState<BotSpeed>('normal');
+  const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('normal');
   const [isLocalPaused, setIsLocalPaused] = useState(false);
   const [seatMoods, setSeatMoods] = useState<Record<number, BotMood>>({});
 
@@ -187,17 +191,26 @@ export default function DominoAppScreen() {
     setSeatMoods((prev) => ({ ...prev, [seat]: mood }));
   }, []);
 
-  // 1. Hydrate local cache immediately (0 ms perceived startup)
+  // 1. Hydrate local cache immediately (0 ms perceived startup) & warm up native SFX
   useEffect(() => {
     let active = true;
+    initGameAudio();
     Promise.all([
       loadGameState(),
       loadRetentionProgress(),
       loadCachedRemoteConfig(),
       AsyncStorage.getItem(BOT_SPEED_STORAGE_KEY).catch(() => null),
-    ]).then(([savedGame, savedRetention, cachedCfg, savedBotSpeed]) => {
+      AsyncStorage.getItem(SOUND_ENABLED_STORAGE_KEY).catch(() => null),
+      AsyncStorage.getItem(AI_DIFFICULTY_STORAGE_KEY).catch(() => null),
+    ]).then(([savedGame, savedRetention, cachedCfg, savedBotSpeed, savedSound, savedDiff]) => {
       if (!active) return;
-      if (savedGame) setState(savedGame);
+      const resolvedSound =
+        savedSound === 'false' ? false : savedSound === 'true' ? true : true;
+      if (savedGame) {
+        setState({ ...savedGame, soundEnabled: resolvedSound });
+      } else {
+        setState((prev) => ({ ...prev, soundEnabled: resolvedSound }));
+      }
       setRetention(savedRetention);
       setRemoteConfig(cachedCfg);
       if (
@@ -206,6 +219,9 @@ export default function DominoAppScreen() {
         savedBotSpeed === 'relaxed'
       ) {
         setBotSpeed(savedBotSpeed);
+      }
+      if (savedDiff === 'casual' || savedDiff === 'normal' || savedDiff === 'pro') {
+        setAiDifficulty(savedDiff);
       }
       setHydrated(true);
       trackEvent('app_open', { level: savedRetention.level });
@@ -629,7 +645,7 @@ export default function DominoAppScreen() {
       if (!player || player.isHuman) return;
 
       const publicView = buildAiPublicView(curr, seat);
-      const decision = chooseAiMove(publicView);
+      const decision = chooseAiMove(publicView, aiDifficulty);
 
       try {
         if (decision) {
@@ -679,6 +695,7 @@ export default function DominoAppScreen() {
     state.boneyard.length,
     state.consecutivePasses,
     botSpeed,
+    aiDifficulty,
     setTempMood,
   ]);
 
@@ -896,7 +913,24 @@ export default function DominoAppScreen() {
   }, []);
 
   const handleToggleSound = useCallback(() => {
-    setState((prev) => ({ ...prev, soundEnabled: !prev.soundEnabled }));
+    setState((prev) => {
+      const nextSound = !prev.soundEnabled;
+      AsyncStorage.setItem(SOUND_ENABLED_STORAGE_KEY, String(nextSound)).catch(() => {});
+      if (nextSound) {
+        playGameSound('clack', true);
+      }
+      return { ...prev, soundEnabled: nextSound };
+    });
+  }, []);
+
+  const handleCycleAiDifficulty = useCallback(() => {
+    hapticLight();
+    setAiDifficulty((prev) => {
+      const next: AiDifficulty =
+        prev === 'normal' ? 'pro' : prev === 'pro' ? 'casual' : 'normal';
+      AsyncStorage.setItem(AI_DIFFICULTY_STORAGE_KEY, next).catch(() => {});
+      return next;
+    });
   }, []);
 
   const handleCycleBotSpeed = useCallback(() => {
@@ -1097,6 +1131,7 @@ export default function DominoAppScreen() {
             humanTurnTotalSeconds={HUMAN_TURN_SECONDS}
             botTimerProgress={botTimerProgress}
             botSpeed={botSpeed}
+            aiDifficulty={aiDifficulty}
             seatMoods={seatMoods}
             themeId={retention.equippedTheme}
             tileStyleId={retention.equippedTileStyle}
@@ -1107,6 +1142,7 @@ export default function DominoAppScreen() {
             onToggleSort={handleToggleSort}
             onToggleSound={handleToggleSound}
             onCycleBotSpeed={handleCycleBotSpeed}
+            onCycleAiDifficulty={handleCycleAiDifficulty}
             onPauseChange={setIsLocalPaused}
             onOpenFeedback={() => setFeedbackModalOpen(true)}
             onRestartMatch={handleRematch}

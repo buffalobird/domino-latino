@@ -28,8 +28,8 @@ import {
 } from './Icons';
 import { ModularAvatar } from './ModularAvatar';
 
-const TITLE_LOGO_IMG = require('@/assets/images/domino-title-logo.png');
-const HERO_CHARACTERS_IMG = require('@/assets/images/home-hero-characters.png');
+const TITLE_LOGO_IMG = require('@/assets/images/domino-title-logo.webp');
+const HERO_CHARACTERS_IMG = require('@/assets/images/home-hero-characters.webp');
 
 interface SetupViewProps {
   mode: GameMode;

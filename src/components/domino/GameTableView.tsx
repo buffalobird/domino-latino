@@ -24,6 +24,7 @@ import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TileStyleId } from '@/constants/tileStyles';
 import { CLUB } from '@/constants/tokens';
+import { AiDifficulty } from '@/engine/ai';
 import {
   canDrawFromBoneyard,
   getLegalMovesForSeat,
@@ -46,6 +47,7 @@ interface GameTableViewProps {
   humanTurnTotalSeconds: number;
   botTimerProgress: number;
   botSpeed: BotSpeed;
+  aiDifficulty?: AiDifficulty;
   seatMoods: Record<number, BotMood>;
   themeId?: TableThemeId;
   tileStyleId?: TileStyleId;
@@ -56,6 +58,7 @@ interface GameTableViewProps {
   onToggleSort: (sortMode: SortMode) => void;
   onToggleSound: () => void;
   onCycleBotSpeed: () => void;
+  onCycleAiDifficulty?: () => void;
   onPauseChange?: (paused: boolean) => void;
   onOpenFeedback: () => void;
   onRestartMatch: () => void;
@@ -199,6 +202,7 @@ export function GameTableView({
   humanTurnTotalSeconds,
   botTimerProgress,
   botSpeed,
+  aiDifficulty = 'normal',
   seatMoods,
   themeId = 'caribe',
   tileStyleId = 'marfil',
@@ -209,6 +213,7 @@ export function GameTableView({
   onToggleSort,
   onToggleSound,
   onCycleBotSpeed,
+  onCycleAiDifficulty,
   onPauseChange,
   onOpenFeedback,
   onRestartMatch,
@@ -778,6 +783,7 @@ export function GameTableView({
           sortMode={state.sortMode}
           soundEnabled={state.soundEnabled}
           botSpeed={botSpeed}
+          aiDifficulty={aiDifficulty}
           onResume={() => setPauseOpen(false)}
           onOpenHistory={() => {
             setPauseOpen(false);
@@ -788,6 +794,7 @@ export function GameTableView({
           }
           onToggleSound={onToggleSound}
           onCycleBotSpeed={onCycleBotSpeed}
+          onCycleAiDifficulty={onCycleAiDifficulty}
           onOpenFeedback={() => {
             setPauseOpen(false);
             onOpenFeedback();

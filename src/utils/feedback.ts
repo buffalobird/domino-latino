@@ -1,7 +1,88 @@
-import { Platform } from 'react-native';
+import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 
 export type SoundEffect = 'pickup' | 'clack' | 'double' | 'draw' | 'tick' | 'pass' | 'win';
+
+const SOUND_SOURCES: Record<SoundEffect, number> = {
+  clack: require('@/assets/sounds/clack.wav'),
+  double: require('@/assets/sounds/double.wav'),
+  pickup: require('@/assets/sounds/pickup.wav'),
+  draw: require('@/assets/sounds/draw.wav'),
+  tick: require('@/assets/sounds/tick.wav'),
+  pass: require('@/assets/sounds/pass.wav'),
+  win: require('@/assets/sounds/win.wav'),
+};
+
+const SOUND_VOLUMES: Record<SoundEffect, number> = {
+  clack: 0.72,
+  double: 0.85,
+  pickup: 0.48,
+  draw: 0.62,
+  tick: 0.42,
+  pass: 0.60,
+  win: 0.80,
+};
+
+let nativeAudioReady = false;
+const nativePlayers: Partial<Record<SoundEffect, AudioPlayer>> = {};
+
+/**
+ * Configures non-intrusive game SFX audio mode (mixes with background music/podcasts
+ * and respects the hardware silent switch on iOS/Android) and preloads sound effects.
+ */
+export function initGameAudio() {
+  if (Platform.OS === 'web' || nativeAudioReady) return;
+  nativeAudioReady = true;
+
+  setAudioModeAsync({
+    playsInSilentMode: false,
+    interruptionMode: 'mixWithOthers',
+  }).catch(() => {});
+
+  // Preload lightweight WAV SFX players so the very first tile clack has zero decode lag
+  (Object.keys(SOUND_SOURCES) as SoundEffect[]).forEach((effect) => {
+    try {
+      const player = createAudioPlayer(SOUND_SOURCES[effect]);
+      player.volume = SOUND_VOLUMES[effect];
+      nativePlayers[effect] = player;
+    } catch {
+      // Non-fatal fallback
+    }
+  });
+}
+
+function playNativeSound(effect: SoundEffect) {
+  if (!nativeAudioReady) {
+    initGameAudio();
+  }
+  try {
+    let player = nativePlayers[effect];
+    if (!player) {
+      player = createAudioPlayer(SOUND_SOURCES[effect]);
+      player.volume = SOUND_VOLUMES[effect];
+      nativePlayers[effect] = player;
+    }
+    player
+      .seekTo(0)
+      .then(() => {
+        try {
+          player?.play();
+        } catch {
+          // Ignore transient native playback errors
+        }
+      })
+      .catch(() => {
+        try {
+          player?.play();
+        } catch {
+          // Ignore
+        }
+      });
+  } catch {
+    // Non-fatal
+  }
+}
 
 let audioCtx: AudioContext | null = null;
 
@@ -21,11 +102,18 @@ function getWebAudioContext(): AudioContext | null {
 }
 
 /**
- * Subtle procedural audio cues on web (muted by default; toggled via speaker icon).
- * Zero external assets or native rebuilds required — 100% Expo Go safe.
+ * Cross-platform domino SFX:
+ * - iOS & Android (Expo Go / EAS): preloaded native WAV players via `expo-audio`.
+ * - Web: zero-latency procedural Web Audio synthesis.
  */
 export function playGameSound(effect: SoundEffect, soundEnabled: boolean) {
   if (!soundEnabled) return;
+
+  if (Platform.OS !== 'web') {
+    playNativeSound(effect);
+    return;
+  }
+
   const ctx = getWebAudioContext();
   if (!ctx) return;
 

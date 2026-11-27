@@ -362,3 +362,28 @@ test('stress simulation: 300 full hands across 1v1, 2v2, and 4ffa preserve all i
   }
   assert.equal(totalHands, 300);
 });
+
+test('AI difficulty tiers (casual, normal, pro) all play legally and fairly without hidden info', () => {
+  const tiers = ['casual', 'normal', 'pro'];
+  for (const tier of tiers) {
+    let state = startNewMatch('2v2', 100);
+    let turns = 0;
+    while (state.phase === 'playing' && turns < 140) {
+      const seat = state.currentTurnSeat;
+      const view = buildAiPublicView(state, seat);
+      assert.equal('players' in view, false);
+      assert.equal('boneyard' in view, false);
+      const legal = getLegalMovesForSeat(state, seat);
+      const decision = chooseAiMove(view, tier);
+      if (legal.length === 0) {
+        assert.equal(decision, null);
+        state = applyPass(state, seat);
+      } else {
+        assert.ok(decision !== null);
+        state = applyPlay(state, seat, decision.tile.id, decision.side);
+      }
+      turns++;
+    }
+    assert.ok(state.phase === 'round_summary' || state.phase === 'match_over');
+  }
+});

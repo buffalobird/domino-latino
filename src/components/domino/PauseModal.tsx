@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CLUB } from '@/constants/tokens';
+import { AiDifficulty } from '@/engine/ai';
 import { SortMode } from '@/engine/types';
 import { GlossyButton } from './GlossyButton';
 import {
@@ -21,11 +22,13 @@ interface PauseModalProps {
   sortMode: SortMode;
   soundEnabled: boolean;
   botSpeed: BotSpeed;
+  aiDifficulty?: AiDifficulty;
   onResume: () => void;
   onOpenHistory: () => void;
   onToggleSort: () => void;
   onToggleSound: () => void;
   onCycleBotSpeed: () => void;
+  onCycleAiDifficulty?: () => void;
   onOpenFeedback: () => void;
   onRestartMatch: () => void;
   onExitToHome: () => void;
@@ -43,11 +46,13 @@ export function PauseModal({
   sortMode,
   soundEnabled,
   botSpeed,
+  aiDifficulty = 'normal',
   onResume,
   onOpenHistory,
   onToggleSort,
   onToggleSound,
   onCycleBotSpeed,
+  onCycleAiDifficulty,
   onOpenFeedback,
   onRestartMatch,
   onExitToHome,
@@ -64,6 +69,12 @@ export function PauseModal({
       : botSpeed === 'relaxed'
       ? '~3.2s'
       : '~1.7s';
+  const difficultyLabel =
+    aiDifficulty === 'casual'
+      ? 'Fácil'
+      : aiDifficulty === 'pro'
+      ? 'Experto'
+      : 'Club';
   return (
     <Modal
       visible={visible}
@@ -105,21 +116,33 @@ export function PauseModal({
               </Text>
             </Pressable>
 
+            <Pressable onPress={onToggleSound} style={styles.utilityBtn}>
+              <Text style={styles.utilityLabel}>Sonido</Text>
+              <View style={styles.soundValueRow}>
+                {soundEnabled ? (
+                  <SoundOnIcon size={16} color={CLUB.emerald} />
+                ) : (
+                  <SoundOffIcon size={16} color={CLUB.textMuted} />
+                )}
+                <Text style={styles.utilityValue}>
+                  {soundEnabled ? 'ON' : 'OFF'}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
+
+          <View style={styles.utilityRow}>
             <Pressable onPress={onCycleBotSpeed} style={styles.utilityBtn}>
               <Text style={styles.utilityLabel}>Ritmo · {speedHint}</Text>
               <Text style={styles.utilityValue}>{speedLabel}</Text>
             </Pressable>
 
-            <Pressable onPress={onToggleSound} style={styles.utilityBtn}>
-              {soundEnabled ? (
-                <SoundOnIcon size={18} color={CLUB.emerald} />
-              ) : (
-                <SoundOffIcon size={18} color={CLUB.textMuted} />
-              )}
-              <Text style={styles.utilityValue}>
-                {soundEnabled ? 'ON' : 'OFF'}
-              </Text>
-            </Pressable>
+            {onCycleAiDifficulty && (
+              <Pressable onPress={onCycleAiDifficulty} style={styles.utilityBtn}>
+                <Text style={styles.utilityLabel}>Nivel Bot</Text>
+                <Text style={styles.utilityValue}>{difficultyLabel}</Text>
+              </Pressable>
+            )}
           </View>
 
           <Pressable onPress={onOpenHistory} style={styles.secondaryBtn}>
@@ -228,6 +251,11 @@ const styles = StyleSheet.create({
     color: CLUB.textPrimary,
     fontSize: 13,
     fontWeight: '800',
+  },
+  soundValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   secondaryBtn: {
     flexDirection: 'row',

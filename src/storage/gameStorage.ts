@@ -31,6 +31,8 @@ export interface RetentionProgress {
   /** 7-day escalating daily login bonus */
   dailyClaimStreak: number;
   lastDailyClaimDate: string | null;
+  /** Timestamp (ms) of last free club refill (mirrors 10-minute server cooldown offline) */
+  lastFreeRefillAt?: number | null;
   /** Cosmetic table themes */
   equippedTheme: TableThemeId;
   unlockedThemes: TableThemeId[];
@@ -66,6 +68,7 @@ export function createDefaultRetention(): RetentionProgress {
     level: 1,
     dailyClaimStreak: 0,
     lastDailyClaimDate: null,
+    lastFreeRefillAt: null,
     equippedTheme: 'caribe',
     unlockedThemes: ['caribe'],
     equippedTileStyle: 'marfil',
@@ -75,7 +78,8 @@ export function createDefaultRetention(): RetentionProgress {
 }
 
 export function canClaimDailyReward(progress: RetentionProgress): boolean {
-  return progress.lastDailyClaimDate !== getTodayKey();
+  const today = getTodayKey();
+  return progress.lastDailyClaimDate === null || today > progress.lastDailyClaimDate;
 }
 
 export function getNextDailyRewardAmount(progress: RetentionProgress): {
@@ -94,7 +98,7 @@ export function claimDailyRewardLocal(prev: RetentionProgress): {
   awarded: number;
 } {
   const today = getTodayKey();
-  if (prev.lastDailyClaimDate === today) {
+  if (prev.lastDailyClaimDate !== null && today <= prev.lastDailyClaimDate) {
     return { updated: prev, awarded: 0 };
   }
   const { dayIndex, amount } = getNextDailyRewardAmount(prev);
@@ -111,19 +115,103 @@ export function claimDailyRewardLocal(prev: RetentionProgress): {
   };
 }
 
+const FREE_REFILL_COOLDOWN_MS = 10 * 60 * 1000;
+
 export function applyFreeClubRefill(prev: RetentionProgress): {
   updated: RetentionProgress;
   awarded: number;
 } {
   if (prev.clubChips >= 200) return { updated: prev, awarded: 0 };
+  const now = Date.now();
+  if (
+    typeof prev.lastFreeRefillAt === 'number' &&
+    now - prev.lastFreeRefillAt < FREE_REFILL_COOLDOWN_MS
+  ) {
+    return { updated: prev, awarded: 0 };
+  }
   const refill = 300;
   return {
     awarded: refill,
     updated: {
       ...prev,
       clubChips: prev.clubChips + refill,
+      lastFreeRefillAt: now,
     },
   };
+}
+
+/**
+ * Strict domain-invariant check layered on top of `isValidPersistedState` (CLI-09)
+ * so corrupted AsyncStorage payloads can never crash the table or break rules.
+ */
+function hasValidGameInvariants(state: GameState): boolean {
+  const expectedPlayers = state.mode === '1v1' ? 2 : 4;
+  const expectedScores = state.mode === '4ffa' ? 4 : 2;
+  if (state.players.length !== expectedPlayers) return false;
+  if (state.scores.length !== expectedScores) return false;
+  if (
+    !state.scores.every(
+      (s) => typeof s === 'number' && Number.isInteger(s) && s >= 0 && s <= 5000
+    )
+  ) {
+    return false;
+  }
+  if (
+    !Number.isInteger(state.currentTurnSeat) ||
+    state.currentTurnSeat < 0 ||
+    state.currentTurnSeat >= expectedPlayers
+  ) {
+    return false;
+  }
+  if (
+    !Number.isInteger(state.currentOpenerSeat) ||
+    state.currentOpenerSeat < 0 ||
+    state.currentOpenerSeat >= expectedPlayers
+  ) {
+    return false;
+  }
+
+  if (state.phase === 'setup') return true;
+
+  if (state.undealtCount !== state.boneyard.length) return false;
+
+  const seenTiles = new Set<string>();
+  const registerTile = (t: { id?: unknown; a?: unknown; b?: unknown } | null | undefined) => {
+    if (!t || typeof t.a !== 'number' || typeof t.b !== 'number') return false;
+    if (!Number.isInteger(t.a) || !Number.isInteger(t.b)) return false;
+    if (t.a < 0 || t.a > 6 || t.b < 0 || t.b > 6 || t.a > t.b) return false;
+    const expectedId = `${t.a}-${t.b}`;
+    if (t.id !== expectedId || seenTiles.has(expectedId)) return false;
+    seenTiles.add(expectedId);
+    return true;
+  };
+
+  for (const p of state.players) {
+    if (!Array.isArray(p.hand)) return false;
+    for (const tile of p.hand) {
+      if (!registerTile(tile)) return false;
+    }
+  }
+  for (const tile of state.boneyard) {
+    if (!registerTile(tile)) return false;
+  }
+  for (let i = 0; i < state.chain.length; i++) {
+    const placed = state.chain[i];
+    if (!placed || !registerTile(placed.tile)) return false;
+    if (i > 0 && state.chain[i - 1].rightPip !== placed.leftPip) return false;
+  }
+
+  // Exact double-six tile conservation: all 28 unique tiles must be accounted for
+  if (seenTiles.size !== 28) return false;
+
+  if (state.chain.length === 0) {
+    if (state.leftEnd !== null || state.rightEnd !== null) return false;
+  } else {
+    if (state.leftEnd !== state.chain[0].leftPip) return false;
+    if (state.rightEnd !== state.chain[state.chain.length - 1].rightPip) return false;
+  }
+
+  return true;
 }
 
 export async function saveGameState(state: GameState): Promise<void> {
@@ -139,7 +227,7 @@ export async function loadGameState(): Promise<GameState | null> {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    if (isValidPersistedState(parsed)) {
+    if (isValidPersistedState(parsed) && hasValidGameInvariants(parsed)) {
       return parsed;
     }
     await AsyncStorage.removeItem(STORAGE_KEY);
@@ -204,6 +292,10 @@ export async function loadRetentionProgress(): Promise<RetentionProgress> {
           : 0,
       lastDailyClaimDate:
         typeof parsed.lastDailyClaimDate === 'string' ? parsed.lastDailyClaimDate : null,
+      lastFreeRefillAt:
+        typeof parsed.lastFreeRefillAt === 'number' && Number.isFinite(parsed.lastFreeRefillAt)
+          ? parsed.lastFreeRefillAt
+          : null,
       equippedTheme: equipped,
       unlockedThemes: unlocked,
       equippedTileStyle,
