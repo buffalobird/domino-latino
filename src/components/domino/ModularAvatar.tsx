@@ -532,6 +532,207 @@ export function ModularAvatar({
         />
       );
     }
+    if (config.mouth === 'smirk_teeth') {
+      return (
+        <G>
+          <Path
+            d="M61 72.2C67 72.8 74 71.2 79 67.6C79 73.2 71.5 75.8 61 72.2Z"
+            fill="#FFFFFF"
+            stroke="#3B1E10"
+            strokeWidth={1.45}
+            strokeLinejoin="round"
+          />
+        </G>
+      );
+    }
+    if (config.mouth === 'tongue') {
+      return (
+        <G>
+          <Path
+            d="M61.5 72.5C65.5 69.2 73 69 78 71.2"
+            stroke="#3B1E10"
+            strokeWidth={2.1}
+            strokeLinecap="round"
+            fill="none"
+          />
+          <Path
+            d="M68.5 70C69 76.2 75.5 77.6 76.5 72.5C76.8 71.2 75.5 70 73.5 70Z"
+            fill="#EF4444"
+            stroke="#991B1B"
+            strokeWidth={1.1}
+          />
+          <Path d="M72.5 70.5L73.2 74.2" stroke="#991B1B" strokeWidth={0.9} strokeLinecap="round" />
+        </G>
+      );
+    }
+    if (config.mouth === 'cat_mouth') {
+      return (
+        <Path
+          d="M62 70.2C62.5 74.2 68.5 74.2 70 70.6C71.5 74.2 77.5 74.2 78 70.2"
+          stroke="#3B1E10"
+          strokeWidth={2.2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      );
+    }
+    if (config.mouth === 'surprised_o') {
+      return (
+        <Ellipse
+          cx={70}
+          cy={72}
+          rx={3.6}
+          ry={4.2}
+          fill="#7F1D1D"
+          stroke="#3B1E10"
+          strokeWidth={1.4}
+        />
+      );
+    }
+    if (config.mouth === 'grumpy') {
+      return (
+        <Path
+          d="M62.5 73.5C65.8 70 74.2 70 77.5 73.5"
+          stroke="#3B1E10"
+          strokeWidth={2.3}
+          strokeLinecap="round"
+          fill="none"
+        />
+      );
+    }
+    if (config.mouth === 'grit') {
+      return (
+        <G>
+          <Path
+            d="M60.5 72.8C61.5 68.6 78.5 68.6 79.5 72.8C78.5 75.2 61.5 75.2 60.5 72.8Z"
+            fill="#FFFFFF"
+            stroke="#3B1E10"
+            strokeWidth={1.45}
+          />
+          <Path d="M61.5 72H78.5M66 69.5V74.5M70 69.2V74.8M74 69.5V74.5" stroke="#64748B" strokeWidth={0.95} />
+        </G>
+      );
+    }
+    if (config.mouth === 'buck_teeth') {
+      return (
+        <G>
+          <Path
+            d="M60.5 70C65 71.5 75 71.5 79.5 70"
+            stroke="#3B1E10"
+            strokeWidth={2}
+            strokeLinecap="round"
+            fill="none"
+          />
+          <Rect x={66.2} y={70.5} width={3.6} height={4.6} rx={0.9} fill="#FFFFFF" stroke="#3B1E10" strokeWidth={1.1} />
+          <Rect x={70.2} y={70.5} width={3.6} height={4.6} rx={0.9} fill="#FFFFFF" stroke="#3B1E10" strokeWidth={1.1} />
+        </G>
+      );
+    }
+    if (config.mouth === 'vampire') {
+      return (
+        <G>
+          <Path
+            d="M61.5 71.4C65.5 69.6 74.5 69.6 78.5 71.4"
+            stroke="#3B1E10"
+            strokeWidth={2}
+            strokeLinecap="round"
+            fill="none"
+          />
+          <Path d="M63.5 70.8L65.3 75.6L67.2 70.8Z" fill="#FFFFFF" stroke="#3B1E10" strokeWidth={1} strokeLinejoin="round" />
+          <Path d="M72.8 70.8L74.7 75.6L76.5 70.8Z" fill="#FFFFFF" stroke="#3B1E10" strokeWidth={1} strokeLinejoin="round" />
+        </G>
+      );
+    }
+    if (config.mouth === 'stitched') {
+      return (
+        <G>
+          <Path d="M60 71.8C65 71.2 75 71.2 80 71.8" stroke="#3B1E10" strokeWidth={1.9} strokeLinecap="round" fill="none" />
+          <Path d="M63 69.6V73.8M66.5 69.4V73.8M70 69.4V73.8M73.5 69.4V73.8M77 69.6V73.8" stroke="#3B1E10" strokeWidth={1.3} strokeLinecap="round" />
+        </G>
+      );
+    }
+    if (config.mouth === 'pacifier') {
+      return (
+        <G>
+          <Path
+            d="M59 69C59 66.5 64 66 70 67.5C76 66 81 66.5 81 69C81 74.5 76.5 77.5 70 77.5C63.5 77.5 59 74.5 59 69Z"
+            fill="#38BDF8"
+            stroke="#0369A1"
+            strokeWidth={1.4}
+          />
+          <Circle cx={70} cy={71.8} r={4.2} fill="#7DD3FC" stroke="#0284C7" strokeWidth={1.3} />
+          <Circle cx={70} cy={74.6} r={4.6} stroke="#BAE6FD" strokeWidth={2.2} fill="none" />
+        </G>
+      );
+    }
+    if (config.mouth === 'gold_tooth') {
+      return (
+        <G>
+          <Path
+            d="M59.5 69.5C62.5 76.5 77.5 76.5 80.5 69.5C75.5 70.8 64.5 70.8 59.5 69.5Z"
+            fill="#FFFFFF"
+            stroke="#3B1E10"
+            strokeWidth={1.45}
+            strokeLinejoin="round"
+          />
+          {/* Gleaming single gold tooth */}
+          <Rect x={72.5} y={70.2} width={3.6} height={4.4} rx={0.6} fill={`url(#${goldId})`} />
+          <Path d="M60.8 72.5H79.2M65.5 70.2V74.8M70 70.4V75M74.5 70.2V74.8" stroke="#64748B" strokeWidth={0.85} />
+        </G>
+      );
+    }
+    if (config.mouth === 'daisy') {
+      return (
+        <G>
+          <Path
+            d="M61 70C64 75.5 76 75.5 79 70C74.5 71 65.5 71 61 70Z"
+            fill="#FFFFFF"
+            stroke="#3B1E10"
+            strokeWidth={1.35}
+          />
+          <Path d="M56 71.5L83 70" stroke="#16A34A" strokeWidth={2.1} strokeLinecap="round" />
+          {/* Blue-and-gold daisy blossom */}
+          <Circle cx={55} cy={68} r={3.2} fill="#38BDF8" stroke="#0369A1" strokeWidth={0.7} />
+          <Circle cx={59} cy={70} r={3.2} fill="#38BDF8" stroke="#0369A1" strokeWidth={0.7} />
+          <Circle cx={57.5} cy={74.2} r={3.2} fill="#38BDF8" stroke="#0369A1" strokeWidth={0.7} />
+          <Circle cx={52.5} cy={74.2} r={3.2} fill="#38BDF8" stroke="#0369A1" strokeWidth={0.7} />
+          <Circle cx={51} cy={70} r={3.2} fill="#38BDF8" stroke="#0369A1" strokeWidth={0.7} />
+          <Circle cx={55} cy={71.4} r={2.6} fill="#FACC15" />
+        </G>
+      );
+    }
+    if (config.mouth === 'wide_villain') {
+      return (
+        <G>
+          <Path
+            d="M55 67.5C61 79.5 79 79.5 85 67.5C78 71.5 62 71.5 55 67.5Z"
+            fill="#FFFFFF"
+            stroke="#7F1D1D"
+            strokeWidth={1.8}
+            strokeLinejoin="round"
+          />
+          <Path d="M57.5 72H82.5M62.5 69.8V75.6M67.5 70.5V76.5M72.5 70.5V76.5M77.5 69.8V75.6" stroke="#64748B" strokeWidth={0.95} />
+        </G>
+      );
+    }
+    if (config.mouth === 'rose') {
+      return (
+        <G>
+          <Path
+            d="M61 70C64 75.2 76 75.2 79 70C74.5 71 65.5 71 61 70Z"
+            fill="#FFFFFF"
+            stroke="#3B1E10"
+            strokeWidth={1.35}
+          />
+          <Path d="M57 72L84 69.5" stroke="#15803D" strokeWidth={2.2} strokeLinecap="round" />
+          <Ellipse cx={64} cy={73} rx={3.2} ry={1.5} fill="#22C55E" transform="rotate(-18 64 73)" />
+          {/* Lush crimson rose */}
+          <Circle cx={55.5} cy={71.5} r={5.4} fill="#DC2626" stroke="#7F1D1D" strokeWidth={1.1} />
+          <Path d="M53 70.5C54.5 68.5 57.5 69 57.5 71.5C57.5 73.5 54 74 53.5 72" stroke="#FCA5A5" strokeWidth={1.2} fill="none" strokeLinecap="round" />
+        </G>
+      );
+    }
     return (
       <Path
         d="M61.5 69.8C65 73.8 75 73.8 78.5 69.8"

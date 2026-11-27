@@ -41,7 +41,27 @@ export type AvatarEyebrowId =
 
 export type AvatarNoseId = 'classic' | 'small' | 'straight' | 'wide' | 'defined';
 
-export type AvatarMouthId = 'smile' | 'grin' | 'smirk' | 'lips' | 'calm' | 'laugh';
+export type AvatarMouthId =
+  | 'smile'
+  | 'grin'
+  | 'smirk'
+  | 'smirk_teeth'
+  | 'lips'
+  | 'calm'
+  | 'laugh'
+  | 'tongue'
+  | 'surprised_o'
+  | 'grumpy'
+  | 'grit'
+  | 'cat_mouth'
+  | 'buck_teeth'
+  | 'vampire'
+  | 'stitched'
+  | 'pacifier'
+  | 'gold_tooth'
+  | 'daisy'
+  | 'wide_villain'
+  | 'rose';
 
 export type AvatarHairId =
   | 'classic'
@@ -285,8 +305,22 @@ export const AVATAR_MOUTH_OPTIONS: AvatarItemOption<AvatarMouthId>[] = [
   { id: 'grin', cosmeticKey: null, name: 'Abierta', costChips: 0 },
   { id: 'lips', cosmeticKey: null, name: 'Definida', costChips: 0 },
   { id: 'smirk', cosmeticKey: null, name: 'Pícara', costChips: 0 },
+  { id: 'smirk_teeth', cosmeticKey: null, name: 'Confiada', costChips: 0 },
   { id: 'calm', cosmeticKey: null, name: 'Serena', costChips: 0 },
   { id: 'laugh', cosmeticKey: null, name: 'Alegre', costChips: 0 },
+  { id: 'tongue', cosmeticKey: null, name: 'Lengua', costChips: 0 },
+  { id: 'surprised_o', cosmeticKey: null, name: 'Asombro', costChips: 0 },
+  { id: 'grumpy', cosmeticKey: null, name: 'Gruñón', costChips: 0 },
+  { id: 'grit', cosmeticKey: null, name: 'Tenso', costChips: 0 },
+  { id: 'cat_mouth', cosmeticKey: 'mouth:cat_mouth', name: 'Gatito :3', costChips: 150, tag: 'Pop' },
+  { id: 'buck_teeth', cosmeticKey: 'mouth:buck_teeth', name: 'Dientecitos', costChips: 200, tag: 'Humor' },
+  { id: 'vampire', cosmeticKey: 'mouth:vampire', name: 'Colmillos', costChips: 250, tag: 'Noche' },
+  { id: 'stitched', cosmeticKey: 'mouth:stitched', name: 'Sellada', costChips: 300, tag: 'Humor' },
+  { id: 'pacifier', cosmeticKey: 'mouth:pacifier', name: 'Chupete', costChips: 350, tag: 'Humor' },
+  { id: 'gold_tooth', cosmeticKey: 'mouth:gold_tooth', name: 'Diente Oro', costChips: 450, tag: 'Pro' },
+  { id: 'daisy', cosmeticKey: 'mouth:daisy', name: 'Margarita', costChips: 500, tag: 'Pop' },
+  { id: 'wide_villain', cosmeticKey: 'mouth:wide_villain', name: 'Sonrisa XL', costChips: 600, tag: 'Cómic' },
+  { id: 'rose', cosmeticKey: 'mouth:rose', name: 'Rosa', costChips: 750, tag: 'VIP' },
 ];
 
 export const AVATAR_HAIR_OPTIONS: AvatarItemOption<AvatarHairId>[] = [

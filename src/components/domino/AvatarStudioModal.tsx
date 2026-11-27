@@ -81,6 +81,7 @@ function getLockedKeysInConfig(
   const keys = [
     `hair:${cfg.hair}`,
     `eye:${cfg.eyeStyle}`,
+    `mouth:${cfg.mouth}`,
     `facial:${cfg.facial}`,
     `outfit:${cfg.outfit}`,
     `glasses:${cfg.glasses}`,
@@ -145,7 +146,7 @@ export function AvatarStudioModal({
       eyeColor: pick(AVATAR_EYE_COLORS).hex,
       eyebrows: pick(AVATAR_EYEBROW_OPTIONS).id,
       nose: pick(AVATAR_NOSE_OPTIONS).id,
-      mouth: pick(AVATAR_MOUTH_OPTIONS).id,
+      mouth: pick(ownedOrFree(AVATAR_MOUTH_OPTIONS)).id,
       hair: pick(ownedOrFree(AVATAR_HAIR_OPTIONS)).id,
       hairColor: pick(AVATAR_HAIR_COLORS).hex,
       facial: pick(ownedOrFree(AVATAR_FACIAL_OPTIONS)).id,
