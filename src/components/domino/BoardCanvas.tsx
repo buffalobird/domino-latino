@@ -7,6 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Circle, Line, Rect } from 'react-native-svg';
 
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { CLUB } from '@/constants/tokens';
@@ -515,7 +516,16 @@ export function BoardCanvas({
           end={{ x: 0.5, y: 1 }}
           style={styles.feltGradient}
         >
-          <View style={styles.feltInnerRing} pointerEvents="none" />
+          <View
+            style={[styles.feltInnerRing, { borderColor: theme.feltInlay }]}
+            pointerEvents="none"
+          >
+            {/* 4 brushed-brass parlor corner pins */}
+            <View style={[styles.cornerPin, styles.pinTL]} />
+            <View style={[styles.cornerPin, styles.pinTR]} />
+            <View style={[styles.cornerPin, styles.pinBL]} />
+            <View style={[styles.cornerPin, styles.pinBR]} />
+          </View>
 
           {chain.length === 0 ? (
             <View style={styles.emptyCenter}>
@@ -539,7 +549,46 @@ export function BoardCanvas({
                   />
                 </Pressable>
               ) : (
-                <View style={styles.centerMedallion} pointerEvents="none" />
+                <View style={styles.centerMedallion} pointerEvents="none">
+                  <Svg width={56} height={56} viewBox="0 0 64 64" opacity={0.22}>
+                    <Circle
+                      cx={32}
+                      cy={32}
+                      r={29}
+                      stroke="#F5C451"
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      fill="none"
+                    />
+                    <Rect
+                      x={21}
+                      y={12}
+                      width={22}
+                      height={40}
+                      rx={5}
+                      stroke="#FCE39C"
+                      strokeWidth={1.6}
+                      fill="none"
+                    />
+                    <Line
+                      x1={24}
+                      y1={32}
+                      x2={40}
+                      y2={32}
+                      stroke="#FCE39C"
+                      strokeWidth={1.4}
+                    />
+                    <Circle cx={32} cy={32} r={2} fill="#F5C451" />
+                    <Circle cx={27} cy={18} r={1.8} fill="#FCE39C" />
+                    <Circle cx={37} cy={18} r={1.8} fill="#FCE39C" />
+                    <Circle cx={27} cy={25} r={1.8} fill="#FCE39C" />
+                    <Circle cx={37} cy={25} r={1.8} fill="#FCE39C" />
+                    <Circle cx={27} cy={39} r={1.8} fill="#FCE39C" />
+                    <Circle cx={37} cy={39} r={1.8} fill="#FCE39C" />
+                    <Circle cx={27} cy={46} r={1.8} fill="#FCE39C" />
+                    <Circle cx={37} cy={46} r={1.8} fill="#FCE39C" />
+                  </Svg>
+                </View>
               )}
             </View>
           ) : (
@@ -653,26 +702,39 @@ const styles = StyleSheet.create({
   },
   feltInnerRing: {
     position: 'absolute',
-    top: 7,
-    right: 7,
-    bottom: 7,
-    left: 7,
+    top: 8,
+    right: 8,
+    bottom: 8,
+    left: 8,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: CLUB.feltLine,
   },
+  cornerPin: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(245, 204, 102, 0.38)',
+  },
+  pinTL: { top: 5, left: 5 },
+  pinTR: { top: 5, right: 5 },
+  pinBL: { bottom: 5, left: 5 },
+  pinBR: { bottom: 5, right: 5 },
   emptyCenter: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   centerMedallion: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.07)',
-    backgroundColor: 'rgba(255, 255, 255, 0.025)',
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 214, 138, 0.14)',
+    backgroundColor: 'rgba(255, 245, 224, 0.03)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   startGhostTarget: {
     padding: 18,

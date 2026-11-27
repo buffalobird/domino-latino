@@ -13,7 +13,7 @@ import { CLUB } from '@/constants/tokens';
 import { OnlineRoomRow } from '@/lib/onlineService';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
-import { PlusIcon } from './Icons';
+import { GlobeIcon, LockIcon, PlusIcon, ShareIcon } from './Icons';
 
 interface WaitingRoomViewProps {
   room: OnlineRoomRow;
@@ -68,9 +68,16 @@ export function WaitingRoomView({
       style={styles.root}
     >
       <View style={styles.card}>
-        <Text style={styles.kicker}>
-          {room.is_private ? 'SALA PRIVADA' : 'MESA PÚBLICA'} · {modeLabel.toUpperCase()}
-        </Text>
+        <View style={styles.kickerRow}>
+          {room.is_private ? (
+            <LockIcon size={12} color={CLUB.gold} />
+          ) : (
+            <GlobeIcon size={12} color={CLUB.gold} />
+          )}
+          <Text style={styles.kicker}>
+            {room.is_private ? 'SALA PRIVADA' : 'MESA PÚBLICA'} · {modeLabel.toUpperCase()}
+          </Text>
+        </View>
         <Text style={styles.headline}>
           Esperando jugadores ({seats.length}/{room.max_players})
         </Text>
@@ -83,7 +90,11 @@ export function WaitingRoomView({
         <View style={styles.codeBox}>
           <Text style={styles.codeLabel}>CÓDIGO DE MESA</Text>
           <Text style={styles.codeValue}>{room.code}</Text>
-          <Pressable onPress={handleShareCode} style={styles.shareBtn}>
+          <Pressable
+            onPress={handleShareCode}
+            style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}
+          >
+            <ShareIcon size={15} color={CLUB.cyan} />
             <Text style={styles.shareBtnText}>Compartir código con amigos</Text>
           </Pressable>
         </View>
@@ -149,11 +160,18 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     backgroundColor: CLUB.surfaceCard,
     borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
     padding: 20,
     alignItems: 'center',
     gap: 12,
+    boxShadow: '0px 16px 36px rgba(0, 0, 0, 0.55)',
+  },
+  kickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   kicker: {
     color: CLUB.gold,
@@ -196,13 +214,16 @@ const styles = StyleSheet.create({
     fontVariant: ['tabular-nums'],
   },
   shareBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
     marginTop: 4,
-    backgroundColor: 'rgba(56, 189, 248, 0.16)',
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
     borderWidth: 1,
     borderColor: CLUB.cyan,
     borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 9,
   },
   shareBtnText: {
     color: CLUB.cyan,

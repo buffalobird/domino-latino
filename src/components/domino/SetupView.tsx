@@ -9,7 +9,15 @@ import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AccountCard } from './AccountCard';
 import { AvatarIllustration } from './AvatarIllustration';
 import { DominoTile } from './DominoTile';
-import { PlayIcon, StarIcon } from './Icons';
+import {
+  ChipIcon,
+  GlobeIcon,
+  LockIcon,
+  MessageIcon,
+  PlayIcon,
+  StarIcon,
+  TableIcon,
+} from './Icons';
 
 interface SetupViewProps {
   mode: GameMode;
@@ -105,8 +113,9 @@ export function SetupView({
                   onOpenThemes();
                 }}
                 accessibilityRole="button"
-                style={styles.themesPill}
+                style={({ pressed }) => [styles.themesPill, pressed && { opacity: 0.85 }]}
               >
+                <TableIcon size={14} color={CLUB.goldSoft} />
                 <Text style={styles.themesPillText}>Mesas</Text>
               </Pressable>
 
@@ -116,8 +125,13 @@ export function SetupView({
                   onOpenDailyRewards();
                 }}
                 accessibilityRole="button"
-                style={[styles.chipsPill, hasDailyBonus && styles.chipsPillReady]}
+                style={({ pressed }) => [
+                  styles.chipsPill,
+                  hasDailyBonus && styles.chipsPillReady,
+                  pressed && { opacity: 0.85 },
+                ]}
               >
+                <ChipIcon size={15} color={CLUB.gold} />
                 <Text style={styles.chipsValue}>
                   {retention.clubChips.toLocaleString('es-ES')}
                 </Text>
@@ -131,9 +145,9 @@ export function SetupView({
                 }}
                 accessibilityRole="button"
                 accessibilityLabel="Enviar sugerencia o reportar fallo"
-                style={styles.helpPill}
+                style={({ pressed }) => [styles.helpPill, pressed && { opacity: 0.8 }]}
               >
-                <Text style={styles.helpPillText}>?</Text>
+                <MessageIcon size={15} color={CLUB.textSecondary} />
               </Pressable>
             </View>
           </View>
@@ -310,10 +324,13 @@ export function SetupView({
               style={({ pressed }) => [
                 styles.onlineBtn,
                 !onlineEnabled && styles.onlineBtnDisabled,
-                pressed && onlineEnabled && { opacity: 0.9 },
+                pressed && onlineEnabled && { transform: [{ translateY: 2 }], opacity: 0.94 },
               ]}
             >
-              <Text style={styles.onlineBtnTitle}>Salas Online</Text>
+              <View style={styles.onlineBtnTop}>
+                <GlobeIcon size={14} color="#FFFFFF" />
+                <Text style={styles.onlineBtnTitle}>Salas Online</Text>
+              </View>
               <Text style={styles.onlineBtnSub}>
                 {onlineEnabled ? 'Mesas públicas' : 'En mantenimiento'}
               </Text>
@@ -330,10 +347,13 @@ export function SetupView({
               style={({ pressed }) => [
                 styles.privateBtn,
                 !onlineEnabled && styles.onlineBtnDisabled,
-                pressed && onlineEnabled && { opacity: 0.9 },
+                pressed && onlineEnabled && { transform: [{ translateY: 2 }], opacity: 0.94 },
               ]}
             >
-              <Text style={styles.onlineBtnTitle}>Sala Privada</Text>
+              <View style={styles.onlineBtnTop}>
+                <LockIcon size={13} color="#FFFFFF" />
+                <Text style={styles.onlineBtnTitle}>Sala Privada</Text>
+              </View>
               <Text style={styles.onlineBtnSub}>
                 {onlineEnabled ? 'Con amigos' : 'En mantenimiento'}
               </Text>
@@ -405,15 +425,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   themesPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: CLUB.surfaceCard,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   themesPillText: {
-    color: CLUB.textSecondary,
+    color: CLUB.textPrimary,
     fontSize: 12,
     fontWeight: '800',
   },
@@ -423,9 +447,9 @@ const styles = StyleSheet.create({
     gap: 5,
     backgroundColor: CLUB.surfaceCard,
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.45)',
+    borderColor: CLUB.borderWarm,
     borderRadius: 999,
-    paddingHorizontal: 11,
+    paddingHorizontal: 10,
     paddingVertical: 6,
   },
   chipsPillReady: {
@@ -445,19 +469,15 @@ const styles = StyleSheet.create({
     backgroundColor: CLUB.emerald,
   },
   helpPill: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: CLUB.surfaceCard,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  helpPillText: {
-    color: CLUB.textMuted,
-    fontSize: 13,
-    fontWeight: '900',
   },
   heroStage: {
     flexGrow: 1,
@@ -570,7 +590,8 @@ const styles = StyleSheet.create({
     backgroundColor: CLUB.surfaceCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
     padding: 12,
     gap: 11,
   },
@@ -582,7 +603,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 0.85,
   },
   modeSegmentedRow: {
     flexDirection: 'row',
@@ -591,9 +612,9 @@ const styles = StyleSheet.create({
   modePill: {
     flex: 1,
     minHeight: 52,
-    backgroundColor: 'rgba(11, 20, 36, 0.65)',
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    backgroundColor: CLUB.surfaceDeep,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
     borderRadius: 12,
     paddingHorizontal: 6,
     paddingVertical: 7,
@@ -602,8 +623,9 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   modePillActive: {
-    backgroundColor: 'rgba(245, 196, 81, 0.15)',
+    backgroundColor: 'rgba(245, 196, 81, 0.14)',
     borderColor: CLUB.gold,
+    borderWidth: 1.5,
   },
   modePillTitle: {
     color: CLUB.textPrimary,
@@ -628,9 +650,9 @@ const styles = StyleSheet.create({
   scoreChip: {
     flex: 1,
     minHeight: 40,
-    backgroundColor: 'rgba(11, 20, 36, 0.65)',
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    backgroundColor: CLUB.surfaceDeep,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -650,12 +672,12 @@ const styles = StyleSheet.create({
   },
   thumbDock: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 10,
     paddingBottom: 12,
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-    backgroundColor: 'rgba(10, 18, 34, 0.72)',
+    borderTopColor: CLUB.borderSubtle,
+    backgroundColor: CLUB.glassBgStrong,
   },
   primaryBtn: {
     backgroundColor: CLUB.emerald,
@@ -667,7 +689,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0px 8px 22px rgba(46, 209, 138, 0.32)',
+    boxShadow: '0px 8px 22px rgba(39, 209, 136, 0.30)',
   },
   primaryBtnPressed: {
     transform: [{ translateY: 2 }],
@@ -685,7 +707,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.2,
   },
   primaryBtnSub: {
-    color: '#064E3B',
+    color: CLUB.emeraldDeep,
     fontSize: 12,
     fontWeight: '800',
     marginTop: 1,
@@ -694,9 +716,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  onlineBtnTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   onlineBtn: {
     flex: 1,
-    backgroundColor: '#1D4ED8',
+    backgroundColor: CLUB.cobalt,
     borderRadius: 14,
     borderBottomWidth: 4,
     borderBottomColor: '#1E3A8A',
@@ -708,10 +735,10 @@ const styles = StyleSheet.create({
   },
   privateBtn: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: CLUB.violet,
     borderRadius: 14,
     borderBottomWidth: 4,
-    borderBottomColor: '#4C1D95',
+    borderBottomColor: CLUB.violetDark,
     minHeight: 48,
     paddingVertical: 8,
     paddingHorizontal: 10,

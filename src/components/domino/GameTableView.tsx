@@ -20,7 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
-import { TableThemeId } from '@/constants/tableThemes';
+import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { CLUB } from '@/constants/tokens';
 import {
   canDrawFromBoneyard,
@@ -476,6 +476,7 @@ export function GameTableView({
 
   const isFourPlayers = state.players.length === 4;
   const is2v2 = state.mode === '2v2';
+  const activeTheme = TABLE_THEMES[themeId] ?? TABLE_THEMES.caribe;
 
   const humanProfile = getSeatProfile(state.mode, 0);
   const humanTimerProgress =
@@ -672,9 +673,9 @@ export function GameTableView({
           )}
         </View>
 
-        {/* Lacquered Wood Hand Rack — Auto-compressed, ZERO scroll */}
+        {/* Lacquered Wood Hand Rack — Theme-matched, auto-compressed, ZERO scroll */}
         <LinearGradient
-          colors={[CLUB.rackTop, CLUB.rackBottom]}
+          colors={[activeTheme.rackTop, activeTheme.rackBottom]}
           style={[styles.woodRack, isLandscape && styles.woodRackLandscape]}
           onLayout={handleRackLayout}
         >

@@ -12,7 +12,7 @@ interface DominoTileProps {
   unit?: number;
   selected?: boolean;
   playable?: boolean;
-  /** Renders the sleek ebony dark tile variant (North Star N6) instead of washed-out gray */
+  /** Sculpted matte obsidian ebony variant for unplayable tiles */
   ebony?: boolean;
   highlighted?: boolean;
   ghost?: boolean;
@@ -67,15 +67,16 @@ function PipFace({
   ghost?: boolean;
 }) {
   const pips = PIP_LAYOUTS[value] ?? [];
-  const pipSize = Math.max(4, Math.round(size * 0.22));
+  const pipSize = Math.max(4, Math.round(size * 0.225));
   const color = ghost
-    ? '#0F172A'
+    ? '#0B1622'
     : ebony
-    ? EBONY_PIP_COLORS[value] ?? '#E2E8F0'
+    ? EBONY_PIP_COLORS[value] ?? '#F1F5F9'
     : PIP_COLORS[value] ?? '#111827';
-  const pad = Math.max(2.5, Math.round(size * 0.16));
+  const pad = Math.max(2.5, Math.round(size * 0.165));
   const inner = size - pad * 2;
   const step = inner / 2;
+  const showRecess = !ghost && pipSize >= 6;
 
   return (
     <View style={{ width: size, height: size, position: 'relative' }}>
@@ -88,9 +89,13 @@ function PipFace({
             height: pipSize,
             borderRadius: pipSize / 2,
             backgroundColor: color,
-            opacity: ghost ? 0.6 : 1,
+            opacity: ghost ? 0.62 : 1,
             top: pad + row * step - pipSize / 2,
             left: pad + col * step - pipSize / 2,
+            borderTopWidth: showRecess ? 0.75 : 0,
+            borderTopColor: ebony ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.38)',
+            borderBottomWidth: showRecess ? 0.6 : 0,
+            borderBottomColor: ebony ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.35)',
           }}
         />
       ))}
@@ -115,8 +120,8 @@ export function DominoTile({
   const width = isHorizontal ? unit * 2 : unit;
   const height = isHorizontal ? unit : unit * 2;
   const faceSize = unit - 4;
-  const radius = Math.max(6, Math.round(unit * 0.19));
-  const pinSize = Math.max(4, Math.round(unit * 0.13));
+  const radius = Math.max(6, Math.round(unit * 0.2));
+  const pinSize = Math.max(4, Math.round(unit * 0.14));
 
   if (ghost) {
     return (
@@ -157,8 +162,8 @@ export function DominoTile({
   const tileBody = (
     <LinearGradient
       colors={gradColors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 0.4, y: 1 }}
+      start={{ x: 0.1, y: 0 }}
+      end={{ x: 0.8, y: 1 }}
       style={[
         styles.tile,
         {
@@ -173,6 +178,17 @@ export function DominoTile({
         highlighted && styles.tileHighlighted,
       ]}
     >
+      {/* Subtle porcelain top bevel highlight */}
+      {!ebony && (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.ivorySpecular,
+            { borderRadius: Math.max(4, radius - 1.5) },
+          ]}
+        />
+      )}
+
       <View style={styles.half}>
         <PipFace value={a} size={faceSize} ebony={ebony} />
       </View>
@@ -188,10 +204,10 @@ export function DominoTile({
         <View
           style={[
             styles.dividerLine,
-            ebony && { backgroundColor: 'rgba(148, 163, 184, 0.35)' },
+            ebony && { backgroundColor: 'rgba(148, 163, 184, 0.28)' },
           ]}
         />
-        {/* Authentic Latin club brass center pin */}
+        {/* Authentic Latin club brushed-brass center pin with specular highlight */}
         {!ebony && (
           <View
             style={[
@@ -202,7 +218,9 @@ export function DominoTile({
                 borderRadius: pinSize / 2,
               },
             ]}
-          />
+          >
+            {pinSize >= 5 && <View style={styles.brassPinGlint} />}
+          </View>
         )}
       </View>
 
@@ -233,39 +251,49 @@ export function DominoTile({
 
 const styles = StyleSheet.create({
   tile: {
-    borderWidth: 1.5,
+    position: 'relative',
+    borderWidth: 1.25,
     borderColor: CLUB.ivoryBorder,
     borderBottomWidth: 3.5,
     borderBottomColor: CLUB.ivoryLip,
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 2,
-    boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.32)',
+    boxShadow: '0px 3px 6px rgba(0, 0, 0, 0.36)',
+  },
+  ivorySpecular: {
+    position: 'absolute',
+    top: 0.5,
+    right: 1,
+    left: 1,
+    height: '42%',
+    borderTopWidth: 1,
+    borderTopColor: CLUB.ivoryInnerRim,
   },
   tileEbony: {
     borderColor: CLUB.ebonyBorder,
     borderBottomColor: CLUB.ebonyLip,
-    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.45)',
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.48)',
   },
   tilePlayable: {
     borderColor: CLUB.gold,
-    borderWidth: 2,
+    borderWidth: 1.75,
     borderBottomWidth: 4,
-    borderBottomColor: CLUB.goldDark,
-    boxShadow: '0px 4px 10px rgba(245, 196, 81, 0.36)',
+    borderBottomColor: '#C59A38',
+    boxShadow: '0px 4px 12px rgba(245, 196, 81, 0.34)',
   },
   tileSelected: {
     borderColor: CLUB.cyan,
-    borderWidth: 2.5,
+    borderWidth: 2.25,
     borderBottomWidth: 4,
     borderBottomColor: '#0284C7',
     transform: [{ translateY: -8 }],
-    boxShadow: '0px 8px 16px rgba(56, 189, 248, 0.45)',
+    boxShadow: '0px 10px 18px rgba(56, 189, 248, 0.48)',
   },
   tileHighlighted: {
     borderColor: CLUB.gold,
-    borderWidth: 2.5,
-    boxShadow: '0px 0px 14px rgba(245, 196, 81, 0.65)',
+    borderWidth: 2.25,
+    boxShadow: '0px 0px 16px rgba(245, 196, 81, 0.7)',
   },
   ghostTile: {
     backgroundColor: CLUB.ghostFill,
@@ -283,7 +311,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.07 }],
   },
   ghostDivider: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    backgroundColor: 'rgba(255, 255, 255, 0.55)',
     borderRadius: 1,
   },
   half: {
@@ -302,12 +330,21 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: '#C2B59F',
+    backgroundColor: '#C5B69D',
     borderRadius: 1,
   },
   brassPin: {
     backgroundColor: CLUB.brassPin,
     borderWidth: 0.75,
-    borderColor: '#8B691E',
+    borderColor: CLUB.brassPinEdge,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brassPinGlint: {
+    width: 1.8,
+    height: 1.8,
+    borderRadius: 1,
+    backgroundColor: '#FFFBEB',
+    transform: [{ translateX: -0.6 }, { translateY: -0.6 }],
   },
 });

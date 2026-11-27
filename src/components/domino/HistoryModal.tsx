@@ -54,6 +54,7 @@ export function HistoryModal({
     >
       <View style={styles.backdrop}>
         <View style={styles.sheet}>
+          <View style={styles.grabHandle} />
           <View style={styles.header}>
             <Text style={styles.title}>Historial · Mano #{handNumber}</Text>
             <Pressable
@@ -102,12 +103,22 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: CLUB.surfaceCard,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     maxHeight: '72%',
-    padding: 18,
-    borderTopWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 18,
+    borderTopWidth: 1,
+    borderColor: CLUB.surfaceHighlight,
+  },
+  grabHandle: {
+    width: 38,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   header: {
     flexDirection: 'row',

@@ -8,7 +8,7 @@ import { RetentionProgress } from '@/storage/gameStorage';
 import { hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
 import { DominoTile } from './DominoTile';
-import { StarIcon } from './Icons';
+import { StarIcon, TrophyIcon } from './Icons';
 
 interface MatchOverViewProps {
   state: GameState;
@@ -191,9 +191,12 @@ export function MatchOverView({
     <View style={styles.backdrop}>
       <View style={styles.card}>
         <View style={[styles.banner, humanWon ? styles.bannerWin : styles.bannerLoss]}>
-          <Text style={styles.headline}>
-            {humanWon ? '¡Victoria!' : `Ganó ${winnerDisplayLabel}`}
-          </Text>
+          <View style={styles.headlineRow}>
+            {humanWon && <TrophyIcon size={22} color={CLUB.gold} />}
+            <Text style={styles.headline}>
+              {humanWon ? '¡Victoria!' : `Ganó ${winnerDisplayLabel}`}
+            </Text>
+          </View>
           <Text style={styles.sub}>
             Meta de {state.targetScore} pts en {state.handNumber}{' '}
             {state.handNumber === 1 ? 'mano' : 'manos'}
@@ -283,11 +286,17 @@ const styles = StyleSheet.create({
     maxHeight: '90%',
     backgroundColor: CLUB.surfaceCard,
     borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
     padding: 14,
     gap: 10,
-    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.7)',
+    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.72)',
+  },
+  headlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   banner: {
     borderRadius: 16,

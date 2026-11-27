@@ -23,7 +23,13 @@ import { supabase } from '@/lib/supabase';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AccountCard } from './AccountCard';
 import { AvatarIllustration } from './AvatarIllustration';
-import { PlusIcon } from './Icons';
+import {
+  ChevronLeftIcon,
+  ChipIcon,
+  LockIcon,
+  PlusIcon,
+  RefreshIcon,
+} from './Icons';
 
 interface OnlineLobbyViewProps {
   clubChips: number;
@@ -169,14 +175,17 @@ export function OnlineLobbyView({
             hapticLight();
             onBack();
           }}
-          style={styles.backBtn}
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.78 }]}
         >
-          <Text style={styles.backBtnText}>← Volver</Text>
+          <ChevronLeftIcon size={18} color={CLUB.textPrimary} />
+          <Text style={styles.backBtnText}>Volver</Text>
         </Pressable>
 
         <Text style={styles.title}>Salas Online</Text>
 
         <View style={styles.chipsPill}>
+          <ChipIcon size={14} color={CLUB.gold} />
           <Text style={styles.chipsText}>
             {clubChips.toLocaleString('es-ES')}
           </Text>
@@ -206,7 +215,10 @@ export function OnlineLobbyView({
 
             {/* Join Private Room by 6-char Code */}
             <View style={styles.privateBox}>
-              <Text style={styles.boxLabel}>Unirse a sala privada con código</Text>
+              <View style={styles.boxLabelRow}>
+                <LockIcon size={13} color={CLUB.violet} />
+                <Text style={styles.boxLabel}>Unirse a sala privada con código</Text>
+              </View>
               <View style={styles.codeRow}>
                 <TextInput
                   value={joinCode}
@@ -369,7 +381,11 @@ export function OnlineLobbyView({
             {/* Open Public Tables List */}
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Mesas públicas abiertas</Text>
-              <Pressable onPress={refreshRooms} style={styles.refreshBtn}>
+              <Pressable
+                onPress={refreshRooms}
+                style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.75 }]}
+              >
+                <RefreshIcon size={14} color={CLUB.cyan} />
                 <Text style={styles.refreshText}>
                   {loading ? 'Buscando...' : 'Actualizar'}
                 </Text>
@@ -482,8 +498,11 @@ const styles = StyleSheet.create({
     borderBottomColor: CLUB.glassBorder,
   },
   backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     minHeight: 40,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     justifyContent: 'center',
   },
   backBtnText: {
@@ -497,11 +516,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   chipsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: CLUB.surfaceCard,
     borderWidth: 1,
-    borderColor: CLUB.gold,
+    borderColor: CLUB.borderWarm,
     borderRadius: 999,
-    paddingHorizontal: 12,
+    paddingHorizontal: 11,
     paddingVertical: 6,
   },
   chipsText: {
@@ -551,9 +573,15 @@ const styles = StyleSheet.create({
     backgroundColor: CLUB.surfaceCard,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
     padding: 12,
     gap: 8,
+  },
+  boxLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   boxLabel: {
     color: CLUB.textSecondary,
@@ -711,6 +739,9 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   refreshBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },

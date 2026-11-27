@@ -6,7 +6,7 @@ import { TABLE_THEME_LIST, TableThemeId } from '@/constants/tableThemes';
 import { CLUB } from '@/constants/tokens';
 import { RetentionProgress } from '@/storage/gameStorage';
 import { hapticSnap } from '@/utils/feedback';
-import { CloseIcon } from './Icons';
+import { CheckIcon, ChipIcon, CloseIcon, TableIcon } from './Icons';
 
 interface ThemesModalProps {
   visible: boolean;
@@ -33,7 +33,10 @@ export function ThemesModal({
         <View style={styles.card}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Mesas del Club</Text>
+              <View style={styles.titleRow}>
+                <TableIcon size={18} color={CLUB.gold} />
+                <Text style={styles.title}>Mesas del Club</Text>
+              </View>
               <Text style={styles.sub}>
                 Saldo: {retention.clubChips.toLocaleString('es-ES')} fichas
               </Text>
@@ -68,10 +71,21 @@ export function ThemesModal({
                     !unlocked && !canAfford && styles.rowLocked,
                   ]}
                 >
+                  {/* Miniature tactile domino table preview (wood rail + felt + brass inlay + mini domino) */}
                   <LinearGradient
-                    colors={[theme.feltCenter, theme.feltEdge]}
-                    style={[styles.swatch, { borderColor: theme.woodLight }]}
-                  />
+                    colors={[theme.woodLight, theme.woodDark]}
+                    style={styles.miniTableFrame}
+                  >
+                    <LinearGradient
+                      colors={[theme.feltCenter, theme.feltEdge]}
+                      style={styles.miniTableFelt}
+                    >
+                      <View
+                        style={[styles.miniTableInlay, { borderColor: theme.feltInlay }]}
+                      />
+                      <View style={styles.miniDomino} />
+                    </LinearGradient>
+                  </LinearGradient>
                   <View style={styles.info}>
                     <Text style={styles.name}>{theme.name}</Text>
                     <Text style={styles.desc}>{theme.subtitle}</Text>
@@ -83,6 +97,11 @@ export function ThemesModal({
                       !unlocked && canAfford && styles.ctaBuy,
                     ]}
                   >
+                    {equipped ? (
+                      <CheckIcon size={13} color={CLUB.textInk} />
+                    ) : !unlocked ? (
+                      <ChipIcon size={12} color={canAfford ? CLUB.textInk : CLUB.gold} />
+                    ) : null}
                     <Text
                       style={[
                         styles.ctaText,
@@ -118,11 +137,18 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     backgroundColor: CLUB.surfaceCard,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
-    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
+    padding: 18,
     gap: 12,
+    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.65)',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
   },
   header: {
     flexDirection: 'row',
@@ -168,11 +194,35 @@ const styles = StyleSheet.create({
   rowLocked: {
     opacity: 0.55,
   },
-  swatch: {
-    width: 46,
-    height: 46,
+  miniTableFrame: {
+    width: 56,
+    height: 44,
     borderRadius: 10,
-    borderWidth: 3,
+    padding: 3,
+  },
+  miniTableFelt: {
+    flex: 1,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  miniTableInlay: {
+    position: 'absolute',
+    top: 3,
+    right: 3,
+    bottom: 3,
+    left: 3,
+    borderRadius: 5,
+    borderWidth: 1,
+  },
+  miniDomino: {
+    width: 18,
+    height: 9,
+    borderRadius: 2.5,
+    backgroundColor: CLUB.ivoryTop,
+    borderBottomWidth: 1.5,
+    borderBottomColor: CLUB.ivoryLip,
   },
   info: {
     flex: 1,
@@ -189,7 +239,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   ctaPill: {
-    minWidth: 66,
+    flexDirection: 'row',
+    gap: 4,
+    minWidth: 72,
     minHeight: 34,
     borderRadius: 10,
     backgroundColor: 'rgba(255,255,255,0.1)',

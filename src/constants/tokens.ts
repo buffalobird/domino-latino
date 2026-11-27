@@ -1,82 +1,95 @@
 /**
- * "Club Caribe 2026" Design Tokens
- * Nocturnal Latin domino club: deep plush teal-indigo felt, warm lacquered mahogany rails,
- * porcelain ivory tiles with brass center pin, sleek ebony unplayable tiles, and high-contrast typography.
+ * "Club Caribe 2.0" Design System Tokens
+ * Nocturnal Latin domino parlor: warm obsidian-teal room, tactile velvet felt with overhead lamp glow,
+ * lacquered mahogany/walnut rails, engraved porcelain ivory & sculpted ebony tiles, brushed brass inlays.
  */
 export const CLUB = {
-  // Room & Table
-  roomBgTop: '#0A1322',
-  roomBgBottom: '#0F1E33',
-  feltCenter: '#135962',
-  feltEdge: '#0B3542',
-  feltLine: 'rgba(255, 255, 255, 0.10)',
+  // Room & Ambient Surfaces (3 clean tonal layers — eliminates generic cold SaaS dark blue)
+  roomBgTop: '#07111B',
+  roomBgBottom: '#0E1D2B',
+  surfaceDeep: '#0B1622',
+  surfaceCard: '#122130',
+  surfaceCardLight: '#192C3F',
+  surfaceElevated: '#1F364D',
+
+  // Hairlines & Specular Top Highlights
+  glassBg: 'rgba(10, 20, 31, 0.82)',
+  glassBgStrong: 'rgba(9, 17, 27, 0.94)',
+  glassBorder: 'rgba(255, 255, 255, 0.11)',
+  borderSubtle: 'rgba(255, 255, 255, 0.07)',
+  borderWarm: 'rgba(245, 204, 102, 0.28)',
+  surfaceHighlight: 'rgba(255, 245, 224, 0.14)',
+
+  // Default Table Felt
+  feltCenter: '#14626A',
+  feltEdge: '#09343E',
+  feltLine: 'rgba(245, 214, 138, 0.20)',
 
   // Lacquered Mahogany Wood Rail & Rack
-  woodLight: '#B66F39',
-  woodMid: '#8A4B22',
-  woodDark: '#4D260E',
-  woodHighlight: 'rgba(255, 224, 178, 0.28)',
-  rackTop: '#6A3818',
-  rackBottom: '#3E1E0B',
+  woodLight: '#C57B42',
+  woodMid: '#8C4B20',
+  woodDark: '#47210B',
+  woodHighlight: 'rgba(255, 232, 194, 0.34)',
+  rackTop: '#713B18',
+  rackBottom: '#3A1B08',
 
-  // Glass / Surface Cards
-  glassBg: 'rgba(11, 20, 36, 0.78)',
-  glassBgStrong: 'rgba(11, 20, 36, 0.92)',
-  glassBorder: 'rgba(255, 255, 255, 0.16)',
-  surfaceCard: '#142238',
-  surfaceCardLight: '#1B2E4B',
-
-  // Accents
+  // Semantic Accents (Strict 60/30/10 hierarchy)
   gold: '#F5C451',
-  goldDark: '#B8831A',
-  goldSoft: '#FDE68A',
-  emerald: '#2ED18A',
-  emeraldDark: '#168A57',
+  goldDark: '#B37B14',
+  goldSoft: '#FCE39C',
+  brass: '#D4A84B',
+  emerald: '#27D188',
+  emeraldDark: '#128554',
+  emeraldDeep: '#06472D',
   cyan: '#38BDF8',
-  cyanGlow: 'rgba(56, 189, 248, 0.32)',
+  cyanGlow: 'rgba(56, 189, 248, 0.30)',
+  cobalt: '#2563EB',
+  cobaltDark: '#1D4ED8',
   amber: '#FF9240',
   amberDark: '#C2590B',
   coral: '#F43F5E',
   coralDark: '#AD1A35',
-  violet: '#8B5CF6',
-  violetDark: '#5B21B6',
+  violet: '#7C3AED',
+  violetDark: '#521EAB',
 
-  // Tiles: Porcelain Ivory (Playable/Board) vs Sleek Ebony (Unplayable/Waiting)
-  ivoryTop: '#FFFDF8',
-  ivoryBottom: '#F1EADB',
-  ivoryBorder: '#D4C8B4',
-  ivoryLip: '#BFAEA0',
-  brassPin: '#C9A24D',
+  // Tiles: Sculpted Porcelain Ivory vs Matte Obsidian Ebony
+  ivoryTop: '#FFFDF9',
+  ivoryBottom: '#EFE7D6',
+  ivoryBorder: '#D8CBB4',
+  ivoryLip: '#B5A288',
+  ivoryInnerRim: 'rgba(255, 255, 255, 0.92)',
+  brassPin: '#D4AA4E',
+  brassPinEdge: '#8A6619',
 
-  ebonyTop: '#273142',
-  ebonyBottom: '#19202D',
-  ebonyBorder: '#3B485F',
-  ebonyLip: '#10151F',
+  ebonyTop: '#24303E',
+  ebonyBottom: '#151D27',
+  ebonyBorder: '#344458',
+  ebonyLip: '#0B1017',
 
   // Ghost Preview
-  ghostFill: 'rgba(56, 189, 248, 0.34)',
+  ghostFill: 'rgba(56, 189, 248, 0.28)',
   ghostBorder: '#7DD3FC',
-  ghostHoverFill: 'rgba(245, 196, 81, 0.52)',
+  ghostHoverFill: 'rgba(245, 196, 81, 0.48)',
   ghostHoverBorder: '#F5C451',
 
-  // Text
+  // Typography (WCAG AA+ contrast on dark warm surfaces)
   textPrimary: '#F8FAFC',
-  textSecondary: '#B6C5D9',
-  textMuted: '#7F93AD',
-  textInk: '#111827',
+  textSecondary: '#B9C8D9',
+  textMuted: '#7E95AE',
+  textInk: '#0D1520',
 } as const;
 
 export const PIP_COLORS: Record<number, string> = {
   0: '#1E293B',
-  1: '#2563EB', // Cobalt Blue
-  2: '#16A34A', // Emerald Green
-  3: '#DC2626', // Crimson Red
-  4: '#D97706', // Warm Amber
-  5: '#7C3AED', // Royal Violet
-  6: '#111827', // Obsidian
+  1: '#1D4ED8', // Deep Cobalt
+  2: '#15803D', // Rich Forest Emerald
+  3: '#C81E2B', // Classic Crimson
+  4: '#C26706', // Warm Ochre Amber
+  5: '#6D28D9', // Royal Violet
+  6: '#111827', // Obsidian Ink
 };
 
-// Brighter pips on ebony dark tiles so values remain 100% legible even when unplayable
+// High-contrast jewel pips on ebony dark tiles
 export const EBONY_PIP_COLORS: Record<number, string> = {
   0: '#94A3B8',
   1: '#60A5FA',
@@ -84,5 +97,5 @@ export const EBONY_PIP_COLORS: Record<number, string> = {
   3: '#FB7185',
   4: '#FBBF24',
   5: '#C084FC',
-  6: '#E2E8F0',
+  6: '#F1F5F9',
 };

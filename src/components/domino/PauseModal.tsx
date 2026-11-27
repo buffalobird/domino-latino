@@ -3,7 +3,13 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CLUB } from '@/constants/tokens';
 import { SortMode } from '@/engine/types';
-import { CloseIcon, HistoryIcon, SoundOffIcon, SoundOnIcon } from './Icons';
+import {
+  CloseIcon,
+  HistoryIcon,
+  MessageIcon,
+  SoundOffIcon,
+  SoundOnIcon,
+} from './Icons';
 
 export type BotSpeed = 'fast' | 'normal' | 'relaxed';
 
@@ -116,6 +122,7 @@ export function PauseModal({
           </Pressable>
 
           <Pressable onPress={onOpenFeedback} style={styles.secondaryBtn}>
+            <MessageIcon size={16} color={CLUB.textSecondary} />
             <Text style={styles.secondaryBtnText}>Enviar sugerencia o fallo</Text>
           </Pressable>
 

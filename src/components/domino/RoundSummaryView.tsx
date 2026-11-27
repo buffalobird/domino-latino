@@ -7,6 +7,7 @@ import { GameState, HandSummary } from '@/engine/types';
 import { hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
 import { DominoTile } from './DominoTile';
+import { CrownIcon } from './Icons';
 
 interface RoundSummaryViewProps {
   state: GameState;
@@ -284,7 +285,10 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
       <View style={styles.card}>
         <View style={styles.header}>
           <Text style={styles.kicker}>RESULTADOS · MANO #{summary.handNumber}</Text>
-          <Text style={styles.headline}>{headline}</Text>
+          <View style={styles.headlineRow}>
+            {summary.winnerSeat !== null && <CrownIcon size={17} color={CLUB.gold} />}
+            <Text style={styles.headline}>{headline}</Text>
+          </View>
         </View>
 
         <ScrollView
@@ -333,17 +337,25 @@ const styles = StyleSheet.create({
     maxHeight: '88%',
     backgroundColor: CLUB.surfaceCard,
     borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
     padding: 14,
     gap: 12,
-    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.65)',
+    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.68)',
   },
   header: {
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: CLUB.glassBorder,
+    borderBottomColor: CLUB.borderSubtle,
     paddingBottom: 10,
+  },
+  headlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 2,
   },
   kicker: {
     color: CLUB.textMuted,

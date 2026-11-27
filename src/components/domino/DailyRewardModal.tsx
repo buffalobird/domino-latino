@@ -9,7 +9,7 @@ import {
   RetentionProgress,
 } from '@/storage/gameStorage';
 import { hapticSnap } from '@/utils/feedback';
-import { CloseIcon } from './Icons';
+import { CheckIcon, ChipIcon, CloseIcon, CrownIcon } from './Icons';
 
 interface DailyRewardModalProps {
   visible: boolean;
@@ -42,7 +42,10 @@ export function DailyRewardModal({
         <View style={styles.card}>
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Fichas de Club</Text>
+              <View style={styles.titleRow}>
+                <ChipIcon size={18} color={CLUB.gold} />
+                <Text style={styles.title}>Fichas de Club</Text>
+              </View>
               <Text style={styles.sub}>
                 Saldo actual: {retention.clubChips.toLocaleString('es-ES')} fichas
               </Text>
@@ -63,25 +66,35 @@ export function DailyRewardModal({
             {DAILY_REWARD_SCHEDULE.map((reward, idx) => {
               const isPast = idx < retention.dailyClaimStreak;
               const isToday = idx === dayIndex;
+              const isGrandPrize = idx === 6;
               return (
                 <View
                   key={idx}
                   style={[
                     styles.dayCell,
-                    idx === 6 && styles.dayCellWide,
+                    isGrandPrize && styles.dayCellWide,
                     isPast && styles.dayCellPast,
                     isToday && claimable && styles.dayCellActive,
                   ]}
                 >
-                  <Text style={styles.dayNum}>Día {idx + 1}</Text>
-                  <Text
-                    style={[
-                      styles.dayReward,
-                      isToday && claimable && { color: CLUB.gold },
-                    ]}
-                  >
-                    +{reward}
-                  </Text>
+                  <View style={styles.dayTopRow}>
+                    {isGrandPrize && <CrownIcon size={14} color={CLUB.gold} />}
+                    <Text style={styles.dayNum}>
+                      {isGrandPrize ? 'Día 7 · Gran Premio' : `Día ${idx + 1}`}
+                    </Text>
+                    {isPast && <CheckIcon size={12} color={CLUB.emerald} />}
+                  </View>
+                  <View style={styles.rewardRow}>
+                    <ChipIcon size={12} color={isToday && claimable ? CLUB.gold : CLUB.goldSoft} />
+                    <Text
+                      style={[
+                        styles.dayReward,
+                        (isToday && claimable) || isGrandPrize ? { color: CLUB.gold } : null,
+                      ]}
+                    >
+                      +{reward}
+                    </Text>
+                  </View>
                 </View>
               );
             })}
@@ -149,11 +162,28 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     backgroundColor: CLUB.surfaceCard,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
-    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: CLUB.borderSubtle,
+    borderTopColor: CLUB.surfaceHighlight,
+    padding: 18,
     gap: 12,
+    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.65)',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  dayTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  rewardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   header: {
     flexDirection: 'row',
