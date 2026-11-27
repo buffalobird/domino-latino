@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CLUB } from '@/constants/tokens';
 import { SortMode } from '@/engine/types';
+import { GlossyButton } from './GlossyButton';
 import {
   CloseIcon,
   HistoryIcon,
@@ -84,12 +85,11 @@ export function PauseModal({
             </Pressable>
           </View>
 
-          <Pressable
+          <GlossyButton
+            title="Seguir jugando"
+            variant="emerald"
             onPress={onResume}
-            style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.9 }]}
-          >
-            <Text style={styles.primaryBtnText}>Seguir jugando</Text>
-          </Pressable>
+          />
 
           <View style={styles.utilityRow}>
             <Pressable onPress={onToggleSort} style={styles.utilityBtn}>
@@ -150,13 +150,13 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    backgroundColor: 'rgba(14, 28, 52, 0.96)',
+    borderRadius: 24,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.26)',
     padding: 18,
     gap: 10,
-    boxShadow: '0px 14px 32px rgba(0, 0, 0, 0.55)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
   },
   header: {
     flexDirection: 'row',

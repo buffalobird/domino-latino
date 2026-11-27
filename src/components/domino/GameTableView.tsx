@@ -491,7 +491,8 @@ export function GameTableView({
 
   return (
     <LinearGradient
-      colors={[CLUB.roomBgTop, CLUB.roomBgBottom]}
+      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
+      locations={[0, 0.35, 0.72, 1]}
       style={styles.root}
       onLayout={measureRootOrigin}
     >

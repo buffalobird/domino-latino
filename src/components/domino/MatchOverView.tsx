@@ -8,6 +8,7 @@ import { RetentionProgress } from '@/storage/gameStorage';
 import { hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
 import { DominoTile } from './DominoTile';
+import { GlossyButton } from './GlossyButton';
 import { StarIcon, TrophyIcon } from './Icons';
 
 interface MatchOverViewProps {
@@ -239,28 +240,24 @@ export function MatchOverView({
         </ScrollView>
 
         <View style={styles.actions}>
-          <Pressable
+          <GlossyButton
+            title={`Revancha (${countdown}s)`}
+            variant="emerald"
             onPress={() => {
               hapticSnap();
               onRematch();
             }}
-            style={({ pressed }) => [
-              styles.primaryBtn,
-              pressed && { transform: [{ translateY: 2 }] },
-            ]}
-          >
-            <Text style={styles.primaryBtnText}>Revancha ({countdown}s)</Text>
-          </Pressable>
+          />
 
-          <Pressable
+          <GlossyButton
+            title="Cambiar modo"
+            variant="glass"
+            compact
             onPress={() => {
               hapticSnap();
               onChangeMode();
             }}
-            style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.85 }]}
-          >
-            <Text style={styles.secondaryBtnText}>Cambiar modo</Text>
-          </Pressable>
+          />
         </View>
       </View>
     </View>
@@ -284,14 +281,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 460,
     maxHeight: '90%',
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.96)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
-    padding: 14,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.26)',
+    padding: 15,
     gap: 10,
-    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.72)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.76)',
   },
   headlineRow: {
     flexDirection: 'row',
@@ -334,11 +330,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.3)',
+    backgroundColor: 'rgba(34, 27, 16, 0.68)',
+    borderRadius: 15,
+    borderWidth: 1.25,
+    borderColor: 'rgba(245, 196, 81, 0.72)',
     padding: 10,
+    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.22)',
   },
   starsRow: {
     flexDirection: 'row',
@@ -388,8 +385,9 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   colCardWin: {
-    borderColor: CLUB.gold,
-    backgroundColor: 'rgba(245, 196, 81, 0.08)',
+    borderColor: '#F5C451',
+    backgroundColor: 'rgba(54, 42, 18, 0.62)',
+    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.22)',
   },
   pairRow: {
     flexDirection: 'row',

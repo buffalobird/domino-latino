@@ -102,15 +102,15 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.97)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '72%',
     paddingHorizontal: 18,
     paddingTop: 10,
     paddingBottom: 18,
-    borderTopWidth: 1,
-    borderColor: CLUB.surfaceHighlight,
+    borderTopWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.28)',
   },
   grabHandle: {
     width: 38,

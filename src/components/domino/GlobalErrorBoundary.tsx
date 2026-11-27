@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CLUB } from '@/constants/tokens';
 import { reportClientError } from '@/lib/remoteConfig';
+import { GlossyButton } from './GlossyButton';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -45,13 +46,12 @@ export class GlobalErrorBoundary extends Component<
             Ocurrió un error inesperado y ya enviamos el reporte técnico. Tu
             progreso y fichas guardadas siguen a salvo.
           </Text>
-          <Pressable
+          <GlossyButton
+            title="Reintentar"
+            variant="emerald"
             onPress={this.handleReset}
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.btn, pressed && { opacity: 0.9 }]}
-          >
-            <Text style={styles.btnText}>Reintentar</Text>
-          </Pressable>
+            style={{ width: '100%', marginTop: 4 }}
+          />
         </View>
       </View>
     );
@@ -69,11 +69,10 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.96)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.26)',
     padding: 22,
     gap: 12,
     alignItems: 'center',

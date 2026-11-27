@@ -23,6 +23,7 @@ import { supabase } from '@/lib/supabase';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AccountCard } from './AccountCard';
 import { AvatarIllustration } from './AvatarIllustration';
+import { GlossyButton } from './GlossyButton';
 import {
   ChevronLeftIcon,
   ChipIcon,
@@ -165,7 +166,8 @@ export function OnlineLobbyView({
 
   return (
     <LinearGradient
-      colors={[CLUB.roomBgTop, CLUB.roomBgBottom]}
+      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
+      locations={[0, 0.35, 0.72, 1]}
       style={styles.gradient}
     >
       {/* Top Bar */}
@@ -229,16 +231,13 @@ export function OnlineLobbyView({
                   maxLength={6}
                   style={styles.codeInput}
                 />
-                <Pressable
-                  onPress={handleJoinByCode}
+                <GlossyButton
+                  title="Entrar"
+                  variant="cobalt"
+                  compact
                   disabled={busyAction}
-                  style={({ pressed }) => [
-                    styles.joinCodeBtn,
-                    pressed && { opacity: 0.85 },
-                  ]}
-                >
-                  <Text style={styles.joinCodeBtnText}>Entrar</Text>
-                </Pressable>
+                  onPress={handleJoinByCode}
+                />
               </View>
             </View>
 
@@ -362,19 +361,13 @@ export function OnlineLobbyView({
                   </Text>
                 )}
 
-                <Pressable
+                <GlossyButton
+                  title={isPrivate ? 'Crear sala privada' : 'Abrir mesa en el lobby'}
+                  variant={isPrivate ? 'violet' : 'emerald'}
+                  loading={busyAction}
                   onPress={handleCreate}
-                  disabled={busyAction}
-                  style={styles.createSubmitBtn}
-                >
-                  {busyAction ? (
-                    <ActivityIndicator size="small" color={CLUB.textInk} />
-                  ) : (
-                    <Text style={styles.createSubmitText}>
-                      {isPrivate ? 'Crear sala privada' : 'Abrir mesa en el lobby'}
-                    </Text>
-                  )}
-                </Pressable>
+                  style={{ marginTop: 4 }}
+                />
               </View>
             )}
 
@@ -458,20 +451,17 @@ export function OnlineLobbyView({
                         ))}
                       </View>
 
-                      <Pressable
-                        onPress={() => handleJoinById(room.id)}
-                        disabled={busyAction}
-                        style={({ pressed }) => [
-                          styles.joinRoomBtn,
-                          pressed && { opacity: 0.88 },
-                        ]}
-                      >
-                        <Text style={styles.joinRoomText}>
-                          {room.buy_in === 0
+                      <GlossyButton
+                        title={
+                          room.buy_in === 0
                             ? 'Sentarse (Gratis)'
-                            : `Jugar · ${room.buy_in} fichas`}
-                        </Text>
-                      </Pressable>
+                            : `Jugar · ${room.buy_in} fichas`
+                        }
+                        variant={room.buy_in > 0 ? 'gold' : 'emerald'}
+                        compact
+                        disabled={busyAction}
+                        onPress={() => handleJoinById(room.id)}
+                      />
                     </View>
                   );
                 })}
@@ -570,12 +560,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   privateBox: {
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 16,
+    backgroundColor: 'rgba(22, 42, 72, 0.56)',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
-    padding: 12,
+    borderColor: 'rgba(148, 190, 255, 0.22)',
+    padding: 13,
     gap: 8,
   },
   boxLabelRow: {
@@ -651,10 +640,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   createForm: {
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 16,
+    backgroundColor: 'rgba(22, 42, 72, 0.56)',
+    borderRadius: 18,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderColor: 'rgba(148, 190, 255, 0.22)',
     padding: 14,
     gap: 10,
   },
@@ -696,8 +685,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pillActive: {
-    backgroundColor: CLUB.gold,
-    borderColor: CLUB.goldSoft,
+    backgroundColor: '#F5C451',
+    borderColor: '#FFF2A6',
+    boxShadow: '0px 0px 14px rgba(245, 196, 81, 0.45)',
   },
   pillText: {
     color: CLUB.textPrimary,

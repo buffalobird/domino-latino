@@ -16,6 +16,7 @@ import { CLUB } from '@/constants/tokens';
 import { trackEvent } from '@/lib/analytics';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { hapticLight, hapticSuccess } from '@/utils/feedback';
+import { GlossyButton } from './GlossyButton';
 import { CloseIcon } from './Icons';
 
 export type FeedbackCategory = 'idea' | 'bug' | 'ux';
@@ -142,9 +143,11 @@ export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) 
               <Text style={styles.sentSub}>
                 Lo revisaremos pronto para seguir puliendo el juego.
               </Text>
-              <Pressable onPress={handleClose} style={styles.primaryBtn}>
-                <Text style={styles.primaryBtnText}>Listo</Text>
-              </Pressable>
+              <GlossyButton
+                title="Listo"
+                variant="emerald"
+                onPress={handleClose}
+              />
             </View>
           ) : (
             <>
@@ -197,21 +200,13 @@ export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) 
 
               {error && <Text style={styles.errorText}>{error}</Text>}
 
-              <Pressable
-                onPress={handleSubmit}
+              <GlossyButton
+                title="Enviar comentario"
+                variant="emerald"
                 disabled={!canSubmit}
-                style={({ pressed }) => [
-                  styles.primaryBtn,
-                  !canSubmit && styles.primaryBtnDisabled,
-                  pressed && canSubmit && { opacity: 0.9 },
-                ]}
-              >
-                {busy ? (
-                  <ActivityIndicator size="small" color={CLUB.textInk} />
-                ) : (
-                  <Text style={styles.primaryBtnText}>Enviar comentario</Text>
-                )}
-              </Pressable>
+                loading={busy}
+                onPress={handleSubmit}
+              />
             </>
           )}
         </View>
@@ -231,14 +226,13 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.96)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.26)',
     padding: 18,
     gap: 12,
-    boxShadow: '0px 16px 36px rgba(0, 0, 0, 0.65)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
   },
   header: {
     flexDirection: 'row',

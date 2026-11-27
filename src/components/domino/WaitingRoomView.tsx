@@ -13,6 +13,7 @@ import { CLUB } from '@/constants/tokens';
 import { OnlineRoomRow } from '@/lib/onlineService';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
+import { GlossyButton } from './GlossyButton';
 import { GlobeIcon, LockIcon, PlusIcon, ShareIcon } from './Icons';
 
 interface WaitingRoomViewProps {
@@ -64,7 +65,8 @@ export function WaitingRoomView({
 
   return (
     <LinearGradient
-      colors={[CLUB.roomBgTop, CLUB.roomBgBottom]}
+      colors={['#071124', '#081327', '#0A1830', '#060E1F']}
+      locations={[0, 0.35, 0.72, 1]}
       style={styles.root}
     >
       <View style={styles.card}>
@@ -90,13 +92,14 @@ export function WaitingRoomView({
         <View style={styles.codeBox}>
           <Text style={styles.codeLabel}>CÓDIGO DE MESA</Text>
           <Text style={styles.codeValue}>{room.code}</Text>
-          <Pressable
+          <GlossyButton
+            title="Compartir código con amigos"
+            variant="cobalt"
+            compact
+            icon={<ShareIcon size={15} color="#FFFFFF" />}
             onPress={handleShareCode}
-            style={({ pressed }) => [styles.shareBtn, pressed && { opacity: 0.85 }]}
-          >
-            <ShareIcon size={15} color={CLUB.cyan} />
-            <Text style={styles.shareBtnText}>Compartir código con amigos</Text>
-          </Pressable>
+            style={{ width: '100%', marginTop: 4 }}
+          />
         </View>
 
         {/* Live Seated Roster */}
@@ -122,27 +125,22 @@ export function WaitingRoomView({
         </View>
 
         {isHost && (
-          <Pressable
+          <GlossyButton
+            title="Rellenar vacíos con Bots y jugar ya"
+            variant="emerald"
+            loading={busy}
             onPress={handleFillBots}
-            disabled={busy}
-            style={({ pressed }) => [
-              styles.startBotsBtn,
-              pressed && { opacity: 0.9 },
-            ]}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color={CLUB.textInk} />
-            ) : (
-              <Text style={styles.startBotsText}>
-                Rellenar vacíos con Bots y jugar ya
-              </Text>
-            )}
-          </Pressable>
+            style={{ width: '100%' }}
+          />
         )}
 
-        <Pressable onPress={onLeave} style={styles.leaveBtn}>
-          <Text style={styles.leaveBtnText}>Salir de la mesa</Text>
-        </Pressable>
+        <GlossyButton
+          title="Salir de la mesa"
+          variant="glass"
+          compact
+          onPress={onLeave}
+          style={{ width: '100%' }}
+        />
       </View>
     </LinearGradient>
   );
@@ -158,15 +156,14 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.92)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.24)',
     padding: 20,
     alignItems: 'center',
     gap: 12,
-    boxShadow: '0px 16px 36px rgba(0, 0, 0, 0.55)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.65)',
   },
   kickerRow: {
     flexDirection: 'row',
@@ -192,13 +189,14 @@ const styles = StyleSheet.create({
   },
   codeBox: {
     width: '100%',
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.35)',
+    backgroundColor: 'rgba(34, 27, 16, 0.66)',
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderColor: 'rgba(245, 196, 81, 0.72)',
     padding: 14,
     alignItems: 'center',
     gap: 6,
+    boxShadow: '0px 0px 20px rgba(245, 196, 81, 0.22)',
   },
   codeLabel: {
     color: CLUB.textMuted,

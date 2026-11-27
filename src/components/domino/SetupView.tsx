@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import Svg, { Circle, Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -128,6 +129,12 @@ export function SetupView({
   onOpenThemes,
   onOpenFeedback,
 }: SetupViewProps) {
+  const { height: winH } = useWindowDimensions();
+  const isCompactH = winH < 780;
+  // Dynamically size 3D hero artwork so the ENTIRE Home screen fits 0-scroll on every portrait phone
+  const logoH = Math.round(Math.max(66, Math.min(104, winH * 0.112)));
+  const charsH = Math.round(Math.max(76, Math.min(120, winH * 0.132)));
+
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
   const selectedMode = MODE_OPTIONS.find((m) => m.value === mode) ?? MODE_OPTIONS[0];
   const hasDailyBonus = canClaimDailyReward(retention);
@@ -142,10 +149,14 @@ export function SetupView({
       <AmbientStarfieldBackdrop />
 
       <View style={styles.shell}>
-        {/* TOP + MIDDLE: Glance Info, 3D Hero Stage & Compact Frosted Setup */}
+        {/* TOP + MIDDLE: 0-scroll fit on all portrait phones; scrolls gracefully only on tiny/landscape */}
         <ScrollView
           style={styles.bodyScroll}
-          contentContainerStyle={styles.bodyContent}
+          contentContainerStyle={[
+            styles.bodyContent,
+            isCompactH && { gap: 7, paddingTop: 4, paddingBottom: 6 },
+          ]}
+          bounces={false}
           showsVerticalScrollIndicator={false}
         >
           {/* 1. Top Frosted HUD Bar */}
@@ -217,18 +228,21 @@ export function SetupView({
             </View>
           </View>
 
-          {/* 2. 3D Illustrated Hero Stage (Logo + Subtitle + Characters/Dominoes) */}
+          {/* 2. 3D Illustrated Hero Stage (Height-scaled for 0-scroll portrait fit) */}
           <View style={styles.heroStage}>
             <Image
               source={TITLE_LOGO_IMG}
-              style={styles.logoImage}
+              style={[styles.logoImage, { height: logoH, width: Math.round(logoH * (880 / 453)) }]}
               resizeMode="contain"
               accessibilityLabel="Dominó Latino"
             />
             <Text style={styles.heroSub}>Club Caribe · Doble Seis</Text>
             <Image
               source={HERO_CHARACTERS_IMG}
-              style={styles.charactersImage}
+              style={[
+                styles.charactersImage,
+                { height: charsH, width: Math.round(charsH * (960 / 431)) },
+              ]}
               resizeMode="contain"
               accessibilityLabel="Jugador y Bot frente a frente con fichas de dominó"
             />
@@ -506,10 +520,10 @@ const styles = StyleSheet.create({
   },
   bodyContent: {
     flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 10,
-    gap: 10,
+    paddingHorizontal: 15,
+    paddingTop: 5,
+    paddingBottom: 7,
+    gap: 8,
   },
   topStrip: {
     flexDirection: 'row',
@@ -618,26 +632,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 175,
-    paddingVertical: 2,
+    paddingVertical: 0,
   },
   logoImage: {
-    width: '66%',
-    maxWidth: 245,
-    aspectRatio: 880 / 453,
+    maxWidth: '72%',
   },
   heroSub: {
     color: '#D5E3F5',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.3,
-    marginTop: -4,
-    marginBottom: 2,
+    marginTop: -3,
+    marginBottom: 1,
   },
   charactersImage: {
-    width: '86%',
-    maxWidth: 325,
-    aspectRatio: 960 / 431,
+    maxWidth: '92%',
   },
   maintenanceBanner: {
     backgroundColor: 'rgba(245, 196, 81, 0.14)',
@@ -645,7 +654,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(245, 196, 81, 0.45)',
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   maintenanceBannerText: {
     color: CLUB.goldSoft,
@@ -654,18 +663,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   lowerCluster: {
-    gap: 10,
+    gap: 8,
   },
   challengeCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     backgroundColor: 'rgba(34, 27, 16, 0.66)',
-    borderRadius: 16,
+    borderRadius: 15,
     borderWidth: 1.25,
     borderColor: 'rgba(245, 196, 81, 0.72)',
-    paddingHorizontal: 13,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     boxShadow: '0px 0px 20px rgba(245, 196, 81, 0.22)',
   },
   starsRow: {
@@ -708,34 +717,35 @@ const styles = StyleSheet.create({
   },
   setupCard: {
     backgroundColor: 'rgba(22, 42, 72, 0.52)',
-    borderRadius: 18,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(148, 190, 255, 0.22)',
-    padding: 12,
-    gap: 11,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    gap: 8,
   },
   setupGroup: {
-    gap: 7,
+    gap: 5,
   },
   sectionLabel: {
     color: '#8EA6C6',
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: '800',
     letterSpacing: 0.9,
   },
   modeSegmentedRow: {
     flexDirection: 'row',
-    gap: 7,
+    gap: 6,
   },
   modePill: {
     flex: 1,
-    minHeight: 54,
+    minHeight: 46,
     backgroundColor: 'rgba(38, 62, 96, 0.44)',
     borderWidth: 1,
     borderColor: 'rgba(148, 190, 255, 0.18)',
-    borderRadius: 13,
-    paddingHorizontal: 5,
-    paddingVertical: 7,
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 5,
     justifyContent: 'center',
   },
   modePillActive: {
@@ -783,54 +793,54 @@ const styles = StyleSheet.create({
     boxShadow: '0px 0px 16px rgba(245, 196, 81, 0.5)',
   },
   scoreChipActiveGrad: {
-    minHeight: 42,
-    borderRadius: 11,
+    minHeight: 37,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FFF7CC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   scoreChip: {
-    minHeight: 42,
+    minHeight: 37,
     backgroundColor: 'rgba(42, 68, 104, 0.45)',
     borderWidth: 1,
     borderColor: 'rgba(148, 190, 255, 0.22)',
-    borderRadius: 11,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scoreChipText: {
     color: '#D3E1F2',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   scoreChipTextActive: {
     color: '#1A1405',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   thumbDock: {
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 12,
-    gap: 9,
+    paddingHorizontal: 15,
+    paddingTop: 4,
+    paddingBottom: 10,
+    gap: 8,
   },
   primaryBtnOuter: {
-    borderRadius: 24,
+    borderRadius: 22,
     borderBottomWidth: 4,
     borderBottomColor: '#0E733E',
-    boxShadow: '0px 6px 26px rgba(41, 214, 127, 0.44)',
+    boxShadow: '0px 6px 24px rgba(41, 214, 127, 0.44)',
   },
   primaryBtnPressed: {
     transform: [{ translateY: 2 }],
     opacity: 0.95,
   },
   primaryBtnGrad: {
-    minHeight: 60,
-    borderRadius: 22,
-    paddingVertical: 10,
+    minHeight: 54,
+    borderRadius: 20,
+    paddingVertical: 8,
     paddingHorizontal: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -850,27 +860,27 @@ const styles = StyleSheet.create({
   primaryBtnTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   primaryBtnText: {
     color: '#06311B',
-    fontSize: 21,
+    fontSize: 20,
     fontWeight: '900',
     letterSpacing: -0.2,
   },
   primaryBtnSub: {
     color: '#0B4D2B',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
-    marginTop: 1,
+    marginTop: 0,
   },
   onlineRow: {
     flexDirection: 'row',
-    gap: 9,
+    gap: 8,
   },
   secondaryBtnOuter: {
     flex: 1,
-    borderRadius: 16,
+    borderRadius: 15,
     borderBottomWidth: 3.5,
   },
   onlineShadow: {
@@ -889,11 +899,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 9,
-    minHeight: 50,
-    borderRadius: 15,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    gap: 8,
+    minHeight: 46,
+    borderRadius: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.24)',

@@ -136,14 +136,13 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.96)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.26)',
     padding: 18,
     gap: 12,
-    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.65)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
   },
   titleRow: {
     flexDirection: 'row',

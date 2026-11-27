@@ -9,6 +9,7 @@ import {
   RetentionProgress,
 } from '@/storage/gameStorage';
 import { hapticSnap } from '@/utils/feedback';
+import { GlossyButton } from './GlossyButton';
 import { CheckIcon, ChipIcon, CloseIcon, CrownIcon } from './Icons';
 
 interface DailyRewardModalProps {
@@ -100,44 +101,32 @@ export function DailyRewardModal({
             })}
           </View>
 
-          <Pressable
+          <GlossyButton
+            title={
+              claimable
+                ? `Reclamar +${amount} fichas`
+                : 'Bono de hoy ya reclamado'
+            }
+            variant={claimable ? 'emerald' : 'glass'}
+            disabled={!claimable}
             onPress={() => {
               if (!claimable) return;
               hapticSnap();
               onClaimDaily();
             }}
-            disabled={!claimable}
-            style={({ pressed }) => [
-              styles.claimBtn,
-              !claimable && styles.claimBtnDisabled,
-              pressed && claimable && { opacity: 0.9 },
-            ]}
-          >
-            <Text
-              style={[
-                styles.claimBtnText,
-                !claimable && { color: CLUB.textMuted },
-              ]}
-            >
-              {claimable
-                ? `Reclamar +${amount} fichas`
-                : 'Bono de hoy ya reclamado'}
-            </Text>
-          </Pressable>
+          />
 
           {/* Compliance guarantee: unlimited free refill whenever balance drops below 200 */}
           {needsRefill && (
-            <Pressable
+            <GlossyButton
+              title="Recarga gratuita del Club (+300 fichas)"
+              variant="cobalt"
+              compact
               onPress={() => {
                 hapticSnap();
                 onClaimFreeRefill();
               }}
-              style={styles.refillBtn}
-            >
-              <Text style={styles.refillBtnText}>
-                Recarga gratuita del Club (+300 fichas)
-              </Text>
-            </Pressable>
+            />
           )}
 
           <Text style={styles.complianceNote}>
@@ -161,14 +150,13 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.96)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.26)',
     padding: 18,
     gap: 12,
-    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.65)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
   },
   titleRow: {
     flexDirection: 'row',
@@ -242,9 +230,10 @@ const styles = StyleSheet.create({
     opacity: 0.45,
   },
   dayCellActive: {
-    borderColor: CLUB.gold,
-    borderWidth: 2,
-    backgroundColor: 'rgba(245, 196, 81, 0.14)',
+    borderColor: '#F5C451',
+    borderWidth: 1.75,
+    backgroundColor: 'rgba(54, 42, 18, 0.66)',
+    boxShadow: '0px 0px 16px rgba(245, 196, 81, 0.35)',
   },
   dayNum: {
     color: CLUB.textSecondary,

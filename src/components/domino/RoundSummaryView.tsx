@@ -7,6 +7,7 @@ import { GameState, HandSummary } from '@/engine/types';
 import { hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
 import { DominoTile } from './DominoTile';
+import { GlossyButton } from './GlossyButton';
 import { CrownIcon } from './Icons';
 
 interface RoundSummaryViewProps {
@@ -301,18 +302,14 @@ export function RoundSummaryView({ state, onContinue }: RoundSummaryViewProps) {
           {state.mode === '4ffa' && render4ffaGrid()}
         </ScrollView>
 
-        <Pressable
+        <GlossyButton
+          title="Continuar"
+          variant="emerald"
           onPress={() => {
             hapticSnap();
             onContinue();
           }}
-          style={({ pressed }) => [
-            styles.continueBtn,
-            pressed && { transform: [{ translateY: 2 }] },
-          ]}
-        >
-          <Text style={styles.continueBtnText}>Continuar</Text>
-        </Pressable>
+        />
       </View>
     </View>
   );
@@ -335,14 +332,13 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 460,
     maxHeight: '88%',
-    backgroundColor: CLUB.surfaceCard,
+    backgroundColor: 'rgba(14, 28, 52, 0.96)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: CLUB.borderSubtle,
-    borderTopColor: CLUB.surfaceHighlight,
-    padding: 14,
+    borderWidth: 1.25,
+    borderColor: 'rgba(148, 190, 255, 0.26)',
+    padding: 15,
     gap: 12,
-    boxShadow: '0px 18px 40px rgba(0, 0, 0, 0.68)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
   },
   header: {
     alignItems: 'center',
@@ -392,8 +388,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   colCardWinner: {
-    borderColor: CLUB.gold,
-    backgroundColor: 'rgba(245, 196, 81, 0.08)',
+    borderColor: '#F5C451',
+    backgroundColor: 'rgba(54, 42, 18, 0.62)',
+    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.22)',
   },
   avatarRing: {
     width: 54,
