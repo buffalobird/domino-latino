@@ -957,11 +957,18 @@ export default function DominoAppScreen() {
     setScreenMode('online_lobby');
   }, [onlineRoom]);
 
-  const handleStartOnlineWithBots = useCallback(async () => {
-    if (!onlineRoom) return;
-    await startOnlineRoomWithBots(onlineRoom.id);
-    trackEvent('room_started_with_bots', { mode: onlineRoom.mode }, user?.id);
-  }, [onlineRoom, user?.id]);
+  const handleStartOnlineWithBots = useCallback(
+    async (convertToFree = false) => {
+      if (!onlineRoom) return;
+      await startOnlineRoomWithBots(onlineRoom.id, { convertToFree });
+      trackEvent(
+        'room_started_with_bots',
+        { mode: onlineRoom.mode, convertToFree, originalBuyIn: onlineRoom.buy_in },
+        user?.id
+      );
+    },
+    [onlineRoom, user?.id]
+  );
 
   const handleOnlinePlay = useCallback(
     (tileId: string, side: PlaySide) => {

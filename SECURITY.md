@@ -10,8 +10,9 @@ Este documento resume los controles de seguridad implementados (alineados con **
 - **RLS habilitado en el 100 % de las tablas** de `public` (`profiles`, `user_progress`, `match_history`, `chip_ledger`, `analytics_events`, `game_rooms`, `room_players`, `room_player_hands`, `room_states`, `api_rate_limits`).
 - **Tablas cerradas solo a servidor (`service_role`):** `public.room_states` (manos ocultas y pozo del servidor) y `public.api_rate_limits` tienen `REVOKE ALL FROM public, anon, authenticated`.
 - **Escritura directa bloqueada en economía:** `INSERT`, `UPDATE` y `DELETE` sobre `user_progress` y `chip_ledger` están revocados para `anon` y `authenticated`.
-- **Operaciones atómicas contra race conditions (`FOR UPDATE`):** `srv_adjust_club_chips`, `srv_claim_daily_reward` (con validación de fecha ±36 h), `srv_free_refill`, `srv_unlock_or_equip_theme` y `srv_check_rate_limit`.
-- **Anti-chip-dumping:** las salas privadas tienen constraint de base de datos `private_rooms_zero_buy_in` (`buy_in = 0`).
+- **Operaciones atómicas contra race conditions (`FOR UPDATE`):** `srv_adjust_club_chips`, `srv_claim_daily_reward` (validación de fecha ±36 h y rechazo de retroceso de reloj `p_today <= last_daily_claim_date`), `srv_free_refill` (saldo `< 200` + enfriamiento de 10 min en servidor), `srv_unlock_or_equip_theme`, `srv_unlock_cosmetic` y `srv_check_rate_limit`.
+- **Anti-chip-dumping y anti-farmeo:** las salas privadas tienen constraint `private_rooms_zero_buy_in` (`buy_in = 0`); `start_with_bots` bloquea bots en mesas con `buy_in > 0` salvo conversión explícita a gratis (`convertToFree: true` → `buy_in = 0`); las revanchas con bots fuerzan `buy_in = 0`; el pozo solo distribuye el `escrowedPool` real aportado por humanos; `record_local_match` valida coherencia de marcador y aplica tope móvil de `600` fichas / 24 h.
+- **Backend versionado en Git:** todas las migraciones SQL (`supabase/migrations/`) y Edge Functions (`supabase/functions/domino-account`, `supabase/functions/domino-online`) se mantienen sincronizadas con el repositorio.
 - **Constraints de payload:** límites de longitud/tamaño en `analytics_events`, `match_history` y `profiles`.
 
 ### Edge Functions autoritativas (`domino-account` & `domino-online`)

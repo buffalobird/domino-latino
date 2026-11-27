@@ -167,10 +167,14 @@ export function joinOnlineRoom(params: { roomId?: string; code?: string }) {
   });
 }
 
-export function startOnlineRoomWithBots(roomId: string) {
-  return invokeOnlineFn<{ ok: boolean }>({
+export function startOnlineRoomWithBots(
+  roomId: string,
+  options?: { convertToFree?: boolean }
+) {
+  return invokeOnlineFn<{ ok: boolean; convertedToFree?: boolean }>({
     action: 'start_with_bots',
     roomId,
+    convertToFree: Boolean(options?.convertToFree),
   });
 }
 

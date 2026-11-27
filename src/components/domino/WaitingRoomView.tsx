@@ -19,7 +19,7 @@ import { GlobeIcon, LockIcon, PlusIcon, ShareIcon } from './Icons';
 interface WaitingRoomViewProps {
   room: OnlineRoomRow;
   isHost: boolean;
-  onStartWithBots: () => Promise<void>;
+  onStartWithBots: (convertToFree?: boolean) => Promise<void>;
   onLeave: () => Promise<void>;
 }
 
@@ -30,10 +30,12 @@ export function WaitingRoomView({
   onLeave,
 }: WaitingRoomViewProps) {
   const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const seats = room.room_players ?? [];
   const slots = Array.from({ length: room.max_players }, (_, i) =>
     seats.find((s) => s.seat === i)
   );
+  const isPaidSalon = room.buy_in > 0;
 
   const modeLabel =
     room.mode === '1v1'
@@ -53,11 +55,16 @@ export function WaitingRoomView({
     }
   };
 
-  const handleFillBots = async () => {
+  const handleFillBots = async (convertToFree = false) => {
+    setErrorMsg(null);
     setBusy(true);
     try {
       hapticSnap();
-      await onStartWithBots();
+      await onStartWithBots(convertToFree);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : 'No se pudo iniciar la mesa con Bots.'
+      );
     } finally {
       setBusy(false);
     }
@@ -124,12 +131,40 @@ export function WaitingRoomView({
           ))}
         </View>
 
-        {isHost && (
+        {errorMsg && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{errorMsg}</Text>
+          </View>
+        )}
+
+        {isPaidSalon && (
+          <View style={styles.salonNotice}>
+            <Text style={styles.salonNoticeTitle}>
+              Salón de {room.buy_in.toLocaleString('es-ES')} fichas · Solo jugadores reales
+            </Text>
+            <Text style={styles.salonNoticeBody}>
+              Las fichas de entrada solo se descuentan cuando todos los asientos se llenan con humanos.
+            </Text>
+          </View>
+        )}
+
+        {isHost && !isPaidSalon && (
           <GlossyButton
             title="Rellenar vacíos con Bots y jugar ya"
             variant="emerald"
             loading={busy}
-            onPress={handleFillBots}
+            onPress={() => handleFillBots(false)}
+            style={{ width: '100%' }}
+          />
+        )}
+
+        {isHost && isPaidSalon && (
+          <GlossyButton
+            title="Jugar gratis con Bots"
+            subtitle="Convierte esta mesa a amistosa (0 fichas · sin cobro)"
+            variant="cobalt"
+            loading={busy}
+            onPress={() => handleFillBots(true)}
             style={{ width: '100%' }}
           />
         )}
@@ -291,5 +326,42 @@ const styles = StyleSheet.create({
     color: '#FDA4AF',
     fontSize: 14,
     fontWeight: '800',
+  },
+  salonNotice: {
+    width: '100%',
+    backgroundColor: 'rgba(245, 196, 81, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 196, 81, 0.45)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 3,
+  },
+  salonNoticeTitle: {
+    color: CLUB.gold,
+    fontSize: 12,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  salonNoticeBody: {
+    color: CLUB.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  errorBox: {
+    width: '100%',
+    backgroundColor: 'rgba(244, 63, 94, 0.16)',
+    borderWidth: 1,
+    borderColor: CLUB.coral,
+    borderRadius: 12,
+    padding: 10,
+  },
+  errorText: {
+    color: '#FDA4AF',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

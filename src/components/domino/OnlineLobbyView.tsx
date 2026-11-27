@@ -385,6 +385,11 @@ export function OnlineLobbyView({
                         );
                       })}
                     </View>
+                    {buyIn > 0 && (
+                      <Text style={styles.privateComplianceHint}>
+                        Las mesas con fichas esperan jugadores reales (si no se llena, podrás pasar a jugar gratis con Bots).
+                      </Text>
+                    )}
                   </>
                 ) : (
                   <Text style={styles.privateComplianceHint}>
