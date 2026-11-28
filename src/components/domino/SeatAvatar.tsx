@@ -28,7 +28,13 @@ interface SeatAvatarProps {
   mood?: BotMood;
   avatarConfig?: AvatarConfig;
   layout?: 'horizontal' | 'stacked';
-  bubbleAnchor?: 'left' | 'right' | 'below';
+  bubbleAnchor?:
+    | 'left'
+    | 'right'
+    | 'below'
+    | 'below-left'
+    | 'below-right'
+    | 'above-left';
 }
 
 function isKeyTacticalCallout(action: string | null): boolean {
@@ -219,7 +225,13 @@ export function SeatAvatar({
   );
 
   const bubblePosStyle =
-    bubbleAnchor === 'below'
+    bubbleAnchor === 'below-left'
+      ? styles.bubbleBelowLeft
+      : bubbleAnchor === 'below-right'
+      ? styles.bubbleBelowRight
+      : bubbleAnchor === 'above-left'
+      ? styles.bubbleAboveLeft
+      : bubbleAnchor === 'below'
       ? styles.bubbleBelow
       : bubbleAnchor === 'left'
       ? styles.bubbleLeft
@@ -326,7 +338,7 @@ export function SeatAvatar({
                 styles.bubbleTextLight,
               isReactionBubble && styles.bubbleReactionText,
             ]}
-            numberOfLines={1}
+            numberOfLines={2}
           >
             {activeBubble}
           </Text>
@@ -460,29 +472,50 @@ const styles = StyleSheet.create({
   bubbleBase: {
     position: 'absolute',
     backgroundColor: '#FFFDF7',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: 13,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     borderWidth: 1.25,
     borderColor: 'rgba(15, 23, 42, 0.16)',
-    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.30)',
-    zIndex: 40,
+    boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.28)',
+    zIndex: 55,
+    maxWidth: 196,
   },
   bubbleBelow: {
     top: '100%',
-    marginTop: 4,
+    marginTop: 5,
+    minWidth: 118,
+    alignItems: 'center',
+  },
+  bubbleBelowLeft: {
+    top: '100%',
+    left: 0,
+    marginTop: 5,
+    minWidth: 118,
+  },
+  bubbleBelowRight: {
+    top: '100%',
+    right: 0,
+    marginTop: 5,
+    minWidth: 118,
+  },
+  bubbleAboveLeft: {
+    bottom: '100%',
+    left: 2,
+    marginBottom: 6,
+    minWidth: 118,
   },
   bubbleLeft: {
     right: '100%',
     marginRight: 8,
     top: '50%',
-    marginTop: -13,
+    marginTop: -14,
   },
   bubbleRight: {
     left: '100%',
     marginLeft: 8,
     top: '50%',
-    marginTop: -13,
+    marginTop: -14,
   },
   bubbleDraw: {
     backgroundColor: '#FEF3C7',
@@ -500,19 +533,23 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFBF0',
     borderColor: CLUB.gold,
     borderWidth: 1.5,
-    paddingHorizontal: 11,
-    paddingVertical: 4.5,
-    borderRadius: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 5.5,
+    borderRadius: 14,
   },
   bubbleText: {
     fontFamily: FONT.extraBold,
     color: '#11252E',
-    fontSize: 11,
+    fontSize: 11.5,
+    lineHeight: 15,
+    textAlign: 'center',
   },
   bubbleReactionText: {
     fontFamily: FONT.extraBold,
     color: '#11252E',
-    fontSize: 11.5,
+    fontSize: 12,
+    lineHeight: 15.5,
+    textAlign: 'center',
   },
   bubbleTextLight: {
     color: '#FFFFFF',

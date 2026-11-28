@@ -26,9 +26,12 @@ import { WaitingRoomView } from '@/components/domino/WaitingRoomView';
 import { AVATAR_COSMETIC_PRICES, AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
 import {
+  BotPacingMemory,
+  createBotPacingMemory,
   pickBotTablePhrase,
   REACTION_BY_CODE,
   TableReactionCode,
+  tryPickTimedBotPhrase,
 } from '@/constants/socialReactions';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
@@ -213,12 +216,20 @@ export default function DominoAppScreen() {
   const reactionTimersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
   const lastOnlineReactionAtRef = useRef<number>(0);
   const lastSignatureKeyRef = useRef<string | null>(null);
+  const botPacingRef = useRef<BotPacingMemory>(createBotPacingMemory(0));
+
+  const getHandPacingMemory = useCallback((handNumber: number) => {
+    if (botPacingRef.current.handNumber !== handNumber) {
+      botPacingRef.current = createBotPacingMemory(handNumber);
+    }
+    return botPacingRef.current;
+  }, []);
 
   const setTempMood = useCallback((seat: number, mood: BotMood) => {
     setSeatMoods((prev) => ({ ...prev, [seat]: mood }));
   }, []);
 
-  const flashSeatReaction = useCallback((visualSeat: number, text: string, durationMs = 2600) => {
+  const flashSeatReaction = useCallback((visualSeat: number, text: string, durationMs = 3100) => {
     const existing = reactionTimersRef.current.get(visualSeat);
     if (existing) clearTimeout(existing);
     setSeatReactions((prev) => ({ ...prev, [visualSeat]: text }));
@@ -695,22 +706,53 @@ export default function DominoAppScreen() {
       if (tile && isDouble(tile)) {
         hapticDouble();
         playGameSound('double', curr.soundEnabled);
-        // Subtle warm Bot reaction when human drops a double
-        if (next.phase === 'playing') {
-          const reactorSeat = curr.mode === '2v2' ? 2 : 1;
-          const phrase = pickBotTablePhrase('human_double', curr.mode === '2v2', 0.42);
-          if (phrase) {
-            setTimeout(() => flashSeatReaction(reactorSeat, phrase), 450);
-          }
-        }
       } else {
         hapticSnap();
         playGameSound('clack', curr.soundEnabled);
       }
+
+      // Psychologically grounded Bot companionship (never on opening move 1-2!)
+      if (next.phase === 'playing') {
+        const memory = getHandPacingMemory(next.handNumber);
+        const humanTilesLeft = next.players[0]?.hand.length ?? 0;
+        const moveCount = next.history.length;
+        const isPartnerMode = curr.mode === '2v2';
+
+        if (humanTilesLeft === 1) {
+          // Endgame tension: human is 1 tile away from going out ("en capilla")
+          const reactorSeat = isPartnerMode ? 2 : 1;
+          const phrase = tryPickTimedBotPhrase({
+            moment: 'human_one_tile',
+            isPartner: isPartnerMode,
+            chainLength: next.chain.length,
+            moveCount,
+            chance: 0.78,
+            memory,
+            urgent: true,
+          });
+          if (phrase) {
+            setTimeout(() => flashSeatReaction(reactorSeat, phrase), 480);
+          }
+        } else if (tile && isDouble(tile)) {
+          // Only praise mid-game strategic doubles (chain >= 4), never routine opening 6-6
+          const reactorSeat = isPartnerMode ? 2 : 1;
+          const phrase = tryPickTimedBotPhrase({
+            moment: 'human_double',
+            isPartner: isPartnerMode,
+            chainLength: next.chain.length,
+            moveCount,
+            chance: 0.42,
+            memory,
+          });
+          if (phrase) {
+            setTimeout(() => flashSeatReaction(reactorSeat, phrase), 520);
+          }
+        }
+      }
     } catch {
       // Ignore illegal action
     }
-  }, [flashSeatReaction]);
+  }, [flashSeatReaction, getHandPacingMemory]);
 
   const executeLocalHumanDraw = useCallback((boneyardIndex?: number) => {
     const curr = stateRef.current;
@@ -739,15 +781,23 @@ export default function DominoAppScreen() {
       hapticWarning();
       playGameSound('pass', curr.soundEnabled);
       if (next.phase === 'playing' && curr.mode === '2v2') {
-        const phrase = pickBotTablePhrase('human_pass', true, 0.48);
+        const memory = getHandPacingMemory(next.handNumber);
+        const phrase = tryPickTimedBotPhrase({
+          moment: 'human_pass',
+          isPartner: true,
+          chainLength: next.chain.length,
+          moveCount: next.history.length,
+          chance: 0.52,
+          memory,
+        });
         if (phrase) {
-          setTimeout(() => flashSeatReaction(2, phrase), 500);
+          setTimeout(() => flashSeatReaction(2, phrase), 520);
         }
       }
     } catch {
       // Ignore
     }
-  }, [flashSeatReaction]);
+  }, [flashSeatReaction, getHandPacingMemory]);
 
   // Local 20s Human Turn Timer (genuinely pauses while Pause modal is open)
   useEffect(() => {
@@ -841,7 +891,15 @@ export default function DominoAppScreen() {
             hapticDouble();
             playGameSound('double', curr.soundEnabled);
             if (next.phase === 'playing') {
-              const phrase = pickBotTablePhrase('bot_double', curr.mode === '2v2' && seat === 2, 0.34);
+              const memory = getHandPacingMemory(next.handNumber);
+              const phrase = tryPickTimedBotPhrase({
+                moment: 'bot_double',
+                isPartner: curr.mode === '2v2' && seat === 2,
+                chainLength: next.chain.length,
+                moveCount: next.history.length,
+                chance: 0.28,
+                memory,
+              });
               if (phrase) flashSeatReaction(seat, phrase);
             }
           } else {
@@ -859,11 +917,40 @@ export default function DominoAppScreen() {
           playGameSound('draw', curr.soundEnabled);
           return;
         }
+        const prevEntry = curr.history[curr.history.length - 1];
         const next = applyPass(curr, seat);
         setState(next);
         setTempMood(seat, 'pass');
         hapticWarning();
         playGameSound('pass', curr.soundEnabled);
+
+        // Earned dopamine moment: the human's last play forced this rival Bot to pass!
+        if (
+          next.phase === 'playing' &&
+          seat === 1 &&
+          prevEntry?.type === 'play' &&
+          prevEntry.seat === 0
+        ) {
+          const memory = getHandPacingMemory(next.handNumber);
+          const partnerCheers = curr.mode === '2v2' && Math.random() < 0.6;
+          const phrase = tryPickTimedBotPhrase({
+            moment: 'human_caused_pass',
+            isPartner: partnerCheers,
+            chainLength: next.chain.length,
+            moveCount: next.history.length,
+            chance: 0.65,
+            memory,
+          });
+          if (phrase) {
+            if (partnerCheers) {
+              // Partner celebrates immediately without covering Seat 1's "¡Pasó!" badge
+              setTimeout(() => flashSeatReaction(2, phrase), 420);
+            } else {
+              // Rival reacts right after their "¡Pasó!" badge reads cleanly
+              setTimeout(() => flashSeatReaction(1, phrase), 1150);
+            }
+          }
+        }
       } catch {
         // Ignore
       }

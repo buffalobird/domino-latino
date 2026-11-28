@@ -686,7 +686,7 @@ export function GameTableView({
               mood={seatMoods[1] ?? 'idle'}
               avatarConfig={opponent1.avatarConfig}
               layout="horizontal"
-              bubbleAnchor="below"
+              bubbleAnchor="below-right"
             />
           )}
         </View>
@@ -697,6 +697,12 @@ export function GameTableView({
             {[1, 2, 3].map((seatIdx) => {
               const p = state.players[seatIdx];
               const resolved = resolveSeatProfile(seatIdx);
+              const arcAnchor =
+                seatIdx === 1
+                  ? 'below-left'
+                  : seatIdx === 3
+                  ? 'below-right'
+                  : 'below';
               return (
                 <SeatAvatar
                   key={seatIdx}
@@ -712,7 +718,7 @@ export function GameTableView({
                   mood={seatMoods[seatIdx] ?? 'idle'}
                   avatarConfig={resolved.avatarConfig}
                   layout="stacked"
-                  bubbleAnchor="below"
+                  bubbleAnchor={arcAnchor}
                 />
               );
             })}
@@ -865,7 +871,7 @@ export function GameTableView({
             mood={seatMoods[0] ?? 'idle'}
             avatarConfig={playerAvatarConfig}
             layout="horizontal"
-            bubbleAnchor="right"
+            bubbleAnchor="above-left"
           />
 
           {mustPass ? (

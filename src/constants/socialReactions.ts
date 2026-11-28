@@ -1,6 +1,6 @@
 /**
- * Curated warm table reactions ("Sobremesa") + respectful local Bot companionship lines.
- * Zero toxic free-text chat, zero heavy moderation overhead — 100% genuine table warmth.
+ * Curated warm table reactions ("Sobremesa") + psychologically grounded Bot companionship.
+ * Zero toxic free-text chat — timely, earned, readable comments that never spam or clip.
  */
 
 export type TableReactionCode =
@@ -64,36 +64,122 @@ export function getWarmHostGreeting(displayName?: string | null): {
 }
 
 export type BotMoment =
+  | 'human_caused_pass'
+  | 'human_one_tile'
   | 'human_double'
   | 'human_pass'
   | 'bot_double'
-  | 'partner_good_play'
-  | 'hand_start';
+  | 'partner_good_play';
 
+/**
+ * Every phrase is intentionally <= 22 characters so it reads in <0.8s at a glance
+ * and NEVER clips or ellipsizes on compact phone screens.
+ */
 const PARTNER_PHRASES: Record<BotMoment, string[]> = {
-  human_double: ['¡Buena esa, compa!', '¡Con fuerza, compa!', '¡Así se juega!'],
-  human_pass: ['Tranquilo, yo cubro', '¡Sin pena, seguimos!', 'Con calma, vamos bien'],
-  bot_double: ['¡Ahí va doble!', '¡A defender la mesa!'],
-  partner_good_play: ['¡Buena jugada, compa!', '¡Excelente salida!'],
-  hand_start: ['¡Vamos con todo, compa!', '¡Buena suerte en esta!'],
+  human_caused_pass: ['¡Eso es, compa!', '¡Buen pase le diste!', '¡Así se aprieta!'],
+  human_one_tile: ['¡Ya casi, compa!', '¡A una ficha, vamos!'],
+  human_double: ['¡Buen doble, compa!', '¡Bien bajado!'],
+  human_pass: ['Tranquilo, yo cubro', 'Sin pena, seguimos'],
+  bot_double: ['¡Ahí va doble!', '¡Doble en mesa!'],
+  partner_good_play: ['¡Buena jugada, compa!', '¡Buen ritmo!'],
 };
 
 const RIVAL_PHRASES: Record<BotMoment, string[]> = {
-  human_double: ['¡Uy, qué jugada!', '¡Buena esa!', '¡Fuerte movida!'],
-  human_pass: ['¡Uff, se puso apretado!', '¡A cuidar las pintas!'],
+  human_caused_pass: ['¡Me dejaste fuera!', '¡Uff, no tengo!', '¡Buena esa!'],
+  human_one_tile: ['¡A una ficha!', '¡Ojo que pega!'],
+  human_double: ['¡Doble fuerte!', '¡Bien jugado!'],
+  human_pass: ['¡Se puso apretado!', '¡A cuidar puntos!'],
   bot_double: ['¡Doble en mesa!', '¡Ahí va esa!'],
-  partner_good_play: ['¡Bien jugado!', '¡Buen movimiento!'],
-  hand_start: ['¡Buena partida!', '¡Que gane el mejor!'],
+  partner_good_play: ['¡Bien jugado!', '¡Buen toque!'],
 };
 
+/** Minimum board chain length before each spontaneous moment feels earned (never on move 1-2) */
+export const BOT_MOMENT_MIN_CHAIN: Record<BotMoment, number> = {
+  human_caused_pass: 3,
+  human_one_tile: 4,
+  human_double: 4,
+  human_pass: 3,
+  bot_double: 5,
+  partner_good_play: 3,
+};
+
+export interface BotPacingMemory {
+  handNumber: number;
+  commentsInHand: number;
+  lastCommentMoveCount: number;
+  lastCommentAtMs: number;
+  lastPhrase: string | null;
+}
+
+export function createBotPacingMemory(handNumber = 0): BotPacingMemory {
+  return {
+    handNumber,
+    commentsInHand: 0,
+    lastCommentMoveCount: -10,
+    lastCommentAtMs: 0,
+    lastPhrase: null,
+  };
+}
+
 /**
- * Picks a warm, understated table comment for a Bot seat at key moments (~35% trigger rate
- * so the table feels genuinely accompanied without ever feeling noisy or spammy).
+ * Evaluates whether a spontaneous Bot comment is timely, earned, and non-repetitive.
+ * Enforces:
+ * - Minimum turn threshold per moment (zero fake praise on opening 6-6 / turns 1-2)
+ * - Max 3 spontaneous comments per hand (scarcity = warmth & authenticity)
+ * - At least 3 moves AND 9 seconds between spontaneous comments (urgent endgame exception: 5s / 2 moves)
+ * - Never repeats the exact same phrase back-to-back
  */
+export function tryPickTimedBotPhrase(params: {
+  moment: BotMoment;
+  isPartner: boolean;
+  chainLength: number;
+  moveCount: number;
+  chance: number;
+  memory: BotPacingMemory;
+  nowMs?: number;
+  urgent?: boolean;
+}): string | null {
+  const {
+    moment,
+    isPartner,
+    chainLength,
+    moveCount,
+    chance,
+    memory,
+    nowMs = Date.now(),
+    urgent = false,
+  } = params;
+
+  if (chainLength < BOT_MOMENT_MIN_CHAIN[moment]) return null;
+  if (memory.commentsInHand >= 3) return null;
+
+  const minMovesGap = urgent ? 2 : 3;
+  const minTimeMs = urgent ? 5000 : 9000;
+  if (moveCount - memory.lastCommentMoveCount < minMovesGap) return null;
+  if (memory.lastCommentAtMs > 0 && nowMs - memory.lastCommentAtMs < minTimeMs) return null;
+
+  if (Math.random() > chance) return null;
+
+  const pool = isPartner ? PARTNER_PHRASES[moment] : RIVAL_PHRASES[moment];
+  if (!pool || pool.length === 0) return null;
+
+  const filtered = pool.filter((p) => p !== memory.lastPhrase);
+  const candidates = filtered.length > 0 ? filtered : pool;
+  const picked = candidates[Math.floor(Math.random() * candidates.length)];
+
+  memory.commentsInHand += 1;
+  memory.lastCommentMoveCount = moveCount;
+  memory.lastCommentAtMs = nowMs;
+  memory.lastPhrase = picked;
+
+  return picked;
+}
+
+/** Direct non-gated phrase picker (used for immediate replies to player-initiated reactions). */
 export function pickBotTablePhrase(
   moment: BotMoment,
   isPartner: boolean,
-  chance = 0.36
+  chance = 0.55
 ): string | null {
   if (Math.random() > chance) return null;
   const pool = isPartner ? PARTNER_PHRASES[moment] : RIVAL_PHRASES[moment];
