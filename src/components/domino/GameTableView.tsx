@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
+  Easing,
+  FadeInDown,
   runOnJS,
   SharedValue,
   useAnimatedStyle,
@@ -23,8 +25,8 @@ import { AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood, getSeatProfile } from '@/constants/seatProfiles';
 import { TABLE_REACTIONS, TableReactionCode } from '@/constants/socialReactions';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
-import { TileStyleId } from '@/constants/tileStyles';
-import { CLUB } from '@/constants/tokens';
+import { getTileStyle, TileStyleId } from '@/constants/tileStyles';
+import { CLUB, FONT } from '@/constants/tokens';
 import { usePalette } from '@/context/PaletteContext';
 import { AiDifficulty } from '@/engine/ai';
 import {
@@ -39,7 +41,13 @@ import { AvatarIllustration } from './AvatarIllustration';
 import { BoardCanvas, BoardRect, DropZoneTarget } from './BoardCanvas';
 import { BoneyardDrawer } from './BoneyardDrawer';
 import { DominoTile } from './DominoTile';
-import { MessageIcon, PauseIcon, PlusIcon, SoundOffIcon, SoundOnIcon } from './Icons';
+import {
+  BoneyardTilesIcon,
+  MessageIcon,
+  PauseIcon,
+  SoundOffIcon,
+  SoundOnIcon,
+} from './Icons';
 import { BotSpeed, PauseModal } from './PauseModal';
 import { SeatAvatar } from './SeatAvatar';
 
@@ -49,6 +57,7 @@ export interface HandEndMomentData {
   points: number;
   winnerAvatar?: AvatarConfig;
   isWinnerBot: boolean;
+  winnerSeatHint?: number;
   accentColor: string;
 }
 
@@ -84,7 +93,10 @@ interface GameTableViewProps {
 
 interface GestureHandTileProps {
   tile: Tile;
+  index: number;
+  handNumber: number;
   unit: number;
+  isHumanTurn: boolean;
   isLegal: boolean;
   isSelected: boolean;
   isDraggingThis: boolean;
@@ -105,7 +117,10 @@ interface GestureHandTileProps {
 
 function GestureHandTile({
   tile,
+  index,
+  handNumber,
   unit,
+  isHumanTurn,
   isLegal,
   isSelected,
   isDraggingThis,
@@ -123,6 +138,28 @@ function GestureHandTile({
   onSingleTap,
   onDoubleTapQuickPlay,
 }: GestureHandTileProps) {
+  const dealOffset = useSharedValue(-14);
+  const dealOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    dealOffset.value = -14;
+    dealOpacity.value = 0;
+    const delay = Math.min(index * 32, 240);
+    const t = setTimeout(() => {
+      dealOffset.value = withTiming(0, {
+        duration: 210,
+        easing: Easing.out(Easing.cubic),
+      });
+      dealOpacity.value = withTiming(1, { duration: 180 });
+    }, delay);
+    return () => clearTimeout(t);
+  }, [handNumber, index, dealOffset, dealOpacity]);
+
+  const dealStyle = useAnimatedStyle(() => ({
+    opacity: isDraggingThis ? 0.14 : dealOpacity.value,
+    transform: [{ translateY: dealOffset.value }],
+  }));
+
   const pan = useMemo(
     () =>
       Gesture.Pan()
@@ -197,18 +234,19 @@ function GestureHandTile({
 
   return (
     <GestureDetector gesture={composed}>
-      <View style={{ opacity: isDraggingThis ? 0.14 : 1 }}>
+      <Animated.View style={dealStyle}>
         <DominoTile
           a={tile.a}
           b={tile.b}
           orientation="vertical"
           unit={unit}
           playable={isLegal}
+          dimmed={isHumanTurn && !isLegal}
+          resting={!isHumanTurn}
           selected={isSelected && !isDraggingThis}
-          ebony={!isLegal}
           tileStyleId={tileStyleId}
         />
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 }
@@ -272,6 +310,7 @@ export function GameTableView({
   const human = state.players[0];
   const isHumanTurn = state.phase === 'playing' && state.currentTurnSeat === 0;
   const myPipSum = useMemo(() => handPipSum(human.hand), [human.hand]);
+  const equippedTileCfg = getTileStyle(tileStyleId);
 
   const legalMoves = useMemo(
     () => (isHumanTurn ? getLegalMovesForSeat(state, 0) : []),
@@ -325,8 +364,8 @@ export function GameTableView({
     if (mustDraw) {
       pozoPulse.value = withRepeat(
         withSequence(
-          withTiming(1.1, { duration: 420 }),
-          withTiming(1.0, { duration: 420 })
+          withTiming(1.08, { duration: 450 }),
+          withTiming(1.0, { duration: 450 })
         ),
         -1,
         true
@@ -499,14 +538,13 @@ export function GameTableView({
     }
     if (!mustDraw) {
       hapticLight();
-      showToast('Tienes jugada disponible');
+      showToast('Tienes jugada en tu mano');
       return;
     }
     hapticLight();
     setBoneyardOpen(true);
   };
 
-  // Lifted 86px above finger so thumb NEVER hides the tile pips while aiming on iPhone/Android
   const floatingTileStyle = useAnimatedStyle(() => ({
     opacity: dragActive.value,
     transform: [
@@ -529,9 +567,14 @@ export function GameTableView({
   const resolveSeatProfile = (seatIdx: number) => {
     const base = getSeatProfile(state.mode, seatIdx);
     const isBot = seatIsHuman ? !seatIsHuman[seatIdx] : base.isBot;
-    const displayName = seatNames?.[seatIdx] ?? base.displayName;
+    const displayName =
+      seatNames?.[seatIdx] && !seatNames[seatIdx].startsWith('CPU')
+        ? seatNames[seatIdx]
+        : base.displayName;
     const avatarConfig =
-      seatIdx === 0 ? playerAvatarConfig : seatAvatars?.[seatIdx];
+      seatIdx === 0
+        ? playerAvatarConfig
+        : seatAvatars?.[seatIdx] ?? base.avatarConfig;
     return { profile: { ...base, isBot, displayName }, avatarConfig };
   };
   const humanTimerProgress =
@@ -554,7 +597,7 @@ export function GameTableView({
       onLayout={measureRootOrigin}
     >
       <View ref={rootRef} style={styles.rootInner}>
-        {/* Top Row: Controls + Shared 2v2 Team Score (or 1v1 Bot on right) */}
+        {/* Top Row: Controls + Shared 2v2 Team Score (or 1v1 Rival on right) */}
         <View style={styles.topUtilityRow}>
           <View style={styles.cornerControls}>
             <Pressable
@@ -582,7 +625,9 @@ export function GameTableView({
                 onToggleSound();
               }}
               accessibilityRole="button"
-              accessibilityLabel={state.soundEnabled ? 'Silenciar sonido' : 'Activar sonido'}
+              accessibilityLabel={
+                state.soundEnabled ? 'Silenciar sonido' : 'Activar sonido'
+              }
               style={({ pressed }) => [
                 styles.iconCircle,
                 {
@@ -593,10 +638,7 @@ export function GameTableView({
               ]}
             >
               {state.soundEnabled ? (
-                <SoundOnIcon
-                  size={18}
-                  color={palette.isDark ? CLUB.emerald : palette.accent}
-                />
+                <SoundOnIcon size={18} color={palette.accent} />
               ) : (
                 <SoundOffIcon size={18} color={palette.textMuted} />
               )}
@@ -613,12 +655,7 @@ export function GameTableView({
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.teamNosotros,
-                  { color: palette.isDark ? CLUB.emerald : '#128E8B' },
-                ]}
-              >
+              <Text style={[styles.teamNosotros, { color: palette.accent }]}>
                 NOS {state.scores[0]}
               </Text>
               <Text style={[styles.teamDivider, { color: palette.textMuted }]}>·</Text>
@@ -654,7 +691,7 @@ export function GameTableView({
           )}
         </View>
 
-        {/* 4-Player Clockwise Opponent Arc ABOVE the table (Board stays 100% FULL WIDTH!) */}
+        {/* 4-Player Clockwise Opponent Arc ABOVE the table */}
         {isFourPlayers && (
           <View style={styles.fourPlayerArc}>
             {[1, 2, 3].map((seatIdx) => {
@@ -682,7 +719,7 @@ export function GameTableView({
           </View>
         )}
 
-        {/* 100% FULL-WIDTH Table Board in ALL modes (1v1, 2v2, 4ffa) */}
+        {/* 100% FULL-WIDTH Table Board */}
         <View style={styles.boardWrap}>
           <BoardCanvas
             chain={state.chain}
@@ -698,6 +735,7 @@ export function GameTableView({
             onDropZonesMeasured={handleDropZonesMeasured}
           />
 
+          {/* Tactile Porcelain Boneyard ("Pozo") Pill in 1v1 */}
           {state.mode === '1v1' && (
             <Animated.View style={[styles.pozoWrap, pozoAnimStyle]}>
               <Pressable
@@ -710,14 +748,29 @@ export function GameTableView({
                   state.boneyard.length === 0 && styles.pozoBtnEmpty,
                 ]}
               >
-                <PlusIcon size={26} color="#FFFFFF" />
-                <View
-                  style={[
-                    styles.pozoCountBadge,
-                    mustDraw && styles.pozoCountBadgeActive,
-                  ]}
-                >
-                  <Text style={styles.pozoCountText}>{state.boneyard.length}</Text>
+                <BoneyardTilesIcon
+                  size={25}
+                  faceColor={equippedTileCfg.backGradient[1]}
+                  strokeColor={equippedTileCfg.backBorderColor}
+                  inlayColor={equippedTileCfg.backFiligreeStroke}
+                />
+                <View style={styles.pozoMetaCol}>
+                  <Text
+                    style={[
+                      styles.pozoLabel,
+                      mustDraw && { color: '#231703' },
+                    ]}
+                  >
+                    POZO
+                  </Text>
+                  <Text
+                    style={[
+                      styles.pozoCountText,
+                      mustDraw && { color: '#231703' },
+                    ]}
+                  >
+                    {state.boneyard.length}
+                  </Text>
                 </View>
               </Pressable>
             </Animated.View>
@@ -725,21 +778,31 @@ export function GameTableView({
 
           {toastText && (
             <View style={styles.toastWrap} pointerEvents="none">
-              <View style={styles.toastPill}>
-                <Text style={styles.toastText}>{toastText}</Text>
+              <View
+                style={[
+                  styles.toastPill,
+                  {
+                    backgroundColor: palette.modalBg,
+                    borderColor: palette.brandAccent,
+                  },
+                ]}
+              >
+                <Text style={[styles.toastText, { color: palette.textPrimary }]}>
+                  {toastText}
+                </Text>
               </View>
             </View>
           )}
 
-          {/* Signature Moment Overlay (~0.95s dramatic celebration over live board before RoundSummary) */}
+          {/* Signature Moment Overlay (~0.95s celebration over live board before RoundSummary) */}
           {handEndMoment && (
             <View style={styles.signatureOverlay} pointerEvents="none">
               <View
                 style={[
                   styles.signatureCard,
-                  !palette.isDark && {
-                    backgroundColor: '#FFFFFF',
-                    borderColor: palette.brandAccent,
+                  {
+                    backgroundColor: palette.modalBg,
+                    borderColor: palette.winnerCardBorder,
                   },
                 ]}
               >
@@ -750,23 +813,21 @@ export function GameTableView({
                       borderColor:
                         handEndMoment.reason === 'tranca_tie'
                           ? palette.textSecondary
-                          : palette.brandAccent,
+                          : palette.winnerCardBorder,
                     },
                   ]}
                 >
                   <AvatarIllustration
                     isBot={handEndMoment.isWinnerBot}
+                    seatHint={handEndMoment.winnerSeatHint ?? 1}
                     accentColor={handEndMoment.accentColor}
                     mood={handEndMoment.reason === 'tranca_tie' ? 'idle' : 'win'}
-                    size={54}
+                    size={56}
                     avatarConfig={handEndMoment.winnerAvatar}
                   />
                 </View>
                 <Text
-                  style={[
-                    styles.signatureTitle,
-                    { color: palette.isDark ? CLUB.gold : palette.brandAccent },
-                  ]}
+                  style={[styles.signatureTitle, { color: palette.winnerText }]}
                 >
                   {handEndMoment.reason === 'domino'
                     ? '¡DOMINÓ!'
@@ -775,58 +836,20 @@ export function GameTableView({
                     : '¡EMPATE!'}
                 </Text>
                 <Text
-                  style={[
-                    styles.signatureSub,
-                    { color: palette.isDark ? CLUB.ivoryTop : palette.textPrimary },
-                  ]}
+                  style={[styles.signatureSub, { color: palette.textPrimary }]}
                 >
                   {handEndMoment.reason === 'tranca_tie'
                     ? 'Mano nula · Siguiente reparto'
-                    : `${handEndMoment.winnerName ?? 'Ganador'} · +${handEndMoment.points} pts`}
+                    : `${handEndMoment.winnerName ?? 'Ganador'} · +${
+                        handEndMoment.points
+                      } pts`}
                 </Text>
               </View>
             </View>
           )}
         </View>
 
-        {/* Floating 6-Reaction Sobremesa Tray (zero toxic free-text chat, pure table warmth) */}
-        {reactionsOpen && onSendReaction && (
-          <View
-            style={[
-              styles.reactionTray,
-              {
-                backgroundColor: palette.isDark ? CLUB.glassBgStrong : '#FFFFFF',
-                borderColor: palette.borderWarm,
-              },
-            ]}
-          >
-            {TABLE_REACTIONS.map((item) => (
-              <Pressable
-                key={item.code}
-                onPress={() => {
-                  hapticLight();
-                  playGameSound('pickup', state.soundEnabled);
-                  setReactionsOpen(false);
-                  onSendReaction(item.code);
-                }}
-                style={({ pressed }) => [
-                  styles.reactionChip,
-                  {
-                    backgroundColor: palette.surfaceCardAlt,
-                    borderColor: palette.borderSubtle,
-                  },
-                  pressed && { opacity: 0.8, transform: [{ scale: 0.96 }] },
-                ]}
-              >
-                <Text style={[styles.reactionChipText, { color: palette.textPrimary }]}>
-                  {item.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
-
-        {/* Bottom HUD: Human Seat Avatar + Compact Sobremesa Reactions + Tactical Pip Sum / Pass CTA */}
+        {/* Bottom HUD: Human Seat Avatar + Sobremesa Reactions + Tactical Pip Sum / Pass CTA */}
         <View style={styles.bottomHudRow}>
           <SeatAvatar
             profile={humanProfile}
@@ -850,15 +873,10 @@ export function GameTableView({
               onPress={onHumanPass}
               style={({ pressed }) => [
                 styles.passBtn,
-                !palette.isDark && {
-                  backgroundColor: palette.brandAccent,
-                  borderBottomColor: palette.primaryShadow,
-                  borderColor: 'rgba(255,255,255,0.45)',
-                },
-                pressed && { opacity: 0.88 },
+                pressed && { opacity: 0.9, transform: [{ translateY: 1.5 }] },
               ]}
             >
-              <Text style={styles.passBtnText}>Pasar</Text>
+              <Text style={styles.passBtnText}>Pasar turno</Text>
             </Pressable>
           ) : (
             <View style={styles.tacticalChips}>
@@ -886,9 +904,9 @@ export function GameTableView({
                     size={16}
                     color={
                       reactionsOpen
-                        ? palette.textOnPrimary
-                        : palette.isDark
-                        ? CLUB.goldSoft
+                        ? palette.isDark
+                          ? '#231703'
+                          : '#FFFFFF'
                         : palette.brandAccent
                     }
                   />
@@ -930,13 +948,23 @@ export function GameTableView({
           )}
         </View>
 
-        {/* Lacquered Wood Hand Rack — Theme-matched, auto-compressed, ZERO scroll */}
+        {/* Lacquered Wood Hand Rack — Warm Turn Glow on Top Inlay */}
         <LinearGradient
           colors={[activeTheme.rackTop, activeTheme.rackBottom]}
-          style={[styles.woodRack, isLandscape && styles.woodRackLandscape]}
+          style={[
+            styles.woodRack,
+            isHumanTurn && styles.woodRackActiveTurn,
+            isLandscape && styles.woodRackLandscape,
+          ]}
           onLayout={handleRackLayout}
         >
-          <View style={styles.rackTrim} pointerEvents="none" />
+          <View
+            style={[
+              styles.rackTrim,
+              isHumanTurn && styles.rackTrimActiveTurn,
+            ]}
+            pointerEvents="none"
+          />
           <View style={styles.handFlexRow}>
             {sortedHand.map((tile, idx) => {
               const sides = legalMovesMap.get(tile.id);
@@ -949,7 +977,10 @@ export function GameTableView({
                 >
                   <GestureHandTile
                     tile={tile}
+                    index={idx}
+                    handNumber={state.handNumber}
                     unit={handTileUnit}
+                    isHumanTurn={isHumanTurn}
                     isLegal={isLegal}
                     isSelected={effectiveSelectedId === tile.id}
                     isDraggingThis={draggingTile?.id === tile.id}
@@ -972,6 +1003,53 @@ export function GameTableView({
             })}
           </View>
         </LinearGradient>
+
+        {/* Floating Sobremesa Reactions Popover (NEVER shifts or rescales BoardCanvas!) */}
+        {reactionsOpen && onSendReaction && (
+          <>
+            <Pressable
+              style={StyleSheet.absoluteFill}
+              onPress={() => setReactionsOpen(false)}
+            />
+            <Animated.View
+              entering={FadeInDown.duration(150)}
+              style={[
+                styles.reactionPopover,
+                {
+                  backgroundColor: palette.modalBg,
+                  borderColor: palette.modalBorder,
+                },
+              ]}
+            >
+              {TABLE_REACTIONS.map((item) => (
+                <Pressable
+                  key={item.code}
+                  onPress={() => {
+                    hapticLight();
+                    playGameSound('pickup', state.soundEnabled);
+                    setReactionsOpen(false);
+                    onSendReaction(item.code);
+                  }}
+                  style={({ pressed }) => [
+                    styles.reactionChip,
+                    {
+                      backgroundColor: palette.modalCardBg,
+                      borderColor: palette.modalCardBorder,
+                      borderBottomColor: palette.modalCardLip,
+                    },
+                    pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+                  ]}
+                >
+                  <Text
+                    style={[styles.reactionChipText, { color: palette.textPrimary }]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </Animated.View>
+          </>
+        )}
 
         {/* UI-Thread 120Hz Floating Dragged Tile Overlay */}
         <Animated.View
@@ -1063,9 +1141,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: CLUB.glassBg,
     borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1073,34 +1149,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: CLUB.glassBg,
     borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
     borderRadius: 999,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   teamNosotros: {
-    color: CLUB.emerald,
-    fontSize: 13,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 13.5,
     fontVariant: ['tabular-nums'],
   },
   teamDivider: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.extraBold,
     fontSize: 13,
-    fontWeight: '900',
   },
   teamRivales: {
-    color: CLUB.coral,
-    fontSize: 13,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 13.5,
     fontVariant: ['tabular-nums'],
   },
   teamGoal: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   fourPlayerArc: {
@@ -1119,56 +1189,46 @@ const styles = StyleSheet.create({
   pozoWrap: {
     position: 'absolute',
     left: 10,
-    bottom: 12,
+    bottom: 10,
     zIndex: 30,
   },
   pozoBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#1D4ED8',
-    borderWidth: 2.5,
-    borderColor: 'rgba(255,255,255,0.85)',
-    borderBottomWidth: 4,
-    borderBottomColor: '#1E3A8A',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0px 6px 14px rgba(0, 0, 0, 0.45)',
+    gap: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(18, 10, 5, 0.82)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 214, 138, 0.42)',
+    borderBottomWidth: 3.5,
+    borderBottomColor: '#140802',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    boxShadow: '0px 5px 12px rgba(0, 0, 0, 0.42)',
   },
   pozoBtnActive: {
-    backgroundColor: CLUB.amber,
-    borderColor: '#FFFBEB',
-    borderBottomColor: CLUB.amberDark,
-    boxShadow: '0px 0px 18px rgba(255, 146, 64, 0.75)',
+    backgroundColor: '#FFD166',
+    borderColor: '#FFF8E0',
+    borderBottomColor: '#B57C0E',
+    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.72)',
   },
   pozoBtnEmpty: {
-    backgroundColor: '#334155',
-    borderColor: '#64748B',
-    borderBottomColor: '#1E293B',
-    opacity: 0.6,
+    opacity: 0.45,
   },
-  pozoCountBadge: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#1E3A5F',
-    borderWidth: 1.5,
-    borderColor: 'rgba(186, 218, 255, 0.72)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
+  pozoMetaCol: {
+    alignItems: 'flex-start',
   },
-  pozoCountBadgeActive: {
-    backgroundColor: CLUB.coral,
-    borderColor: '#FFFFFF',
+  pozoLabel: {
+    fontFamily: FONT.extraBold,
+    color: '#D8C7A6',
+    fontSize: 8.5,
+    letterSpacing: 0.7,
   },
   pozoCountText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    color: '#FFFDF7',
+    fontSize: 14,
+    lineHeight: 16,
     fontVariant: ['tabular-nums'],
   },
   toastWrap: {
@@ -1180,17 +1240,15 @@ const styles = StyleSheet.create({
     zIndex: 35,
   },
   toastPill: {
-    backgroundColor: CLUB.glassBgStrong,
-    borderWidth: 1,
-    borderColor: CLUB.gold,
+    borderWidth: 1.25,
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 999,
+    boxShadow: '0px 6px 16px rgba(0, 0, 0, 0.35)',
   },
   toastText: {
-    color: CLUB.goldSoft,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
   },
   bottomHudRow: {
     flexDirection: 'row',
@@ -1200,21 +1258,21 @@ const styles = StyleSheet.create({
     zIndex: 26,
   },
   passBtn: {
-    backgroundColor: '#D97706',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(253, 230, 138, 0.45)',
+    backgroundColor: '#F09624',
+    borderRadius: 15,
+    borderWidth: 1.25,
+    borderColor: '#FDE68A',
     borderBottomWidth: 4,
-    borderBottomColor: '#92400E',
+    borderBottomColor: '#A15A07',
     paddingHorizontal: 18,
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   passBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    color: '#231402',
+    fontSize: 14.5,
   },
   tacticalChips: {
     flexDirection: 'row',
@@ -1222,60 +1280,60 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   pipSumChip: {
-    backgroundColor: CLUB.glassBg,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
-    borderRadius: 10,
+    borderWidth: 1.25,
+    borderRadius: 11,
     paddingHorizontal: 10,
     minHeight: 38,
     justifyContent: 'center',
   },
   pipSumText: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   sortChip: {
-    backgroundColor: CLUB.glassBg,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
-    borderRadius: 10,
+    borderWidth: 1.25,
+    borderRadius: 11,
     paddingHorizontal: 12,
     minHeight: 38,
     justifyContent: 'center',
   },
   sortChipText: {
-    color: CLUB.textPrimary,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
   },
   woodRack: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1.5,
     borderColor: CLUB.woodHighlight,
     borderBottomWidth: 5,
     borderBottomColor: '#251004',
-    paddingTop: 12,
+    paddingTop: 13,
     paddingBottom: 8,
     paddingHorizontal: 8,
-    minHeight: 96,
+    minHeight: 98,
     justifyContent: 'flex-end',
     position: 'relative',
   },
+  woodRackActiveTurn: {
+    borderColor: 'rgba(255, 224, 130, 0.58)',
+  },
   woodRackLandscape: {
-    paddingTop: 6,
+    paddingTop: 7,
     paddingBottom: 6,
-    minHeight: 74,
+    minHeight: 76,
   },
   rackTrim: {
     position: 'absolute',
     top: 3,
-    left: 12,
-    right: 12,
-    height: 1.5,
-    backgroundColor: 'rgba(255, 224, 178, 0.2)',
+    left: 14,
+    right: 14,
+    height: 2,
+    backgroundColor: 'rgba(255, 224, 178, 0.22)',
     borderRadius: 1,
+  },
+  rackTrimActiveTurn: {
+    backgroundColor: 'rgba(255, 214, 102, 0.72)',
   },
   handFlexRow: {
     flexDirection: 'row',
@@ -1292,45 +1350,38 @@ const styles = StyleSheet.create({
   reactToggleBtn: {
     width: 38,
     height: 38,
-    borderRadius: 10,
-    backgroundColor: CLUB.glassBg,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.35)',
+    borderRadius: 11,
+    borderWidth: 1.25,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reactToggleBtnActive: {
-    backgroundColor: CLUB.gold,
-    borderColor: CLUB.goldSoft,
-  },
-  reactionTray: {
+  reactionPopover: {
+    position: 'absolute',
+    right: 10,
+    bottom: 158,
+    width: 304,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    backgroundColor: CLUB.glassBgStrong,
-    borderWidth: 1,
-    borderColor: CLUB.borderWarm,
-    borderRadius: 16,
-    padding: 8,
-    marginBottom: 4,
-    zIndex: 35,
-    boxShadow: '0px 10px 26px rgba(0, 0, 0, 0.55)',
+    gap: 7,
+    borderWidth: 1.5,
+    borderRadius: 20,
+    padding: 10,
+    zIndex: 75,
+    boxShadow: '0px 14px 32px rgba(0, 0, 0, 0.52)',
   },
   reactionChip: {
-    width: '31.5%',
-    minHeight: 36,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 10,
+    width: '48.5%',
+    minHeight: 38,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderBottomWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
   },
   reactionChipText: {
-    color: CLUB.ivoryTop,
-    fontSize: 11.5,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 12,
     textAlign: 'center',
   },
   signatureOverlay: {
@@ -1339,7 +1390,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(6, 17, 22, 0.52)',
+    backgroundColor: 'rgba(5, 14, 19, 0.50)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 60,
@@ -1347,13 +1398,11 @@ const styles = StyleSheet.create({
   signatureCard: {
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(11, 29, 36, 0.96)',
     borderWidth: 2,
-    borderColor: CLUB.gold,
-    borderRadius: 24,
-    paddingHorizontal: 28,
+    borderRadius: 26,
+    paddingHorizontal: 30,
     paddingVertical: 18,
-    boxShadow: '0px 0px 44px rgba(245, 196, 81, 0.42)',
+    boxShadow: '0px 10px 38px rgba(0, 0, 0, 0.48)',
   },
   signatureAvatarRing: {
     padding: 3,
@@ -1362,14 +1411,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 196, 81, 0.14)',
   },
   signatureTitle: {
-    color: CLUB.gold,
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 1.8,
+    fontFamily: FONT.display,
+    fontSize: 28,
+    letterSpacing: 1.4,
   },
   signatureSub: {
-    color: CLUB.ivoryTop,
-    fontSize: 13.5,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 14,
   },
 });

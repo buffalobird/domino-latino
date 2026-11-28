@@ -1,10 +1,16 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path, Rect } from 'react-native-svg';
 
 import { getTileStyle, TileStyleId } from '@/constants/tileStyles';
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
 import { CloseIcon } from './Icons';
 
 interface BoneyardDrawerProps {
@@ -21,7 +27,6 @@ interface BoneyardDrawerProps {
 
 const INITIAL_SLOTS = 14;
 
-/** Subtle tonal porcelain back engraving (geometric diamond filigree — matches equipped tile set) */
 function PorcelainBackWatermark({
   strokeColor,
   fillColor,
@@ -57,8 +62,8 @@ function PorcelainBackWatermark({
 }
 
 /**
- * Physical wooden side-drawer boneyard ("Pozo") with authentic solid porcelain domino backs
- * matched to the player's equipped tile style.
+ * Physical mahogany side-drawer boneyard ("Pozo") that slides smoothly from the left rail
+ * with authentic porcelain domino backs matched to the player's equipped tile set.
  */
 export function BoneyardDrawer({
   visible,
@@ -72,7 +77,24 @@ export function BoneyardDrawer({
   onClose,
 }: BoneyardDrawerProps) {
   const tileStyle = getTileStyle(tileStyleId);
-  // Store removed visual slots per handNumber
+  const slideX = useSharedValue(-230);
+
+  useEffect(() => {
+    if (visible) {
+      slideX.value = -230;
+      slideX.value = withTiming(0, {
+        duration: 220,
+        easing: Easing.out(Easing.cubic),
+      });
+    } else {
+      slideX.value = -230;
+    }
+  }, [visible, slideX]);
+
+  const drawerAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: slideX.value }],
+  }));
+
   const [removedByHand, setRemovedByHand] = useState<{
     hand: number;
     removed: number[];
@@ -82,10 +104,11 @@ export function BoneyardDrawer({
     removedByHand.hand === handNumber ? removedByHand.removed : []
   );
 
-  // Derive occupied array cleanly during render (no setState inside useEffect!)
-  const occupied: boolean[] = Array.from({ length: INITIAL_SLOTS }, (_, i) => !removedSet.has(i));
+  const occupied: boolean[] = Array.from(
+    { length: INITIAL_SLOTS },
+    (_, i) => !removedSet.has(i)
+  );
   let currentTrue = occupied.filter(Boolean).length;
-  // Sync down if Bot drew tiles from boneyard
   for (let i = INITIAL_SLOTS - 1; i >= 0 && currentTrue > boneyardCount; i--) {
     if (occupied[i]) {
       occupied[i] = false;
@@ -115,87 +138,92 @@ export function BoneyardDrawer({
       onRequestClose={onClose}
     >
       <View style={styles.backdrop}>
-        <LinearGradient
-          colors={[CLUB.woodMid, '#5D3014', CLUB.woodDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0.9 }}
-          style={styles.drawer}
-        >
-          <View style={styles.header}>
-            <View style={styles.headerText}>
-              <Text style={styles.title}>POZO · {boneyardCount}</Text>
-              {leftEnd !== null && rightEnd !== null ? (
-                <Text style={styles.sub}>
-                  Buscas: {leftEnd === rightEnd ? leftEnd : `${leftEnd} ó ${rightEnd}`}
-                </Text>
-              ) : (
-                <Text style={styles.sub}>Elige una ficha</Text>
-              )}
+        <Animated.View style={[styles.drawerOuter, drawerAnimStyle]}>
+          <LinearGradient
+            colors={[CLUB.woodMid, '#5D3014', CLUB.woodDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0.9 }}
+            style={styles.drawer}
+          >
+            <View style={styles.header}>
+              <View style={styles.headerText}>
+                <Text style={styles.title}>POZO · {boneyardCount}</Text>
+                {leftEnd !== null && rightEnd !== null ? (
+                  <Text style={styles.sub}>
+                    Buscas: {leftEnd === rightEnd ? leftEnd : `${leftEnd} ó ${rightEnd}`}
+                  </Text>
+                ) : (
+                  <Text style={styles.sub}>Toca una ficha</Text>
+                )}
+              </View>
+              <Pressable
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar pozo"
+                style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.8 }]}
+              >
+                <CloseIcon size={17} color="#FFFDF7" />
+              </Pressable>
             </View>
-            <Pressable
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel="Cerrar pozo"
-              style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.8 }]}
-            >
-              <CloseIcon size={18} color="#FFFFFF" />
-            </Pressable>
-          </View>
 
-          {boneyardCount === 0 ? (
-            <Text style={styles.empty}>Pozo vacío</Text>
-          ) : (
-            <ScrollView
-              contentContainerStyle={styles.grid}
-              showsVerticalScrollIndicator={false}
-            >
-              {occupied.map((isPresent, slotIdx) =>
-                isPresent ? (
-                  <Pressable
-                    key={slotIdx}
-                    disabled={!canDraw}
-                    onPress={() => handleTapSlot(slotIdx)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Robar ficha ${slotIdx + 1}`}
-                    style={({ pressed }) => [
-                      styles.backTileWrap,
-                      !canDraw && styles.backTileDisabled,
-                      pressed && canDraw && { transform: [{ scale: 0.93 }, { translateY: 2 }] },
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={tileStyle.backGradient}
-                      locations={[0, 0.55, 1]}
-                      start={{ x: 0.1, y: 0 }}
-                      end={{ x: 0.9, y: 1 }}
-                      style={[
-                        styles.backTile,
-                        {
-                          borderColor: tileStyle.backBorderColor,
-                          borderBottomColor: tileStyle.backLipColor,
-                        },
+            {boneyardCount === 0 ? (
+              <Text style={styles.empty}>Pozo vacío</Text>
+            ) : (
+              <ScrollView
+                contentContainerStyle={styles.grid}
+                showsVerticalScrollIndicator={false}
+              >
+                {occupied.map((isPresent, slotIdx) =>
+                  isPresent ? (
+                    <Pressable
+                      key={slotIdx}
+                      disabled={!canDraw}
+                      onPress={() => handleTapSlot(slotIdx)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Robar ficha ${slotIdx + 1}`}
+                      style={({ pressed }) => [
+                        styles.backTileWrap,
+                        !canDraw && styles.backTileDisabled,
+                        pressed &&
+                          canDraw && {
+                            transform: [{ scale: 0.94 }, { translateY: 2 }],
+                          },
                       ]}
                     >
-                      <View
+                      <LinearGradient
+                        colors={tileStyle.backGradient}
+                        locations={[0, 0.55, 1]}
+                        start={{ x: 0.1, y: 0 }}
+                        end={{ x: 0.9, y: 1 }}
                         style={[
-                          styles.backSpecular,
-                          { borderTopColor: tileStyle.specularColor },
+                          styles.backTile,
+                          {
+                            borderColor: tileStyle.backBorderColor,
+                            borderBottomColor: tileStyle.backLipColor,
+                          },
                         ]}
-                        pointerEvents="none"
-                      />
-                      <PorcelainBackWatermark
-                        strokeColor={tileStyle.backFiligreeStroke}
-                        fillColor={tileStyle.backFiligreeFill}
-                      />
-                    </LinearGradient>
-                  </Pressable>
-                ) : (
-                  <View key={slotIdx} style={styles.emptySlot} />
-                )
-              )}
-            </ScrollView>
-          )}
-        </LinearGradient>
+                      >
+                        <View
+                          style={[
+                            styles.backSpecular,
+                            { borderTopColor: tileStyle.specularColor },
+                          ]}
+                          pointerEvents="none"
+                        />
+                        <PorcelainBackWatermark
+                          strokeColor={tileStyle.backFiligreeStroke}
+                          fillColor={tileStyle.backFiligreeFill}
+                        />
+                      </LinearGradient>
+                    </Pressable>
+                  ) : (
+                    <View key={slotIdx} style={styles.emptySlot} />
+                  )
+                )}
+              </ScrollView>
+            )}
+          </LinearGradient>
+        </Animated.View>
 
         <Pressable style={styles.dismissArea} onPress={onClose} />
       </View>
@@ -207,16 +235,20 @@ const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: 'rgba(6, 12, 24, 0.65)',
+    backgroundColor: 'rgba(5, 13, 18, 0.62)',
+  },
+  drawerOuter: {
+    width: 224,
+    height: '100%',
   },
   drawer: {
-    width: 218,
+    flex: 1,
     borderRightWidth: 3,
-    borderRightColor: 'rgba(245, 204, 102, 0.28)',
-    paddingTop: 56,
+    borderRightColor: 'rgba(245, 204, 102, 0.36)',
+    paddingTop: 54,
     paddingHorizontal: 14,
     paddingBottom: 24,
-    boxShadow: '8px 0px 24px rgba(0, 0, 0, 0.6)',
+    boxShadow: '10px 0px 28px rgba(0, 0, 0, 0.62)',
   },
   dismissArea: {
     flex: 1,
@@ -227,42 +259,42 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
     marginBottom: 16,
-    backgroundColor: 'rgba(10, 20, 38, 0.86)',
-    paddingLeft: 14,
+    backgroundColor: 'rgba(26, 12, 5, 0.72)',
+    paddingLeft: 13,
     paddingRight: 6,
-    paddingVertical: 6,
-    borderRadius: 15,
+    paddingVertical: 7,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.45)',
+    borderColor: 'rgba(245, 196, 81, 0.42)',
   },
   headerText: {
     flex: 1,
   },
   title: {
+    fontFamily: FONT.display,
     color: CLUB.gold,
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 0.8,
+    fontSize: 15.5,
+    letterSpacing: 0.6,
     fontVariant: ['tabular-nums'],
   },
   sub: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.bold,
+    color: '#EAD7B7',
     fontSize: 12,
-    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   closeBtn: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    backgroundColor: 'rgba(255, 248, 230, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   empty: {
+    fontFamily: FONT.display,
     color: CLUB.goldSoft,
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
     textAlign: 'center',
     marginTop: 28,
   },
@@ -310,6 +342,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 7, 2, 0.34)',
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: 'rgba(255, 224, 178, 0.16)',
+    borderColor: 'rgba(255, 224, 178, 0.18)',
   },
 });

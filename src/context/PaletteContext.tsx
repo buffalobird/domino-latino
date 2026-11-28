@@ -8,8 +8,16 @@ import {
   AppPaletteId,
 } from '@/constants/appPalettes';
 
-const PALETTE_STORAGE_KEY = 'domino_latino_palette_lab_v2';
-const DEFAULT_PALETTE_ID: AppPaletteId = 'indigo_crema';
+const PALETTE_STORAGE_KEY = 'domino_latino_theme_mode_v3';
+const LEGACY_PALETTE_KEY = 'domino_latino_palette_lab_v2';
+const DEFAULT_PALETTE_ID: AppPaletteId = 'noche_club';
+
+function normalizeSavedPalette(raw: string | null): AppPaletteId | null {
+  if (!raw) return null;
+  if (raw === 'noche_club' || raw === 'dia_brisa') return raw;
+  if (raw === 'coral_brisa') return 'dia_brisa';
+  return 'noche_club';
+}
 
 interface PaletteContextValue {
   paletteId: AppPaletteId;
@@ -31,13 +39,15 @@ export function PaletteProvider({ children }: { children: React.ReactNode }) {
   const [paletteId, setPaletteIdState] = useState<AppPaletteId>(DEFAULT_PALETTE_ID);
 
   useEffect(() => {
-    AsyncStorage.getItem(PALETTE_STORAGE_KEY)
-      .then((saved) => {
-        if (saved && saved in APP_PALETTES) {
-          setPaletteIdState(saved as AppPaletteId);
-        }
-      })
-      .catch(() => {});
+    Promise.all([
+      AsyncStorage.getItem(PALETTE_STORAGE_KEY).catch(() => null),
+      AsyncStorage.getItem(LEGACY_PALETTE_KEY).catch(() => null),
+    ]).then(([saved, legacy]) => {
+      const resolved = normalizeSavedPalette(saved ?? legacy);
+      if (resolved) {
+        setPaletteIdState(resolved);
+      }
+    });
   }, []);
 
   const setPaletteId = useCallback((id: AppPaletteId) => {
@@ -48,8 +58,7 @@ export function PaletteProvider({ children }: { children: React.ReactNode }) {
 
   const cyclePalette = useCallback(() => {
     setPaletteIdState((prev) => {
-      const idx = APP_PALETTE_LIST.findIndex((p) => p.id === prev);
-      const next = APP_PALETTE_LIST[(idx + 1) % APP_PALETTE_LIST.length].id;
+      const next: AppPaletteId = prev === 'noche_club' ? 'dia_brisa' : 'noche_club';
       AsyncStorage.setItem(PALETTE_STORAGE_KEY, next).catch(() => {});
       return next;
     });

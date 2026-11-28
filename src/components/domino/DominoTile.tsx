@@ -13,7 +13,11 @@ interface DominoTileProps {
   unit?: number;
   selected?: boolean;
   playable?: boolean;
-  /** Sculpted matte obsidian ebony variant for unplayable tiles */
+  /** Seated deeper in the wooden rack groove when unplayable on your turn (preserves real tile material!) */
+  dimmed?: boolean;
+  /** Calm resting state while other seats are taking their turn */
+  resting?: boolean;
+  /** Legacy dark variant (unused on player rack so equipped sets always shine) */
   ebony?: boolean;
   highlighted?: boolean;
   ghost?: boolean;
@@ -62,6 +66,7 @@ function PipFace({
   size,
   ebony = false,
   ghost = false,
+  ghostActive = false,
   pipColors = PIP_COLORS,
   isDarkFace = false,
 }: {
@@ -69,13 +74,16 @@ function PipFace({
   size: number;
   ebony?: boolean;
   ghost?: boolean;
+  ghostActive?: boolean;
   pipColors?: Record<number, string>;
   isDarkFace?: boolean;
 }) {
   const pips = PIP_LAYOUTS[value] ?? [];
   const pipSize = Math.max(4, Math.round(size * 0.23));
   const color = ghost
-    ? '#0B1622'
+    ? ghostActive
+      ? '#FFFDF5'
+      : '#FCE39C'
     : ebony
     ? EBONY_PIP_COLORS[value] ?? '#F1F5F9'
     : pipColors[value] ?? '#111827';
@@ -96,17 +104,20 @@ function PipFace({
             height: pipSize,
             borderRadius: pipSize / 2,
             backgroundColor: color,
-            opacity: ghost ? 0.62 : 1,
+            opacity: ghost ? (ghostActive ? 0.96 : 0.82) : 1,
             top: pad + row * step - pipSize / 2,
             left: pad + col * step - pipSize / 2,
             overflow: 'hidden',
             borderTopWidth: showDepth ? 1 : 0,
-            borderTopColor: ebony || isDarkFace ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.42)',
+            borderTopColor:
+              ebony || isDarkFace ? 'rgba(0,0,0,0.45)' : 'rgba(0,0,0,0.42)',
             borderBottomWidth: showDepth ? 0.8 : 0,
-            borderBottomColor: ebony || isDarkFace ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.65)',
+            borderBottomColor:
+              ebony || isDarkFace
+                ? 'rgba(255,255,255,0.22)'
+                : 'rgba(255,255,255,0.65)',
           }}
         >
-          {/* Concave drilled-enamel specular glint at bottom-right of each pip */}
           {showDepth && !ebony && !isDarkFace && (
             <View
               style={{
@@ -133,6 +144,8 @@ export function DominoTile({
   unit = 38,
   selected = false,
   playable = false,
+  dimmed = false,
+  resting = false,
   ebony = false,
   highlighted = false,
   ghost = false,
@@ -164,7 +177,7 @@ export function DominoTile({
         ]}
       >
         <View style={styles.half}>
-          <PipFace value={a} size={faceSize} ghost />
+          <PipFace value={a} size={faceSize} ghost ghostActive={ghostActive} />
         </View>
         <View
           style={[
@@ -175,16 +188,14 @@ export function DominoTile({
           ]}
         />
         <View style={styles.half}>
-          <PipFace value={b} size={faceSize} ghost />
+          <PipFace value={b} size={faceSize} ghost ghostActive={ghostActive} />
         </View>
       </View>
     );
   }
 
   const gradColors: [string, string, string] = ebony
-    ? tileStyle.isDarkFace
-      ? ['#131A26', '#0D131C', '#080C12']
-      : ['#223043', '#172231', '#0F1724']
+    ? ['#223043', '#172231', '#0F1724']
     : tileStyle.faceGradient;
 
   const tileBody = (
@@ -205,7 +216,8 @@ export function DominoTile({
           borderBottomColor: tileStyle.bottomLipColor,
         },
         ebony && styles.tileEbony,
-        ebony && tileStyle.isDarkFace && styles.tileEbonyOnDarkSet,
+        resting && !playable && !selected && styles.tileResting,
+        dimmed && !playable && !selected && styles.tileDimmed,
         playable &&
           !selected && [
             styles.tilePlayable,
@@ -243,7 +255,7 @@ export function DominoTile({
         />
       </View>
 
-      {/* Debossed center groove (dark engraved groove + subtle light bottom edge) */}
+      {/* Debossed center groove + authentic metallic spinner pin */}
       <View
         style={[
           styles.dividerWrap,
@@ -268,7 +280,6 @@ export function DominoTile({
             },
           ]}
         />
-        {/* Authentic polished metallic spinner pin */}
         {!ebony && (
           <LinearGradient
             colors={tileStyle.spinnerGradient}
@@ -296,6 +307,14 @@ export function DominoTile({
           isDarkFace={tileStyle.isDarkFace}
         />
       </View>
+
+      {/* Warm rack-shadow veil when unplayable on your turn (keeps genuine porcelain visible!) */}
+      {dimmed && !playable && !selected && (
+        <View
+          pointerEvents="none"
+          style={[styles.dimmedVeil, { borderRadius: Math.max(4, radius - 1) }]}
+        />
+      )}
     </LinearGradient>
   );
 
@@ -305,13 +324,15 @@ export function DominoTile({
 
   return (
     <Pressable
-      onPress={ebony ? undefined : onPress}
-      disabled={ebony}
+      onPress={ebony || dimmed ? undefined : onPress}
+      disabled={ebony || dimmed}
       accessibilityRole="button"
       accessibilityLabel={`Ficha ${a} con ${b}${selected ? ', seleccionada' : ''}${
-        ebony ? ', no jugable' : ', jugable'
+        ebony || dimmed ? ', no jugable' : ', jugable'
       }`}
-      style={({ pressed }) => [pressed && !ebony && { transform: [{ scale: 0.96 }] }]}
+      style={({ pressed }) => [
+        pressed && !ebony && !dimmed && { transform: [{ scale: 0.96 }] },
+      ]}
     >
       {tileBody}
     </Pressable>
@@ -327,7 +348,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 2,
-    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.38)',
+    boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.36)',
   },
   ivorySpecular: {
     position: 'absolute',
@@ -338,35 +359,46 @@ const styles = StyleSheet.create({
     borderTopWidth: 1.25,
     borderTopColor: 'rgba(255, 255, 255, 0.95)',
   },
+  tileResting: {
+    opacity: 0.94,
+    transform: [{ translateY: 0 }],
+  },
+  tileDimmed: {
+    opacity: 0.62,
+    transform: [{ translateY: 3 }],
+    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.28)',
+  },
+  dimmedVeil: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: 'rgba(18, 12, 6, 0.14)',
+  },
   tileEbony: {
     borderColor: '#31435A',
     borderBottomColor: '#0A1018',
     transform: [{ translateY: 2 }],
     boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.48)',
   },
-  tileEbonyOnDarkSet: {
-    opacity: 0.42,
-    borderColor: '#1E293B',
-    transform: [{ translateY: 3 }],
-  },
-  // Pure luminous porcelain lifted subtly on rack — NO thick yellow sticker border!
   tilePlayable: {
-    borderColor: '#EBD39A',
+    borderColor: '#F2DDA0',
     borderBottomColor: '#B89E68',
-    transform: [{ translateY: -4 }],
-    boxShadow: '0px 7px 14px rgba(245, 196, 81, 0.28)',
+    transform: [{ translateY: -6 }],
+    boxShadow: '0px 8px 16px rgba(245, 196, 81, 0.32)',
   },
   tilePlayableDarkSet: {
     borderWidth: 1.5,
-    transform: [{ translateY: -5 }],
-    boxShadow: '0px 8px 18px rgba(245, 196, 81, 0.42)',
+    transform: [{ translateY: -7 }],
+    boxShadow: '0px 8px 18px rgba(245, 196, 81, 0.46)',
   },
   tileSelected: {
-    borderColor: '#7DD3FC',
-    borderWidth: 1.75,
-    borderBottomColor: '#0284C7',
-    transform: [{ translateY: -12 }, { scale: 1.04 }],
-    boxShadow: '0px 12px 22px rgba(56, 189, 248, 0.48)',
+    borderColor: '#FFE694',
+    borderWidth: 2,
+    borderBottomColor: '#C28716',
+    transform: [{ translateY: -14 }, { scale: 1.05 }],
+    boxShadow: '0px 14px 24px rgba(245, 196, 81, 0.48)',
   },
   tileHighlighted: {
     borderColor: CLUB.gold,
@@ -376,7 +408,7 @@ const styles = StyleSheet.create({
   ghostTile: {
     backgroundColor: CLUB.ghostFill,
     borderColor: CLUB.ghostBorder,
-    borderWidth: 2,
+    borderWidth: 1.75,
     borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -387,9 +419,10 @@ const styles = StyleSheet.create({
     borderColor: CLUB.ghostHoverBorder,
     borderStyle: 'solid',
     transform: [{ scale: 1.07 }],
+    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.45)',
   },
   ghostDivider: {
-    backgroundColor: 'rgba(255, 255, 255, 0.55)',
+    backgroundColor: 'rgba(255, 248, 224, 0.65)',
     borderRadius: 1,
   },
   half: {

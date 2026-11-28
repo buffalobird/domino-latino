@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -10,7 +10,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { AvatarConfig } from '@/constants/avatarCatalog';
 import { BotMood, SeatProfile } from '@/constants/seatProfiles';
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
 import { usePalette } from '@/context/PaletteContext';
 import { AvatarIllustration } from './AvatarIllustration';
 
@@ -19,20 +19,27 @@ interface SeatAvatarProps {
   tileCount: number;
   score?: number;
   targetScore?: number;
-  /** Hide score text when team score is shown in a shared 2v2 scoreboard */
   showScore?: boolean;
   isActiveTurn: boolean;
   timerProgress?: number;
   secondsLeft?: number | null;
   lastAction?: string | null;
-  /** Warm sobremesa reaction bubble (takes visual priority over mechanical lastAction while active) */
   reactionText?: string | null;
   mood?: BotMood;
   avatarConfig?: AvatarConfig;
-  /** Vertical stacked pill for 4-player top arc (takes minimal horizontal width) */
   layout?: 'horizontal' | 'stacked';
-  /** Floating bubble anchor so bubbles NEVER shift or collide with HUD layout */
   bubbleAnchor?: 'left' | 'right' | 'below';
+}
+
+function isKeyTacticalCallout(action: string | null): boolean {
+  if (!action) return false;
+  const lower = action.toLowerCase();
+  return (
+    lower.includes('pas') ||
+    lower.includes('rob') ||
+    lower.includes('peg') ||
+    lower.includes('gan')
+  );
 }
 
 export function SeatAvatar({
@@ -61,37 +68,45 @@ export function SeatAvatar({
   const clamped = Math.max(0, Math.min(1, timerProgress));
   const strokeDashoffset = circumference * (1 - clamped);
 
+  // Auto-expire tactical callouts ("¡Pasó!", "Robó") after 1.85s so they never clutter the felt permanently
+  const [transientAction, setTransientAction] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isKeyTacticalCallout(lastAction)) {
+      setTransientAction(null);
+      return;
+    }
+    const clean =
+      lastAction!.toLowerCase().includes('rob') ? 'Robó ficha' : lastAction!;
+    setTransientAction(clean);
+    const t = setTimeout(() => setTransientAction(null), 1850);
+    return () => clearTimeout(t);
+  }, [lastAction, tileCount, isActiveTurn]);
+
   const isUrgent = isActiveTurn && secondsLeft !== null && secondsLeft <= 5;
   const ringTrackColor = palette.isDark
-    ? 'rgba(255,255,255,0.15)'
-    : 'rgba(155, 193, 188, 0.55)';
+    ? 'rgba(255,255,255,0.14)'
+    : 'rgba(21, 43, 50, 0.16)';
   const ringColor = !isActiveTurn
     ? ringTrackColor
     : isUrgent
-    ? palette.isDark
-      ? CLUB.coral
-      : palette.brandAccent
+    ? CLUB.coral
     : clamped <= 0.35
     ? CLUB.gold
-    : palette.isDark
-    ? CLUB.emerald
     : palette.accent;
 
-  const activeBubble = reactionText ?? lastAction;
+  const activeBubble = reactionText ?? transientAction;
   const isReactionBubble = Boolean(reactionText);
 
-  // Crisp non-bouncy fade/scale for speech bubble (zero rubbery overshoot)
   const bubbleProgress = useSharedValue(activeBubble ? 1 : 0);
   useEffect(() => {
     if (activeBubble) {
-      bubbleProgress.value = 0.85;
+      bubbleProgress.value = 0.88;
       bubbleProgress.value = withTiming(1, { duration: 150 });
     } else {
-      bubbleProgress.value = withTiming(0, { duration: 120 });
+      bubbleProgress.value = withTiming(0, { duration: 130 });
     }
   }, [activeBubble, bubbleProgress]);
 
-  // Subtle horizontal shake only on pass
   const shakeX = useSharedValue(0);
   useEffect(() => {
     if (lastAction && lastAction.toLowerCase().includes('pas')) {
@@ -113,12 +128,14 @@ export function SeatAvatar({
     transform: [{ translateX: shakeX.value }],
   }));
 
-  const isPassBubble = Boolean(lastAction?.toLowerCase().includes('pas'));
-  const isDrawBubble = Boolean(lastAction?.toLowerCase().includes('rob'));
+  const isPassBubble = Boolean(transientAction?.toLowerCase().includes('pas'));
+  const isDrawBubble = Boolean(transientAction?.toLowerCase().includes('rob'));
   const isWinBubble = Boolean(
-    lastAction?.toLowerCase().includes('gan') ||
-      lastAction?.toLowerCase().includes('peg')
+    transientAction?.toLowerCase().includes('gan') ||
+      transientAction?.toLowerCase().includes('peg')
   );
+
+  const resolvedAvatar = avatarConfig ?? profile.avatarConfig;
 
   const avatarCircle = (
     <Animated.View style={[styles.avatarWrap, avatarShakeStyle]}>
@@ -158,10 +175,11 @@ export function SeatAvatar({
       >
         <AvatarIllustration
           isBot={profile.isBot}
+          seatHint={profile.seat}
           accentColor={profile.accentColor}
           mood={isActiveTurn && profile.isBot ? 'thinking' : mood}
           size={avatarSize}
-          avatarConfig={avatarConfig}
+          avatarConfig={resolvedAvatar}
         />
         {isUrgent && (
           <View style={styles.urgentOverlay}>
@@ -172,7 +190,7 @@ export function SeatAvatar({
         )}
       </View>
 
-      {/* Tile count badge */}
+      {/* Remaining tiles count badge */}
       <View
         style={[
           styles.countBadge,
@@ -181,7 +199,7 @@ export function SeatAvatar({
             borderColor: '#FFFFFF',
           },
           isActiveTurn && {
-            backgroundColor: palette.isDark ? CLUB.gold : palette.brandAccent,
+            backgroundColor: palette.brandAccent,
             borderColor: '#FFFFFF',
           },
         ]}
@@ -222,24 +240,25 @@ export function SeatAvatar({
           ]}
         >
           {avatarCircle}
-          <Text
-            style={[styles.stackedName, { color: palette.hudPillText }]}
-            numberOfLines={1}
-          >
-            {profile.displayName}
-          </Text>
+          <View style={styles.nameInlineRow}>
+            <Text
+              style={[styles.stackedName, { color: palette.hudPillText }]}
+              numberOfLines={1}
+            >
+              {profile.displayName}
+            </Text>
+          </View>
           {showScore ? (
             <Text style={[styles.stackedScore, { color: cardScoreColor }]}>
               {score}/{targetScore}
             </Text>
           ) : profile.badgeText ? (
-            <Text
-              style={[
-                styles.partnerTiny,
-                { color: palette.isDark ? CLUB.emerald : palette.accent },
-              ]}
-            >
+            <Text style={[styles.partnerTiny, { color: palette.accent }]}>
               {profile.badgeText}
+            </Text>
+          ) : profile.isBot ? (
+            <Text style={[styles.cpuTiny, { color: palette.textMuted }]}>
+              CLUB
             </Text>
           ) : null}
         </View>
@@ -255,12 +274,28 @@ export function SeatAvatar({
         >
           {avatarCircle}
           <View style={styles.infoCol}>
-            <Text
-              style={[styles.name, { color: palette.hudPillText }]}
-              numberOfLines={1}
-            >
-              {profile.displayName}
-            </Text>
+            <View style={styles.nameInlineRow}>
+              <Text
+                style={[styles.name, { color: palette.hudPillText }]}
+                numberOfLines={1}
+              >
+                {profile.displayName}
+              </Text>
+              {profile.isBot && (
+                <View
+                  style={[
+                    styles.cpuBadge,
+                    { backgroundColor: palette.surfaceCardAlt },
+                  ]}
+                >
+                  <Text
+                    style={[styles.cpuBadgeText, { color: palette.textSecondary }]}
+                  >
+                    CPU
+                  </Text>
+                </View>
+              )}
+            </View>
             {showScore && (
               <Text style={[styles.scoreText, { color: cardScoreColor }]}>
                 {score}/{targetScore}
@@ -270,7 +305,6 @@ export function SeatAvatar({
         </View>
       )}
 
-      {/* Floating speech bubble — never pushes or clips HUD controls */}
       {activeBubble && (
         <Animated.View
           pointerEvents="none"
@@ -287,12 +321,14 @@ export function SeatAvatar({
           <Text
             style={[
               styles.bubbleText,
-              !isReactionBubble && (isPassBubble || isWinBubble) && styles.bubbleTextLight,
+              !isReactionBubble &&
+                (isPassBubble || isWinBubble) &&
+                styles.bubbleTextLight,
               isReactionBubble && styles.bubbleReactionText,
             ]}
             numberOfLines={1}
           >
-            {isReactionBubble ? activeBubble : activeBubble.toUpperCase()}
+            {activeBubble}
           </Text>
         </Animated.View>
       )}
@@ -310,24 +346,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: CLUB.glassBg,
     borderWidth: 1.5,
-    borderColor: CLUB.borderSubtle,
     borderRadius: 999,
     paddingVertical: 3,
     paddingLeft: 3,
-    paddingRight: 12,
+    paddingRight: 13,
   },
   stackedCard: {
     alignItems: 'center',
-    backgroundColor: CLUB.glassBg,
     borderWidth: 1.5,
-    borderColor: CLUB.borderSubtle,
     borderRadius: 16,
     paddingVertical: 5,
     paddingHorizontal: 8,
-    minWidth: 82,
-    maxWidth: 108,
+    minWidth: 84,
+    maxWidth: 110,
   },
   avatarWrap: {
     alignItems: 'center',
@@ -346,79 +378,94 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(11, 19, 34, 0.8)',
+    backgroundColor: 'rgba(11, 19, 34, 0.78)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   urgentDigit: {
+    fontFamily: FONT.display,
     color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   countBadge: {
     position: 'absolute',
     top: -3,
     left: -3,
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#1E293B',
+    minWidth: 21,
+    height: 21,
+    borderRadius: 10.5,
+    backgroundColor: '#132B36',
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.5)',
+    borderColor: 'rgba(255,255,255,0.65)',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: 4,
   },
   countBadgeText: {
+    fontFamily: FONT.extraBold,
     color: '#FFFFFF',
     fontSize: 11,
-    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   infoCol: {
     justifyContent: 'center',
   },
+  nameInlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
   name: {
-    color: CLUB.textPrimary,
+    fontFamily: FONT.extraBold,
     fontSize: 13,
-    fontWeight: '800',
-    maxWidth: 86,
+    maxWidth: 88,
+  },
+  cpuBadge: {
+    borderRadius: 5,
+    paddingHorizontal: 4.5,
+    paddingVertical: 1,
+  },
+  cpuBadgeText: {
+    fontFamily: FONT.extraBold,
+    fontSize: 8.5,
+    letterSpacing: 0.4,
+  },
+  cpuTiny: {
+    fontFamily: FONT.extraBold,
+    fontSize: 8.5,
+    letterSpacing: 0.5,
   },
   scoreText: {
-    color: CLUB.gold,
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: FONT.display,
+    fontSize: 12.5,
     fontVariant: ['tabular-nums'],
     marginTop: 1,
   },
   stackedName: {
-    color: CLUB.textPrimary,
-    fontSize: 11,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 11.5,
     marginTop: 3,
   },
   stackedScore: {
-    color: CLUB.gold,
-    fontSize: 11,
-    fontWeight: '800',
+    fontFamily: FONT.display,
+    fontSize: 11.5,
     fontVariant: ['tabular-nums'],
   },
   partnerTiny: {
-    color: CLUB.emerald,
+    fontFamily: FONT.extraBold,
     fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
   },
   bubbleBase: {
     position: 'absolute',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(15, 23, 42, 0.14)',
-    boxShadow: '0px 3px 8px rgba(0, 0, 0, 0.35)',
+    backgroundColor: '#FFFDF7',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1.25,
+    borderColor: 'rgba(15, 23, 42, 0.16)',
+    boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.30)',
     zIndex: 40,
   },
   bubbleBelow: {
@@ -429,17 +476,17 @@ const styles = StyleSheet.create({
     right: '100%',
     marginRight: 8,
     top: '50%',
-    marginTop: -12,
+    marginTop: -13,
   },
   bubbleRight: {
     left: '100%',
     marginLeft: 8,
     top: '50%',
-    marginTop: -12,
+    marginTop: -13,
   },
   bubbleDraw: {
-    backgroundColor: CLUB.goldSoft,
-    borderColor: CLUB.goldDark,
+    backgroundColor: '#FEF3C7',
+    borderColor: '#D97706',
   },
   bubblePass: {
     backgroundColor: CLUB.coral,
@@ -450,24 +497,22 @@ const styles = StyleSheet.create({
     borderColor: CLUB.emeraldDark,
   },
   bubbleReaction: {
-    backgroundColor: '#FFF9EC',
+    backgroundColor: '#FFFBF0',
     borderColor: CLUB.gold,
     borderWidth: 1.5,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 11,
+    paddingVertical: 4.5,
+    borderRadius: 13,
   },
   bubbleText: {
-    color: CLUB.textInk,
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.25,
+    fontFamily: FONT.extraBold,
+    color: '#11252E',
+    fontSize: 11,
   },
   bubbleReactionText: {
-    color: '#1E293B',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.1,
+    fontFamily: FONT.extraBold,
+    color: '#11252E',
+    fontSize: 11.5,
   },
   bubbleTextLight: {
     color: '#FFFFFF',

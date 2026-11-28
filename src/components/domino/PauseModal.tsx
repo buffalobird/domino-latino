@@ -1,15 +1,19 @@
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { CLUB } from '@/constants/tokens';
+import { FONT } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { AiDifficulty } from '@/engine/ai';
 import { SortMode } from '@/engine/types';
+import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { GlossyButton } from './GlossyButton';
 import {
   CloseIcon,
   MessageIcon,
+  MoonIcon,
   SoundOffIcon,
   SoundOnIcon,
+  SunIcon,
 } from './Icons';
 
 export type BotSpeed = 'fast' | 'normal' | 'relaxed';
@@ -33,9 +37,9 @@ interface PauseModalProps {
 }
 
 /**
- * In-game Pause menu overlay replacing native Alert.alert (Audit U14 + F3).
- * Houses secondary controls (Orden, Historial, Sonido, Nueva partida, Salir)
- * so the table itself stays 100% clean and text-free.
+ * In-game Pause menu overlay unified with the Noche de Club / Día Brisa palette system.
+ * Houses secondary controls (Ambiente, Orden, Sonido, Ritmo, Nivel CPU, Nueva partida, Salir)
+ * so the active table stays 100% focused on the tiles.
  */
 export function PauseModal({
   visible,
@@ -54,12 +58,15 @@ export function PauseModal({
   onRestartMatch,
   onExitToHome,
 }: PauseModalProps) {
+  const { palette, paletteId, cyclePalette } = usePalette();
+  const isNoche = paletteId === 'noche_club';
+
   const speedLabel =
     botSpeed === 'fast'
       ? 'Rápido'
       : botSpeed === 'relaxed'
-      ? 'Relajado'
-      : 'Humano';
+      ? 'Pausado'
+      : 'Natural';
   const speedHint =
     botSpeed === 'fast'
       ? '~0.7s'
@@ -68,10 +75,17 @@ export function PauseModal({
       : '~1.7s';
   const difficultyLabel =
     aiDifficulty === 'casual'
-      ? 'Fácil'
+      ? 'Relajado'
       : aiDifficulty === 'pro'
-      ? 'Experto'
+      ? 'Maestro'
       : 'Club';
+
+  const tileThemeStyle = {
+    backgroundColor: palette.modalCardBg,
+    borderColor: palette.modalCardBorder,
+    borderBottomColor: palette.modalCardLip,
+  };
+
   return (
     <Modal
       visible={visible}
@@ -80,22 +94,35 @@ export function PauseModal({
       animationType="fade"
       onRequestClose={onResume}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
+      <View style={[styles.backdrop, { backgroundColor: palette.modalBackdrop }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.modalBg,
+              borderColor: palette.modalBorder,
+            },
+          ]}
+        >
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Pausa</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: palette.textPrimary }]}>
+                Pausa
+              </Text>
+              <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
                 Mano #{handNumber} · Meta {targetScore} pts
               </Text>
             </View>
             <Pressable
-              onPress={onResume}
+              onPress={() => {
+                hapticLight();
+                onResume();
+              }}
               accessibilityRole="button"
               accessibilityLabel="Seguir jugando"
-              style={styles.closeBtn}
+              style={[styles.closeBtn, { backgroundColor: palette.closeBtnBg }]}
             >
-              <CloseIcon size={18} color={CLUB.textPrimary} />
+              <CloseIcon size={18} color={palette.textPrimary} />
             </Pressable>
           </View>
 
@@ -106,53 +133,178 @@ export function PauseModal({
           />
 
           <View style={styles.utilityRow}>
-            <Pressable onPress={onToggleSort} style={styles.utilityBtn}>
-              <Text style={styles.utilityLabel}>Orden</Text>
-              <Text style={styles.utilityValue}>
-                {sortMode === 'value' ? 'Por valor' : 'Dobles'}
+            <Pressable
+              onPress={() => {
+                hapticSnap();
+                cyclePalette();
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.utilityBtn,
+                tileThemeStyle,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.utilityLabel, { color: palette.textMuted }]}>
+                Ambiente
               </Text>
+              <View style={styles.inlineRow}>
+                {isNoche ? (
+                  <MoonIcon size={14} color="#FFD166" />
+                ) : (
+                  <SunIcon size={15} color="#E85741" />
+                )}
+                <Text style={[styles.utilityValue, { color: palette.textPrimary }]}>
+                  {palette.shortLabel}
+                </Text>
+              </View>
             </Pressable>
 
-            <Pressable onPress={onToggleSound} style={styles.utilityBtn}>
-              <Text style={styles.utilityLabel}>Sonido</Text>
-              <View style={styles.soundValueRow}>
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                onToggleSound();
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.utilityBtn,
+                tileThemeStyle,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.utilityLabel, { color: palette.textMuted }]}>
+                Sonido
+              </Text>
+              <View style={styles.inlineRow}>
                 {soundEnabled ? (
-                  <SoundOnIcon size={16} color={CLUB.emerald} />
+                  <SoundOnIcon size={15} color={palette.accent} />
                 ) : (
-                  <SoundOffIcon size={16} color={CLUB.textMuted} />
+                  <SoundOffIcon size={15} color={palette.textMuted} />
                 )}
-                <Text style={styles.utilityValue}>
-                  {soundEnabled ? 'ON' : 'OFF'}
+                <Text style={[styles.utilityValue, { color: palette.textPrimary }]}>
+                  {soundEnabled ? 'Activado' : 'Silencio'}
                 </Text>
               </View>
             </Pressable>
           </View>
 
           <View style={styles.utilityRow}>
-            <Pressable onPress={onCycleBotSpeed} style={styles.utilityBtn}>
-              <Text style={styles.utilityLabel}>Ritmo · {speedHint}</Text>
-              <Text style={styles.utilityValue}>{speedLabel}</Text>
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                onToggleSort();
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.utilityBtn,
+                tileThemeStyle,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.utilityLabel, { color: palette.textMuted }]}>
+                Orden
+              </Text>
+              <Text style={[styles.utilityValue, { color: palette.textPrimary }]}>
+                {sortMode === 'value' ? 'Por valor' : 'Dobles'}
+              </Text>
             </Pressable>
 
-            {onCycleAiDifficulty && (
-              <Pressable onPress={onCycleAiDifficulty} style={styles.utilityBtn}>
-                <Text style={styles.utilityLabel}>Nivel Bot</Text>
-                <Text style={styles.utilityValue}>{difficultyLabel}</Text>
-              </Pressable>
-            )}
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                onCycleBotSpeed();
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.utilityBtn,
+                tileThemeStyle,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.utilityLabel, { color: palette.textMuted }]}>
+                Ritmo · {speedHint}
+              </Text>
+              <Text style={[styles.utilityValue, { color: palette.textPrimary }]}>
+                {speedLabel}
+              </Text>
+            </Pressable>
           </View>
 
-          <Pressable onPress={onOpenFeedback} style={styles.secondaryBtn}>
-            <MessageIcon size={16} color={CLUB.textSecondary} />
-            <Text style={styles.secondaryBtnText}>Enviar sugerencia o fallo</Text>
+          {onCycleAiDifficulty && (
+            <Pressable
+              onPress={() => {
+                hapticLight();
+                onCycleAiDifficulty();
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.secondaryBtn,
+                tileThemeStyle,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={[styles.utilityLabel, { color: palette.textMuted }]}>
+                Nivel de compañeros CPU:
+              </Text>
+              <Text style={[styles.utilityValue, { color: palette.brandAccent }]}>
+                {difficultyLabel}
+              </Text>
+            </Pressable>
+          )}
+
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              onOpenFeedback();
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.secondaryBtn,
+              tileThemeStyle,
+              pressed && styles.pressed,
+            ]}
+          >
+            <MessageIcon size={16} color={palette.accent} />
+            <Text style={[styles.secondaryBtnText, { color: palette.textPrimary }]}>
+              Enviar sugerencia o fallo
+            </Text>
           </Pressable>
 
-          <Pressable onPress={onRestartMatch} style={styles.secondaryBtn}>
-            <Text style={styles.secondaryBtnText}>Nueva partida (mismo modo)</Text>
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              onRestartMatch();
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.secondaryBtn,
+              tileThemeStyle,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.secondaryBtnText, { color: palette.textPrimary }]}>
+              Nueva partida (mismo modo)
+            </Text>
           </Pressable>
 
-          <Pressable onPress={onExitToHome} style={styles.dangerBtn}>
-            <Text style={styles.dangerBtnText}>Salir y cambiar modo</Text>
+          <Pressable
+            onPress={() => {
+              hapticLight();
+              onExitToHome();
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [
+              styles.dangerBtn,
+              {
+                backgroundColor: palette.dangerBg,
+                borderColor: palette.dangerBorder,
+              },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.dangerBtnText, { color: palette.dangerText }]}>
+              Salir a portada
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -163,60 +315,41 @@ export function PauseModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6, 12, 24, 0.72)',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: 18,
   },
   card: {
     width: '100%',
-    maxWidth: 360,
-    backgroundColor: 'rgba(14, 28, 52, 0.96)',
-    borderRadius: 24,
-    borderWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.26)',
+    maxWidth: 380,
+    borderRadius: 26,
+    borderWidth: 1.5,
     padding: 18,
     gap: 10,
-    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.55)',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   title: {
-    color: CLUB.textPrimary,
-    fontSize: 20,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 22,
   },
   subtitle: {
-    color: CLUB.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
+    marginTop: 1,
+    fontVariant: ['tabular-nums'],
   },
   closeBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 42,
+    height: 42,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  primaryBtn: {
-    backgroundColor: CLUB.emerald,
-    borderRadius: 14,
-    borderBottomWidth: 4,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryBtnText: {
-    color: CLUB.textInk,
-    fontSize: 16,
-    fontWeight: '900',
   },
   utilityRow: {
     flexDirection: 'row',
@@ -224,59 +357,57 @@ const styles = StyleSheet.create({
   },
   utilityBtn: {
     flex: 1,
-    minHeight: 52,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    minHeight: 54,
+    borderRadius: 15,
+    borderWidth: 1.25,
+    borderBottomWidth: 3.5,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
+    gap: 2,
     paddingHorizontal: 8,
   },
   utilityLabel: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
   },
   utilityValue: {
-    color: CLUB.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 13.5,
   },
-  soundValueRow: {
+  inlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
   },
   secondaryBtn: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 7,
     minHeight: 46,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderRadius: 15,
+    borderWidth: 1.25,
+    borderBottomWidth: 3.5,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 12,
   },
   secondaryBtnText: {
-    color: CLUB.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 13.5,
   },
   dangerBtn: {
     minHeight: 46,
-    backgroundColor: 'rgba(244, 63, 94, 0.16)',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(244, 63, 94, 0.45)',
+    borderRadius: 15,
+    borderWidth: 1.25,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   dangerBtnText: {
-    color: '#FDA4AF',
-    fontSize: 14,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 13.5,
+  },
+  pressed: {
+    opacity: 0.9,
+    transform: [{ translateY: 1.5 }],
   },
 });

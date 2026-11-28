@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
@@ -26,6 +25,7 @@ import {
   AVATAR_OUTFIT_COLORS,
   AVATAR_OUTFIT_OPTIONS,
   AVATAR_SKIN_TONES,
+  AVATAR_THEMATIC_LOOKS,
   AvatarBodyType,
   AvatarConfig,
   AvatarItemOption,
@@ -35,38 +35,26 @@ import {
   OUTFITS_WITH_FIXED_COLOR,
   sortOptionsForBodyType,
 } from '@/constants/avatarCatalog';
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { RetentionProgress } from '@/storage/gameStorage';
 import { hapticLight, hapticSnap, hapticWarning } from '@/utils/feedback';
 import { GlossyButton } from './GlossyButton';
 import { CheckIcon, ChipIcon, CloseIcon, LockIcon } from './Icons';
 import { ModularAvatar } from './ModularAvatar';
 
-type StudioTab =
-  | 'face'
-  | 'eyes'
-  | 'brows'
-  | 'nose'
-  | 'mouth'
-  | 'hair'
-  | 'facial'
-  | 'outfit'
-  | 'glasses'
-  | 'hat'
-  | 'frame';
+type MacroSection = 'looks' | 'face' | 'hair' | 'expression' | 'outfit' | 'extras';
+type FaceSubTab = 'shape' | 'nose' | 'facial';
+type ExprSubTab = 'eyes' | 'mouth' | 'brows';
+type ExtrasSubTab = 'hat' | 'glasses' | 'frame';
 
-const STUDIO_TABS: { id: StudioTab; label: string }[] = [
+const MACRO_SECTIONS: { id: MacroSection; label: string }[] = [
+  { id: 'looks', label: 'Looks' },
   { id: 'face', label: 'Rostro' },
-  { id: 'hair', label: 'Cabello' },
-  { id: 'eyes', label: 'Ojos' },
-  { id: 'brows', label: 'Cejas' },
-  { id: 'nose', label: 'Nariz' },
-  { id: 'mouth', label: 'Boca' },
-  { id: 'facial', label: 'Barba/Detalles' },
+  { id: 'hair', label: 'Pelo' },
+  { id: 'expression', label: 'Expresión' },
   { id: 'outfit', label: 'Ropa' },
-  { id: 'glasses', label: 'Gafas' },
-  { id: 'hat', label: 'Cabeza' },
-  { id: 'frame', label: 'Fondo' },
+  { id: 'extras', label: 'Extras' },
 ];
 
 interface AvatarStudioModalProps {
@@ -102,23 +90,28 @@ export function AvatarStudioModal({
   onUnlockAndSaveAvatar,
   onClose,
 }: AvatarStudioModalProps) {
+  const { palette } = usePalette();
   const [draft, setDraft] = useState<AvatarConfig>(retention.avatarConfig);
-  const [activeTab, setActiveTab] = useState<StudioTab>('face');
+  const [section, setSection] = useState<MacroSection>('looks');
+  const [faceSub, setFaceSub] = useState<FaceSubTab>('shape');
+  const [exprSub, setExprSub] = useState<ExprSubTab>('eyes');
+  const [extrasSub, setExtrasSub] = useState<ExtrasSubTab>('hat');
   const catalogScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const tabsScrollRef = useRef<React.ComponentRef<typeof ScrollView>>(null);
 
   useEffect(() => {
     if (visible) {
       setDraft(retention.avatarConfig);
-      setActiveTab('face');
-      tabsScrollRef.current?.scrollTo({ x: 0, animated: false });
+      setSection('looks');
+      setFaceSub('shape');
+      setExprSub('eyes');
+      setExtrasSub('hat');
       catalogScrollRef.current?.scrollTo({ y: 0, animated: false });
     }
   }, [visible, retention.avatarConfig]);
 
   useEffect(() => {
     catalogScrollRef.current?.scrollTo({ y: 0, animated: false });
-  }, [activeTab, draft.bodyType]);
+  }, [section, faceSub, exprSub, extrasSub, draft.bodyType]);
 
   const ownedSet = useMemo(
     () => new Set(retention.unlockedCosmetics),
@@ -150,7 +143,6 @@ export function AvatarStudioModal({
     hapticLight();
     const baseTemplate =
       bodyType === 'feminine' ? BASE_FEMALE_AVATAR : BASE_MALE_AVATAR;
-    // Preserve user's chosen skinTone, eyeColor & frame when switching base figure
     setDraft((prev) => ({
       ...baseTemplate,
       skinTone: prev.skinTone,
@@ -252,10 +244,156 @@ export function AvatarStudioModal({
     onClose();
   };
 
+  const renderSubPills = <T extends string>(
+    options: { id: T; label: string }[],
+    activeId: T,
+    onSelect: (id: T) => void
+  ) => (
+    <View
+      style={[
+        styles.subPillBar,
+        {
+          backgroundColor: palette.modalInputBg,
+          borderColor: palette.modalCardBorder,
+        },
+      ]}
+    >
+      {options.map((opt) => {
+        const active = activeId === opt.id;
+        return (
+          <Pressable
+            key={opt.id}
+            onPress={() => {
+              hapticLight();
+              onSelect(opt.id);
+            }}
+            style={[
+              styles.subPillBtn,
+              active && {
+                backgroundColor: palette.selectedBg,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                styles.subPillText,
+                {
+                  color: active ? palette.selectedText : palette.textSecondary,
+                },
+              ]}
+            >
+              {opt.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  const renderLooksGrid = () => (
+    <View style={styles.looksList}>
+      {AVATAR_THEMATIC_LOOKS.map((look) => {
+        const previewCfg = look.build(draft);
+        const missingKeys = getLockedKeysInConfig(previewCfg, ownedSet);
+        const lookCost = missingKeys.reduce(
+          (sum, k) => sum + (AVATAR_COSMETIC_PRICES[k] ?? 0),
+          0
+        );
+        const isCurrent =
+          draft.outfit === previewCfg.outfit &&
+          draft.hat === previewCfg.hat &&
+          draft.glasses === previewCfg.glasses &&
+          draft.hair === previewCfg.hair;
+
+        return (
+          <Pressable
+            key={look.id}
+            onPress={() => {
+              hapticSnap();
+              setDraft(previewCfg);
+            }}
+            style={({ pressed }) => [
+              styles.lookCard,
+              {
+                backgroundColor: isCurrent
+                  ? palette.winnerCardBg
+                  : palette.modalCardBg,
+                borderColor: isCurrent
+                  ? palette.winnerCardBorder
+                  : palette.modalCardBorder,
+                borderBottomColor: isCurrent
+                  ? palette.winnerCardBorder
+                  : palette.modalCardLip,
+              },
+              pressed && { transform: [{ scale: 0.98 }] },
+            ]}
+          >
+            <ModularAvatar config={previewCfg} size={66} showFrameRing />
+            <View style={styles.lookTextCol}>
+              <View style={styles.lookTopRow}>
+                <Text style={[styles.lookName, { color: palette.textPrimary }]}>
+                  {look.name}
+                </Text>
+                <View
+                  style={[
+                    styles.lookTagBadge,
+                    { backgroundColor: palette.accentBg },
+                  ]}
+                >
+                  <Text style={[styles.lookTagText, { color: palette.accent }]}>
+                    {look.tag}
+                  </Text>
+                </View>
+              </View>
+              <Text
+                style={[styles.lookSub, { color: palette.textSecondary }]}
+                numberOfLines={2}
+              >
+                {look.subtitle}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.lookPriceBadge,
+                {
+                  backgroundColor:
+                    lookCost === 0 ? palette.positiveBg : palette.chipPillBg,
+                  borderColor:
+                    lookCost === 0 ? palette.positiveBorder : palette.borderWarm,
+                },
+              ]}
+            >
+              {lookCost === 0 ? (
+                <Text
+                  style={[styles.lookPriceText, { color: palette.positiveText }]}
+                >
+                  {isCurrent ? 'Puesto' : 'Probar'}
+                </Text>
+              ) : (
+                <>
+                  <ChipIcon size={12} color={palette.chipIconColor} />
+                  <Text
+                    style={[
+                      styles.lookPriceText,
+                      { color: palette.chipPillText },
+                    ]}
+                  >
+                    {lookCost.toLocaleString('es-ES')}
+                  </Text>
+                </>
+              )}
+            </View>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
   const renderItemGrid = <T extends string>(
     items: AvatarItemOption<T>[],
     selectedId: T,
-    applyItem: (id: T) => AvatarConfig
+    applyItem: (id: T) => AvatarConfig,
+    options?: { useFaceCamera?: boolean; stripGlasses?: boolean; stripHat?: boolean; showRing?: boolean }
   ) => (
     <View style={styles.grid}>
       {items.map((item) => {
@@ -263,13 +401,11 @@ export function AvatarStudioModal({
         const isOwned = isFree || ownedSet.has(item.cosmeticKey!);
         const isSelected = selectedId === item.id;
         const nextCfg = applyItem(item.id);
-        // Unobstructed thumbnail preview: never let sunglasses hide eyes/brows or hats hide hair!
-        const thumbCfg: AvatarConfig =
-          activeTab === 'eyes' || activeTab === 'brows'
-            ? { ...nextCfg, glasses: 'none' }
-            : activeTab === 'hair'
-            ? { ...nextCfg, hat: 'none' }
-            : nextCfg;
+        const thumbCfg: AvatarConfig = {
+          ...nextCfg,
+          glasses: options?.stripGlasses ? 'none' : nextCfg.glasses,
+          hat: options?.stripHat ? 'none' : nextCfg.hat,
+        };
 
         return (
           <Pressable
@@ -280,39 +416,74 @@ export function AvatarStudioModal({
             }}
             style={({ pressed }) => [
               styles.itemCard,
-              isSelected && styles.itemCardSelected,
+              {
+                backgroundColor: isSelected
+                  ? palette.winnerCardBg
+                  : palette.modalCardBg,
+                borderColor: isSelected
+                  ? palette.winnerCardBorder
+                  : palette.modalCardBorder,
+                borderBottomColor: isSelected
+                  ? palette.winnerCardBorder
+                  : palette.modalCardLip,
+              },
               pressed && { transform: [{ scale: 0.96 }] },
             ]}
           >
             {item.tag && (
-              <View style={styles.tagBadge}>
-                <Text style={styles.tagText}>{item.tag}</Text>
+              <View
+                style={[
+                  styles.tagBadge,
+                  {
+                    backgroundColor: palette.chipPillBg,
+                    borderColor: palette.borderWarm,
+                  },
+                ]}
+              >
+                <Text style={[styles.tagText, { color: palette.chipPillText }]}>
+                  {item.tag}
+                </Text>
               </View>
             )}
             <View style={styles.thumbWindow}>
               <ModularAvatar
                 config={thumbCfg}
                 size={68}
-                showFrameRing={activeTab === 'frame'}
+                camera={options?.useFaceCamera ? 'face' : 'bust'}
+                showFrameRing={Boolean(options?.showRing)}
               />
             </View>
-            <Text style={styles.itemName} numberOfLines={1}>
+            <Text
+              style={[styles.itemName, { color: palette.textPrimary }]}
+              numberOfLines={1}
+            >
               {item.name}
             </Text>
             <View
               style={[
                 styles.pricePill,
-                isOwned && styles.pricePillOwned,
-                isSelected && isOwned && styles.pricePillSelected,
+                {
+                  backgroundColor: isOwned
+                    ? isSelected
+                      ? palette.accent
+                      : palette.modalInputBg
+                    : palette.chipPillBg,
+                },
               ]}
             >
               {isOwned ? (
                 <>
-                  {isSelected && <CheckIcon size={11} color="#FFFFFF" />}
+                  {isSelected && (
+                    <CheckIcon size={11} color={palette.textOnAccent} />
+                  )}
                   <Text
                     style={[
                       styles.priceTextOwned,
-                      isSelected && { color: '#FFFFFF' },
+                      {
+                        color: isSelected
+                          ? palette.textOnAccent
+                          : palette.textSecondary,
+                      },
                     ]}
                   >
                     {isSelected ? 'Puesto' : isFree ? 'Gratis' : 'Tuyo'}
@@ -320,9 +491,14 @@ export function AvatarStudioModal({
                 </>
               ) : (
                 <>
-                  <LockIcon size={10} color="#92400E" />
-                  <ChipIcon size={11} color="#D97706" />
-                  <Text style={styles.priceTextLocked}>
+                  <LockIcon size={10} color={palette.chipPillText} />
+                  <ChipIcon size={11} color={palette.chipIconColor} />
+                  <Text
+                    style={[
+                      styles.priceTextLocked,
+                      { color: palette.chipPillText },
+                    ]}
+                  >
                     {item.costChips.toLocaleString('es-ES')}
                   </Text>
                 </>
@@ -342,20 +518,38 @@ export function AvatarStudioModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <View style={[styles.backdrop, { backgroundColor: palette.modalBackdrop }]}>
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: palette.modalBg,
+              borderColor: palette.modalBorder,
+            },
+          ]}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Personalizar Avatar</Text>
-              <Text style={styles.subtitle}>
-                Crea tu estilo único y pruébalo en vivo
+              <Text style={[styles.title, { color: palette.textPrimary }]}>
+                Vestidor del Club
+              </Text>
+              <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
+                Crea tu identidad y pruébala en vivo
               </Text>
             </View>
             <View style={styles.headerRight}>
-              <View style={styles.chipsBadge}>
-                <ChipIcon size={14} color={CLUB.gold} />
-                <Text style={styles.chipsText}>
+              <View
+                style={[
+                  styles.chipsBadge,
+                  {
+                    backgroundColor: palette.chipPillBg,
+                    borderColor: palette.borderWarm,
+                  },
+                ]}
+              >
+                <ChipIcon size={14} color={palette.chipIconColor} />
+                <Text style={[styles.chipsText, { color: palette.chipPillText }]}>
                   {retention.clubChips.toLocaleString('es-ES')}
                 </Text>
               </View>
@@ -363,39 +557,64 @@ export function AvatarStudioModal({
                 onPress={onClose}
                 accessibilityRole="button"
                 accessibilityLabel="Cerrar vestidor"
-                style={styles.closeBtn}
+                style={[styles.closeBtn, { backgroundColor: palette.closeBtnBg }]}
               >
-                <CloseIcon size={18} color={CLUB.textPrimary} />
+                <CloseIcon size={18} color={palette.textPrimary} />
               </Pressable>
             </View>
           </View>
 
-          {/* BRIGHT Luminous Studio Stage so every facial detail & outfit pops crisply! */}
-          <LinearGradient
-            colors={['#F8FAFC', '#E8F0FB']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.stageCard}
+          {/* Studio Stage Card */}
+          <View
+            style={[
+              styles.stageCard,
+              {
+                backgroundColor: palette.modalCardBg,
+                borderColor: palette.modalCardBorder,
+                borderBottomColor: palette.modalCardLip,
+              },
+            ]}
           >
-            <View style={styles.stagePortraitHalo}>
-              <ModularAvatar config={draft} size={112} showFrameRing />
+            <View
+              style={[
+                styles.stagePortraitHalo,
+                { borderColor: palette.brandAccent },
+              ]}
+            >
+              <ModularAvatar config={draft} size={108} showFrameRing />
             </View>
             <View style={styles.stageRight}>
-              <Text style={styles.presetsLabel}>FIGURA BASE</Text>
+              <Text style={[styles.presetsLabel, { color: palette.textMuted }]}>
+                FIGURA BASE
+              </Text>
               <View style={styles.baseToggleRow}>
                 <Pressable
                   onPress={() => handleSelectBase('feminine')}
                   style={({ pressed }) => [
                     styles.baseBtn,
-                    draft.bodyType === 'feminine' && styles.baseBtnActive,
-                    pressed && { opacity: 0.84 },
+                    {
+                      backgroundColor:
+                        draft.bodyType === 'feminine'
+                          ? palette.selectedBg
+                          : palette.modalInputBg,
+                      borderColor:
+                        draft.bodyType === 'feminine'
+                          ? palette.selectedBorder
+                          : palette.modalCardBorder,
+                    },
+                    pressed && { opacity: 0.86 },
                   ]}
                 >
-                  <ModularAvatar config={BASE_FEMALE_AVATAR} size={28} />
+                  <ModularAvatar config={BASE_FEMALE_AVATAR} size={26} />
                   <Text
                     style={[
                       styles.baseBtnText,
-                      draft.bodyType === 'feminine' && styles.baseBtnTextActive,
+                      {
+                        color:
+                          draft.bodyType === 'feminine'
+                            ? palette.selectedText
+                            : palette.textPrimary,
+                      },
                     ]}
                   >
                     Mujer
@@ -406,15 +625,29 @@ export function AvatarStudioModal({
                   onPress={() => handleSelectBase('masculine')}
                   style={({ pressed }) => [
                     styles.baseBtn,
-                    draft.bodyType === 'masculine' && styles.baseBtnActive,
-                    pressed && { opacity: 0.84 },
+                    {
+                      backgroundColor:
+                        draft.bodyType === 'masculine'
+                          ? palette.selectedBg
+                          : palette.modalInputBg,
+                      borderColor:
+                        draft.bodyType === 'masculine'
+                          ? palette.selectedBorder
+                          : palette.modalCardBorder,
+                    },
+                    pressed && { opacity: 0.86 },
                   ]}
                 >
-                  <ModularAvatar config={BASE_MALE_AVATAR} size={28} />
+                  <ModularAvatar config={BASE_MALE_AVATAR} size={26} />
                   <Text
                     style={[
                       styles.baseBtnText,
-                      draft.bodyType === 'masculine' && styles.baseBtnTextActive,
+                      {
+                        color:
+                          draft.bodyType === 'masculine'
+                            ? palette.selectedText
+                            : palette.textPrimary,
+                      },
                     ]}
                   >
                     Hombre
@@ -426,115 +659,118 @@ export function AvatarStudioModal({
                 onPress={handleRandomizeFreeOrOwned}
                 style={({ pressed }) => [
                   styles.presetChipRandom,
-                  pressed && { opacity: 0.82 },
+                  { backgroundColor: palette.accent },
+                  pressed && { opacity: 0.86 },
                 ]}
               >
-                <Text style={styles.presetChipRandomText}>
+                <Text
+                  style={[
+                    styles.presetChipRandomText,
+                    { color: palette.textOnAccent },
+                  ]}
+                >
                   Sorpréndeme (Aleatorio)
                 </Text>
               </Pressable>
             </View>
-          </LinearGradient>
+          </View>
 
-          {/* Category Tabs */}
+          {/* 6 Clear Macro-Sections */}
           <ScrollView
-            ref={tabsScrollRef}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.tabsRow}
             style={styles.tabsScroll}
           >
-            {STUDIO_TABS.map((t) => {
-              const active = activeTab === t.id;
-              const tabLabel =
-                t.id === 'facial'
-                  ? draft.bodyType === 'feminine'
-                    ? 'Detalles'
-                    : 'Barba y Extras'
-                  : t.label;
+            {MACRO_SECTIONS.map((t) => {
+              const active = section === t.id;
               return (
                 <Pressable
                   key={t.id}
                   onPress={() => {
                     hapticLight();
-                    setActiveTab(t.id);
+                    setSection(t.id);
                   }}
-                  style={[styles.tabPill, active && styles.tabPillActive]}
+                  style={[
+                    styles.tabPill,
+                    {
+                      backgroundColor: active
+                        ? palette.selectedBg
+                        : palette.modalCardBg,
+                      borderColor: active
+                        ? palette.selectedBorder
+                        : palette.modalCardBorder,
+                    },
+                  ]}
                 >
                   <Text
                     style={[
                       styles.tabPillText,
-                      active && styles.tabPillTextActive,
+                      {
+                        color: active
+                          ? palette.selectedText
+                          : palette.textSecondary,
+                      },
                     ]}
                   >
-                    {tabLabel}
+                    {t.label}
                   </Text>
                 </Pressable>
               );
             })}
           </ScrollView>
 
-          {/* Color Swatch Strip for Skin / Eyes / Hair / Outfit */}
-          {activeTab === 'face' && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.swatchScroll}
-              contentContainerStyle={styles.swatchRow}
-            >
-              <Text style={styles.swatchLabel}>Piel:</Text>
-              {AVATAR_SKIN_TONES.map((s) => {
-                const active = draft.skinTone === s.id;
-                return (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => {
-                      hapticLight();
-                      setDraft((prev) => ({ ...prev, skinTone: s.id }));
-                    }}
-                    style={[
-                      styles.swatchDot,
-                      { backgroundColor: s.base },
-                      active && styles.swatchDotActive,
-                    ]}
-                  />
-                );
-              })}
-            </ScrollView>
-          )}
-
-          {activeTab === 'eyes' &&
-            !EYE_STYLES_WITHOUT_IRIS_COLOR.has(draft.eyeStyle) && (
+          {/* Contextual Color Swatches & Sub-Selectors */}
+          {section === 'face' && (
+            <>
               <View style={styles.swatchRow}>
-                <Text style={styles.swatchLabel}>Color de ojos:</Text>
-                {AVATAR_EYE_COLORS.map((c) => {
-                  const active = draft.eyeColor === c.hex;
+                <Text style={[styles.swatchLabel, { color: palette.textSecondary }]}>
+                  Piel:
+                </Text>
+                {AVATAR_SKIN_TONES.map((s) => {
+                  const active = draft.skinTone === s.id;
                   return (
                     <Pressable
-                      key={c.hex}
+                      key={s.id}
                       onPress={() => {
                         hapticLight();
-                        setDraft((prev) => ({ ...prev, eyeColor: c.hex }));
+                        setDraft((prev) => ({ ...prev, skinTone: s.id }));
                       }}
+                      accessibilityLabel={`Piel ${s.name}`}
                       style={[
                         styles.swatchDot,
-                        { backgroundColor: c.hex },
+                        { backgroundColor: s.base },
                         active && styles.swatchDotActive,
                       ]}
                     />
                   );
                 })}
               </View>
-            )}
+              {renderSubPills<FaceSubTab>(
+                [
+                  { id: 'shape', label: 'Forma' },
+                  { id: 'nose', label: 'Nariz' },
+                  {
+                    id: 'facial',
+                    label: draft.bodyType === 'feminine' ? 'Detalles' : 'Barba y Extras',
+                  },
+                ],
+                faceSub,
+                setFaceSub
+              )}
+            </>
+          )}
 
-          {activeTab === 'hair' && draft.hair !== 'bald' && (
+          {section === 'hair' && draft.hair !== 'bald' && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.swatchScroll}
               contentContainerStyle={styles.swatchRow}
             >
-              <Text style={styles.swatchLabel}>Color:</Text>
+              <Text style={[styles.swatchLabel, { color: palette.textSecondary }]}>
+                Color:
+              </Text>
               {AVATAR_HAIR_COLORS.map((c) => {
                 const active = draft.hairColor === c.hex;
                 return (
@@ -555,126 +791,224 @@ export function AvatarStudioModal({
             </ScrollView>
           )}
 
-          {activeTab === 'outfit' &&
-            !OUTFITS_WITH_FIXED_COLOR.has(draft.outfit) && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.swatchScroll}
-                contentContainerStyle={styles.swatchRow}
-              >
-                <Text style={styles.swatchLabel}>Color:</Text>
-                {AVATAR_OUTFIT_COLORS.map((c) => {
-                  const active = draft.outfitColor === c.hex;
-                  return (
-                    <Pressable
-                      key={c.hex}
-                      onPress={() => {
-                        hapticLight();
-                        setDraft((prev) => ({ ...prev, outfitColor: c.hex }));
-                      }}
-                      style={[
-                        styles.swatchDot,
-                        { backgroundColor: c.hex },
-                        active && styles.swatchDotActive,
-                      ]}
-                    />
-                  );
-                })}
-              </ScrollView>
+          {section === 'expression' && (
+            <>
+              {exprSub === 'eyes' &&
+                !EYE_STYLES_WITHOUT_IRIS_COLOR.has(draft.eyeStyle) && (
+                  <View style={styles.swatchRow}>
+                    <Text
+                      style={[styles.swatchLabel, { color: palette.textSecondary }]}
+                    >
+                      Iris:
+                    </Text>
+                    {AVATAR_EYE_COLORS.map((c) => {
+                      const active = draft.eyeColor === c.hex;
+                      return (
+                        <Pressable
+                          key={c.hex}
+                          onPress={() => {
+                            hapticLight();
+                            setDraft((prev) => ({ ...prev, eyeColor: c.hex }));
+                          }}
+                          style={[
+                            styles.swatchDot,
+                            { backgroundColor: c.hex },
+                            active && styles.swatchDotActive,
+                          ]}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+              {renderSubPills<ExprSubTab>(
+                [
+                  { id: 'eyes', label: 'Ojos' },
+                  { id: 'mouth', label: 'Boca' },
+                  { id: 'brows', label: 'Cejas' },
+                ],
+                exprSub,
+                setExprSub
+              )}
+            </>
+          )}
+
+          {section === 'outfit' && !OUTFITS_WITH_FIXED_COLOR.has(draft.outfit) && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.swatchScroll}
+              contentContainerStyle={styles.swatchRow}
+            >
+              <Text style={[styles.swatchLabel, { color: palette.textSecondary }]}>
+                Tono:
+              </Text>
+              {AVATAR_OUTFIT_COLORS.map((c) => {
+                const active = draft.outfitColor === c.hex;
+                return (
+                  <Pressable
+                    key={c.hex}
+                    onPress={() => {
+                      hapticLight();
+                      setDraft((prev) => ({ ...prev, outfitColor: c.hex }));
+                    }}
+                    style={[
+                      styles.swatchDot,
+                      { backgroundColor: c.hex },
+                      active && styles.swatchDotActive,
+                    ]}
+                  />
+                );
+              })}
+            </ScrollView>
+          )}
+
+          {section === 'extras' &&
+            renderSubPills<ExtrasSubTab>(
+              [
+                { id: 'hat', label: 'Cabeza' },
+                { id: 'glasses', label: 'Gafas' },
+                { id: 'frame', label: 'Fondo' },
+              ],
+              extrasSub,
+              setExtrasSub
             )}
 
-          {/* Scrollable Item Catalog (Light high-contrast tiles so every trait reads clearly!) */}
+          {/* Catalog Grid with Automatic Face-Zoom Camera on Facial Traits */}
           <ScrollView
             ref={catalogScrollRef}
             style={styles.catalogScroll}
             contentContainerStyle={styles.catalogContent}
             showsVerticalScrollIndicator={false}
           >
-            {activeTab === 'face' &&
-              renderItemGrid(AVATAR_FACE_SHAPE_OPTIONS, draft.faceShape, (id) => ({
-                ...draft,
-                faceShape: id,
-              }))}
+            {section === 'looks' && renderLooksGrid()}
 
-            {activeTab === 'hair' &&
-              renderItemGrid(sortedHairOptions, draft.hair, (id) => ({
-                ...draft,
-                hair: id,
-              }))}
+            {section === 'face' &&
+              faceSub === 'shape' &&
+              renderItemGrid(
+                AVATAR_FACE_SHAPE_OPTIONS,
+                draft.faceShape,
+                (id) => ({ ...draft, faceShape: id }),
+                { useFaceCamera: true, stripGlasses: true }
+              )}
 
-            {activeTab === 'eyes' &&
-              renderItemGrid(sortedEyeOptions, draft.eyeStyle, (id) => ({
-                ...draft,
-                eyeStyle: id,
-              }))}
+            {section === 'face' &&
+              faceSub === 'nose' &&
+              renderItemGrid(
+                AVATAR_NOSE_OPTIONS,
+                draft.nose,
+                (id) => ({ ...draft, nose: id }),
+                { useFaceCamera: true, stripGlasses: true }
+              )}
 
-            {activeTab === 'brows' &&
-              renderItemGrid(AVATAR_EYEBROW_OPTIONS, draft.eyebrows, (id) => ({
-                ...draft,
-                eyebrows: id,
-              }))}
+            {section === 'face' &&
+              faceSub === 'facial' &&
+              renderItemGrid(
+                sortedFacialOptions,
+                draft.facial,
+                (id) => ({ ...draft, facial: id }),
+                { useFaceCamera: true }
+              )}
 
-            {activeTab === 'nose' &&
-              renderItemGrid(AVATAR_NOSE_OPTIONS, draft.nose, (id) => ({
-                ...draft,
-                nose: id,
-              }))}
+            {section === 'hair' &&
+              renderItemGrid(
+                sortedHairOptions,
+                draft.hair,
+                (id) => ({ ...draft, hair: id }),
+                { stripHat: true }
+              )}
 
-            {activeTab === 'mouth' &&
-              renderItemGrid(sortedMouthOptions, draft.mouth, (id) => ({
-                ...draft,
-                mouth: id,
-              }))}
+            {section === 'expression' &&
+              exprSub === 'eyes' &&
+              renderItemGrid(
+                sortedEyeOptions,
+                draft.eyeStyle,
+                (id) => ({ ...draft, eyeStyle: id }),
+                { useFaceCamera: true, stripGlasses: true }
+              )}
 
-            {activeTab === 'facial' &&
-              renderItemGrid(sortedFacialOptions, draft.facial, (id) => ({
-                ...draft,
-                facial: id,
-              }))}
+            {section === 'expression' &&
+              exprSub === 'mouth' &&
+              renderItemGrid(
+                sortedMouthOptions,
+                draft.mouth,
+                (id) => ({ ...draft, mouth: id }),
+                { useFaceCamera: true }
+              )}
 
-            {activeTab === 'outfit' &&
+            {section === 'expression' &&
+              exprSub === 'brows' &&
+              renderItemGrid(
+                AVATAR_EYEBROW_OPTIONS,
+                draft.eyebrows,
+                (id) => ({ ...draft, eyebrows: id }),
+                { useFaceCamera: true, stripGlasses: true }
+              )}
+
+            {section === 'outfit' &&
               renderItemGrid(sortedOutfitOptions, draft.outfit, (id) => ({
                 ...draft,
                 outfit: id,
               }))}
 
-            {activeTab === 'glasses' &&
-              renderItemGrid(sortedGlassesOptions, draft.glasses, (id) => ({
-                ...draft,
-                glasses: id,
-              }))}
-
-            {activeTab === 'hat' &&
+            {section === 'extras' &&
+              extrasSub === 'hat' &&
               renderItemGrid(sortedHatOptions, draft.hat, (id) => ({
                 ...draft,
                 hat: id,
               }))}
 
-            {activeTab === 'frame' &&
-              renderItemGrid(sortedFrameOptions, draft.frame, (id) => ({
-                ...draft,
-                frame: id,
-              }))}
+            {section === 'extras' &&
+              extrasSub === 'glasses' &&
+              renderItemGrid(
+                sortedGlassesOptions,
+                draft.glasses,
+                (id) => ({ ...draft, glasses: id }),
+                { useFaceCamera: true }
+              )}
+
+            {section === 'extras' &&
+              extrasSub === 'frame' &&
+              renderItemGrid(
+                sortedFrameOptions,
+                draft.frame,
+                (id) => ({ ...draft, frame: id }),
+                { showRing: true }
+              )}
           </ScrollView>
 
           {/* Sticky Bottom Action Bar */}
           <View style={styles.footer}>
             {totalCost > 0 && !canAffordAll ? (
-              <View style={styles.insufficientBox}>
-                <Text style={styles.insufficientText}>
-                  Te faltan{' '}
+              <View
+                style={[
+                  styles.insufficientBox,
+                  {
+                    backgroundColor: palette.dangerBg,
+                    borderColor: palette.dangerBorder,
+                  },
+                ]}
+              >
+                <Text
+                  style={[styles.insufficientText, { color: palette.dangerText }]}
+                >
+                  Faltan{' '}
                   {(totalCost - retention.clubChips).toLocaleString('es-ES')}{' '}
-                  monedas para esta combinación.
+                  fichas para desbloquear este conjunto.
                 </Text>
                 <Pressable
                   onPress={handleStripLockedItems}
                   style={({ pressed }) => [
                     styles.stripLockedBtn,
+                    { backgroundColor: palette.modalCardBg },
                     pressed && { opacity: 0.8 },
                   ]}
                 >
-                  <Text style={styles.stripLockedBtnText}>
+                  <Text
+                    style={[
+                      styles.stripLockedBtnText,
+                      { color: palette.textPrimary },
+                    ]}
+                  >
                     Quitar bloqueados
                   </Text>
                 </Pressable>
@@ -691,9 +1025,9 @@ export function AvatarStudioModal({
               }
               title={
                 totalCost > 0
-                  ? `Desbloquear y usar (${totalCost.toLocaleString('es-ES')})`
+                  ? `Desbloquear y usar (${totalCost.toLocaleString('es-ES')} fichas)`
                   : hasChanges
-                  ? 'Guardar Avatar'
+                  ? 'Guardar mi Avatar'
                   : 'Listo'
               }
               disabled={totalCost > 0 && !canAffordAll}
@@ -709,16 +1043,13 @@ export function AvatarStudioModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(4, 10, 22, 0.78)',
     justifyContent: 'flex-end',
   },
   sheet: {
     height: '92%',
-    backgroundColor: '#0E1C36',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     borderTopWidth: 1.5,
-    borderColor: 'rgba(148, 190, 255, 0.3)',
     paddingTop: 14,
     paddingHorizontal: 14,
     paddingBottom: 22,
@@ -731,14 +1062,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    color: CLUB.textPrimary,
-    fontSize: 18,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 20,
   },
   subtitle: {
-    color: CLUB.textSecondary,
-    fontSize: 11.5,
-    fontWeight: '600',
+    fontFamily: FONT.semi,
+    fontSize: 12,
     marginTop: 1,
   },
   headerRight: {
@@ -750,24 +1079,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(245, 196, 81, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.45)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   chipsText: {
-    color: CLUB.goldSoft,
+    fontFamily: FONT.extraBold,
     fontSize: 12.5,
-    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   closeBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -776,25 +1101,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.85)',
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
     padding: 12,
-    boxShadow: '0px 8px 20px rgba(0, 0, 0, 0.32)',
   },
   stagePortraitHalo: {
     padding: 3,
     borderRadius: 64,
-    backgroundColor: '#FFFFFF',
-    boxShadow: '0px 4px 12px rgba(15, 23, 42, 0.18)',
+    borderWidth: 2,
   },
   stageRight: {
     flex: 1,
     gap: 7,
   },
   presetsLabel: {
-    color: '#475569',
+    fontFamily: FONT.extraBold,
     fontSize: 10,
-    fontWeight: '900',
     letterSpacing: 1,
   },
   baseToggleRow: {
@@ -807,38 +1129,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 14,
+    borderWidth: 1.25,
+    borderRadius: 13,
     paddingVertical: 6,
     paddingHorizontal: 8,
   },
-  baseBtnActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#2563EB',
-    boxShadow: '0px 2px 8px rgba(37, 99, 235, 0.22)',
-  },
   baseBtnText: {
-    color: '#334155',
+    fontFamily: FONT.extraBold,
     fontSize: 12.5,
-    fontWeight: '800',
-  },
-  baseBtnTextActive: {
-    color: '#1D4ED8',
-    fontWeight: '900',
   },
   presetChipRandom: {
-    backgroundColor: '#2563EB',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
     alignItems: 'center',
   },
   presetChipRandomText: {
-    color: '#FFFFFF',
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '900',
   },
   tabsScroll: {
     flexGrow: 0,
@@ -848,24 +1156,31 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   tabPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.18)',
-  },
-  tabPillActive: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#FFFFFF',
+    paddingHorizontal: 13,
+    paddingVertical: 7.5,
+    borderRadius: 13,
+    borderWidth: 1.25,
   },
   tabPillText: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 12.5,
   },
-  tabPillTextActive: {
-    color: '#0F172A',
+  subPillBar: {
+    flexDirection: 'row',
+    gap: 5,
+    padding: 4,
+    borderRadius: 13,
+    borderWidth: 1,
+  },
+  subPillBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  subPillText: {
+    fontFamily: FONT.extraBold,
+    fontSize: 12,
   },
   swatchScroll: {
     flexGrow: 0,
@@ -873,21 +1188,20 @@ const styles = StyleSheet.create({
   swatchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 9,
     paddingHorizontal: 4,
     paddingVertical: 2,
   },
   swatchLabel: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.extraBold,
     fontSize: 11.5,
-    fontWeight: '800',
   },
   swatchDot: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 27,
+    height: 27,
+    borderRadius: 13.5,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.45)',
+    borderColor: 'rgba(148, 163, 184, 0.45)',
   },
   swatchDotActive: {
     borderColor: CLUB.gold,
@@ -900,6 +1214,60 @@ const styles = StyleSheet.create({
   catalogContent: {
     paddingBottom: 14,
   },
+  looksList: {
+    gap: 10,
+  },
+  lookCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
+    padding: 11,
+  },
+  lookTextCol: {
+    flex: 1,
+    gap: 3,
+  },
+  lookTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  lookName: {
+    fontFamily: FONT.display,
+    fontSize: 15.5,
+  },
+  lookTagBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+  },
+  lookTagText: {
+    fontFamily: FONT.extraBold,
+    fontSize: 9.5,
+  },
+  lookSub: {
+    fontFamily: FONT.semi,
+    fontSize: 11.5,
+    lineHeight: 16,
+  },
+  lookPriceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 11,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  lookPriceText: {
+    fontFamily: FONT.extraBold,
+    fontSize: 11.5,
+    fontVariant: ['tabular-nums'],
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -907,47 +1275,39 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     width: '31.3%',
-    backgroundColor: '#F1F5F9',
     borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#CBD5E1',
+    borderWidth: 1.25,
+    borderBottomWidth: 3.5,
     paddingVertical: 8,
     paddingHorizontal: 6,
     alignItems: 'center',
     gap: 5,
     position: 'relative',
   },
-  itemCardSelected: {
-    borderColor: CLUB.gold,
-    backgroundColor: '#FFFBEB',
-    boxShadow: '0px 4px 12px rgba(245, 196, 81, 0.35)',
-  },
   tagBadge: {
     position: 'absolute',
     top: 5,
     right: 5,
-    backgroundColor: '#FEF3C7',
     borderWidth: 1,
-    borderColor: '#F59E0B',
     borderRadius: 6,
     paddingHorizontal: 5,
     paddingVertical: 1,
     zIndex: 4,
   },
   tagText: {
-    color: '#92400E',
+    fontFamily: FONT.extraBold,
     fontSize: 8.5,
-    fontWeight: '900',
   },
   thumbWindow: {
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   itemName: {
-    color: '#0F172A',
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '800',
     textAlign: 'center',
   },
   pricePill: {
@@ -958,24 +1318,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 8,
-    backgroundColor: '#FEF3C7',
     minWidth: 62,
   },
-  pricePillOwned: {
-    backgroundColor: '#E2E8F0',
-  },
-  pricePillSelected: {
-    backgroundColor: '#10B981',
-  },
   priceTextOwned: {
-    color: '#334155',
+    fontFamily: FONT.extraBold,
     fontSize: 10,
-    fontWeight: '900',
   },
   priceTextLocked: {
-    color: '#92400E',
+    fontFamily: FONT.extraBold,
     fontSize: 10.5,
-    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   footer: {
@@ -987,30 +1338,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 10,
-    backgroundColor: 'rgba(244, 63, 94, 0.16)',
     borderWidth: 1,
-    borderColor: 'rgba(244, 63, 94, 0.38)',
-    borderRadius: 12,
+    borderRadius: 13,
     paddingHorizontal: 11,
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   insufficientText: {
     flex: 1,
-    color: '#FDA4AF',
+    fontFamily: FONT.bold,
     fontSize: 11.5,
-    fontWeight: '700',
   },
   stripLockedBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(253, 164, 175, 0.45)',
     borderRadius: 9,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   stripLockedBtnText: {
-    color: '#FFFFFF',
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '900',
   },
 });

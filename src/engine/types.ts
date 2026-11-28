@@ -4,6 +4,9 @@ export type TargetScore = 50 | 100 | 150 | 200 | 250 | 300;
 
 export const TARGET_SCORES: TargetScore[] = [50, 100, 150, 200, 250, 300];
 
+/** Curated 4 classic Latino domino score goals for spacious, readable UI selection */
+export const UI_TARGET_SCORES: TargetScore[] = [50, 100, 150, 200];
+
 export type PlaySide = 'left' | 'right' | 'start';
 
 export type SortMode = 'value' | 'doubles';

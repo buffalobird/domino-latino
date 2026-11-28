@@ -398,6 +398,36 @@ export function canPlayTileOnSide(
   return Boolean(move && move.sides.includes(side));
 }
 
+function tileMatchesEnds(tile: Tile, leftEnd: number, rightEnd: number): boolean {
+  return (
+    tile.a === leftEnd ||
+    tile.b === leftEnd ||
+    tile.a === rightEnd ||
+    tile.b === rightEnd
+  );
+}
+
+/**
+ * Returns true as soon as the board is mathematically locked (trancado):
+ * no player at the table AND no tile remaining in the boneyard matches either open end.
+ */
+export function isBoardTrancado(
+  state: Pick<GameState, 'chain' | 'leftEnd' | 'rightEnd' | 'players' | 'boneyard'>
+): boolean {
+  if (state.chain.length === 0 || state.leftEnd === null || state.rightEnd === null) {
+    return false;
+  }
+  const { leftEnd, rightEnd } = state;
+  const anyPlayerCanPlay = state.players.some((p) =>
+    p.hand.some((t) => tileMatchesEnds(t, leftEnd, rightEnd))
+  );
+  if (anyPlayerCanPlay) return false;
+  const boneyardHasPlayable = state.boneyard.some((t) =>
+    tileMatchesEnds(t, leftEnd, rightEnd)
+  );
+  return !boneyardHasPlayable;
+}
+
 /**
  * Draw a tile from the boneyard ("pozo") when the current player has 0 legal moves.
  * Optional `boneyardIndex` lets the human pick a specific face-down tile from the drawer.
@@ -462,6 +492,11 @@ export function applyDraw(
     undealtCount: nextBoneyard.length,
     history: [...state.history, entry],
   };
+
+  // If the boneyard is now empty and nobody can play, declare tranca immediately
+  if (nextBoneyard.length === 0 && isBoardTrancado(nextState)) {
+    return resolveHandEnd(nextState, 'tranca', null);
+  }
 
   // If the boneyard is now empty and the player STILL has no legal moves, automatically pass
   if (nextBoneyard.length === 0 && getLegalMovesForSeat(nextState, seat).length === 0) {
@@ -582,6 +617,13 @@ export function applyPlay(
     return resolveHandEnd(nextState, 'domino', seat);
   }
 
+  if (isBoardTrancado(nextState)) {
+    const lockedPlayers = nextState.players.map((p) =>
+      p.seat === seat ? { ...p, lastAction: '¡Trancó!' } : p
+    );
+    return resolveHandEnd({ ...nextState, players: lockedPlayers }, 'tranca', null);
+  }
+
   return nextState;
 }
 
@@ -625,7 +667,7 @@ export function applyPass(state: GameState, seat: number): GameState {
 
   const consecutivePasses = state.consecutivePasses + 1;
   const updatedPlayers = state.players.map((p) =>
-    p.seat === seat ? { ...p, lastAction: 'Paso turno' } : p
+    p.seat === seat ? { ...p, lastAction: '¡Pasó!' } : p
   );
 
   const nextState: GameState = {
@@ -636,7 +678,7 @@ export function applyPass(state: GameState, seat: number): GameState {
     currentTurnSeat: getNextClockwiseSeat(seat, state.players.length),
   };
 
-  if (consecutivePasses >= state.players.length) {
+  if (consecutivePasses >= state.players.length || isBoardTrancado(nextState)) {
     return resolveHandEnd(nextState, 'tranca', null);
   }
 

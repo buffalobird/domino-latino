@@ -4,7 +4,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 
 import { TABLE_THEME_LIST, TableThemeId } from '@/constants/tableThemes';
 import { TILE_STYLE_LIST, TileStyleId } from '@/constants/tileStyles';
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { RetentionProgress } from '@/storage/gameStorage';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { DominoTile } from './DominoTile';
@@ -25,6 +26,7 @@ export function ThemesModal({
   onSelectOrUnlockTileStyle,
   onClose,
 }: ThemesModalProps) {
+  const { palette } = usePalette();
   const [tab, setTab] = useState<'tables' | 'tiles'>('tables');
 
   return (
@@ -35,15 +37,25 @@ export function ThemesModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
+      <View style={[styles.backdrop, { backgroundColor: palette.modalBackdrop }]}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.modalBg,
+              borderColor: palette.modalBorder,
+            },
+          ]}
+        >
           <View style={styles.header}>
             <View>
               <View style={styles.titleRow}>
-                <TableIcon size={18} color={CLUB.gold} />
-                <Text style={styles.title}>Estilo de Mesa</Text>
+                <TableIcon size={18} color={palette.brandAccent} />
+                <Text style={[styles.title, { color: palette.textPrimary }]}>
+                  Estilo de Mesa
+                </Text>
               </View>
-              <Text style={styles.sub}>
+              <Text style={[styles.sub, { color: palette.winnerText }]}>
                 Saldo: {retention.clubChips.toLocaleString('es-ES')} fichas
               </Text>
             </View>
@@ -51,25 +63,41 @@ export function ThemesModal({
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Cerrar mesas y fichas"
-              style={styles.closeBtn}
+              style={[styles.closeBtn, { backgroundColor: palette.closeBtnBg }]}
             >
-              <CloseIcon size={18} color={CLUB.textPrimary} />
+              <CloseIcon size={18} color={palette.textPrimary} />
             </Pressable>
           </View>
 
           {/* Segmented Tabs: Mesas vs Fichas */}
-          <View style={styles.segmentRow}>
+          <View
+            style={[
+              styles.segmentRow,
+              {
+                backgroundColor: palette.modalInputBg,
+                borderColor: palette.modalCardBorder,
+              },
+            ]}
+          >
             <Pressable
               onPress={() => {
                 hapticLight();
                 setTab('tables');
               }}
-              style={[styles.segmentBtn, tab === 'tables' && styles.segmentBtnActive]}
+              style={[
+                styles.segmentBtn,
+                tab === 'tables' && { backgroundColor: palette.selectedBg },
+              ]}
             >
               <Text
                 style={[
                   styles.segmentText,
-                  tab === 'tables' && styles.segmentTextActive,
+                  {
+                    color:
+                      tab === 'tables'
+                        ? palette.selectedText
+                        : palette.textSecondary,
+                  },
                 ]}
               >
                 Mesas ({TABLE_THEME_LIST.length})
@@ -80,12 +108,20 @@ export function ThemesModal({
                 hapticLight();
                 setTab('tiles');
               }}
-              style={[styles.segmentBtn, tab === 'tiles' && styles.segmentBtnActive]}
+              style={[
+                styles.segmentBtn,
+                tab === 'tiles' && { backgroundColor: palette.selectedBg },
+              ]}
             >
               <Text
                 style={[
                   styles.segmentText,
-                  tab === 'tiles' && styles.segmentTextActive,
+                  {
+                    color:
+                      tab === 'tiles'
+                        ? palette.selectedText
+                        : palette.textSecondary,
+                  },
                 ]}
               >
                 Fichas ({TILE_STYLE_LIST.length})
@@ -114,7 +150,17 @@ export function ThemesModal({
                       }}
                       style={[
                         styles.row,
-                        equipped && styles.rowEquipped,
+                        {
+                          backgroundColor: equipped
+                            ? palette.positiveBg
+                            : palette.modalCardBg,
+                          borderColor: equipped
+                            ? palette.positiveBorder
+                            : palette.modalCardBorder,
+                          borderBottomColor: equipped
+                            ? palette.positiveBorder
+                            : palette.modalCardLip,
+                        },
                         !unlocked && !canAfford && styles.rowLocked,
                       ]}
                     >
@@ -137,35 +183,65 @@ export function ThemesModal({
                       </LinearGradient>
                       <View style={styles.info}>
                         <View style={styles.nameRow}>
-                          <Text style={styles.name}>{theme.name}</Text>
+                          <Text style={[styles.name, { color: palette.textPrimary }]}>
+                            {theme.name}
+                          </Text>
                           {theme.tag && (
-                            <View style={styles.tierBadge}>
-                              <Text style={styles.tierBadgeText}>{theme.tag}</Text>
+                            <View
+                              style={[
+                                styles.tierBadge,
+                                {
+                                  backgroundColor: palette.chipPillBg,
+                                  borderColor: palette.borderWarm,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.tierBadgeText,
+                                  { color: palette.chipPillText },
+                                ]}
+                              >
+                                {theme.tag}
+                              </Text>
                             </View>
                           )}
                         </View>
-                        <Text style={styles.desc}>{theme.subtitle}</Text>
+                        <Text
+                          style={[styles.desc, { color: palette.textSecondary }]}
+                        >
+                          {theme.subtitle}
+                        </Text>
                       </View>
                       <View
                         style={[
                           styles.ctaPill,
-                          equipped && styles.ctaEquipped,
-                          !unlocked && canAfford && styles.ctaBuy,
+                          {
+                            backgroundColor: equipped
+                              ? palette.accent
+                              : !unlocked && canAfford
+                              ? CLUB.gold
+                              : palette.modalInputBg,
+                          },
                         ]}
                       >
                         {equipped ? (
-                          <CheckIcon size={13} color={CLUB.textInk} />
+                          <CheckIcon size={13} color={palette.textOnAccent} />
                         ) : !unlocked ? (
                           <ChipIcon
                             size={12}
-                            color={canAfford ? CLUB.textInk : CLUB.gold}
+                            color={canAfford ? CLUB.textInk : palette.chipIconColor}
                           />
                         ) : null}
                         <Text
                           style={[
                             styles.ctaText,
-                            (equipped || (!unlocked && canAfford)) && {
-                              color: CLUB.textInk,
+                            {
+                              color: equipped
+                                ? palette.textOnAccent
+                                : !unlocked && canAfford
+                                ? CLUB.textInk
+                                : palette.textPrimary,
                             },
                           ]}
                         >
@@ -196,7 +272,17 @@ export function ThemesModal({
                       }}
                       style={[
                         styles.row,
-                        equipped && styles.rowEquipped,
+                        {
+                          backgroundColor: equipped
+                            ? palette.positiveBg
+                            : palette.modalCardBg,
+                          borderColor: equipped
+                            ? palette.positiveBorder
+                            : palette.modalCardBorder,
+                          borderBottomColor: equipped
+                            ? palette.positiveBorder
+                            : palette.modalCardLip,
+                        },
                         !unlocked && !canAfford && styles.rowLocked,
                       ]}
                     >
@@ -211,37 +297,65 @@ export function ThemesModal({
                       </View>
                       <View style={styles.info}>
                         <View style={styles.nameRow}>
-                          <Text style={styles.name}>{tileStyle.name}</Text>
+                          <Text style={[styles.name, { color: palette.textPrimary }]}>
+                            {tileStyle.name}
+                          </Text>
                           {tileStyle.tag && (
-                            <View style={styles.tierBadge}>
-                              <Text style={styles.tierBadgeText}>
+                            <View
+                              style={[
+                                styles.tierBadge,
+                                {
+                                  backgroundColor: palette.chipPillBg,
+                                  borderColor: palette.borderWarm,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.tierBadgeText,
+                                  { color: palette.chipPillText },
+                                ]}
+                              >
                                 {tileStyle.tag}
                               </Text>
                             </View>
                           )}
                         </View>
-                        <Text style={styles.desc}>{tileStyle.subtitle}</Text>
+                        <Text
+                          style={[styles.desc, { color: palette.textSecondary }]}
+                        >
+                          {tileStyle.subtitle}
+                        </Text>
                       </View>
                       <View
                         style={[
                           styles.ctaPill,
-                          equipped && styles.ctaEquipped,
-                          !unlocked && canAfford && styles.ctaBuy,
+                          {
+                            backgroundColor: equipped
+                              ? palette.accent
+                              : !unlocked && canAfford
+                              ? CLUB.gold
+                              : palette.modalInputBg,
+                          },
                         ]}
                       >
                         {equipped ? (
-                          <CheckIcon size={13} color={CLUB.textInk} />
+                          <CheckIcon size={13} color={palette.textOnAccent} />
                         ) : !unlocked ? (
                           <ChipIcon
                             size={12}
-                            color={canAfford ? CLUB.textInk : CLUB.gold}
+                            color={canAfford ? CLUB.textInk : palette.chipIconColor}
                           />
                         ) : null}
                         <Text
                           style={[
                             styles.ctaText,
-                            (equipped || (!unlocked && canAfford)) && {
-                              color: CLUB.textInk,
+                            {
+                              color: equipped
+                                ? palette.textOnAccent
+                                : !unlocked && canAfford
+                                ? CLUB.textInk
+                                : palette.textPrimary,
                             },
                           ]}
                         >
@@ -265,7 +379,6 @@ export function ThemesModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6, 12, 24, 0.78)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
@@ -273,14 +386,12 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 420,
-    maxHeight: '84%',
-    backgroundColor: 'rgba(14, 28, 52, 0.97)',
-    borderRadius: 24,
-    borderWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.26)',
+    maxHeight: '85%',
+    borderRadius: 26,
+    borderWidth: 1.5,
     padding: 18,
     gap: 12,
-    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.55)',
   },
   titleRow: {
     flexDirection: 'row',
@@ -293,14 +404,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    color: CLUB.textPrimary,
-    fontSize: 19,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 20,
   },
   sub: {
-    color: CLUB.gold,
-    fontSize: 13,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 12.5,
     fontVariant: ['tabular-nums'],
     marginTop: 2,
   },
@@ -308,18 +417,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   segmentRow: {
     flexDirection: 'row',
-    gap: 8,
-    backgroundColor: 'rgba(7, 17, 36, 0.75)',
+    gap: 6,
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.16)',
   },
   segmentBtn: {
     flex: 1,
@@ -328,18 +434,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segmentBtnActive: {
-    backgroundColor: 'rgba(245, 196, 81, 0.2)',
-    borderWidth: 1,
-    borderColor: CLUB.gold,
-  },
   segmentText: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.extraBold,
     fontSize: 13,
-    fontWeight: '800',
-  },
-  segmentTextActive: {
-    color: CLUB.goldSoft,
   },
   scroll: {
     flexGrow: 0,
@@ -352,14 +449,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 11,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    borderBottomWidth: 3.5,
     padding: 10,
-  },
-  rowEquipped: {
-    borderColor: CLUB.emerald,
   },
   rowLocked: {
     opacity: 0.62,
@@ -398,7 +491,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 44,
     borderRadius: 10,
-    backgroundColor: 'rgba(8, 22, 42, 0.7)',
+    backgroundColor: '#14626A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -411,27 +504,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   name: {
-    color: CLUB.textPrimary,
-    fontSize: 13.5,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 14.5,
   },
   tierBadge: {
-    backgroundColor: 'rgba(245, 196, 81, 0.2)',
     borderRadius: 6,
     borderWidth: 0.8,
-    borderColor: CLUB.gold,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
   tierBadgeText: {
-    color: CLUB.goldSoft,
+    fontFamily: FONT.extraBold,
     fontSize: 9,
-    fontWeight: '900',
   },
   desc: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.semi,
     fontSize: 11.5,
-    fontWeight: '600',
     marginTop: 2,
   },
   ctaPill: {
@@ -440,21 +528,13 @@ const styles = StyleSheet.create({
     minWidth: 74,
     minHeight: 34,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 9,
   },
-  ctaEquipped: {
-    backgroundColor: CLUB.emerald,
-  },
-  ctaBuy: {
-    backgroundColor: CLUB.gold,
-  },
   ctaText: {
-    color: CLUB.textPrimary,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
 });

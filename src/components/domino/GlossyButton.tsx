@@ -10,6 +10,7 @@ import {
   ViewStyle,
 } from 'react-native';
 
+import { FONT } from '@/constants/tokens';
 import { usePalette } from '@/context/PaletteContext';
 
 export type GlossyVariant = 'emerald' | 'cobalt' | 'violet' | 'gold' | 'coral' | 'glass';
@@ -26,76 +27,76 @@ interface GlossyButtonProps {
   onPress: () => void;
 }
 
-const VARIANT_CONFIG: Record<
-  GlossyVariant,
-  {
-    colors: [string, string, string];
-    lip: string;
-    border: string;
-    shadow: string;
-    text: string;
-    sub: string;
-    glossOpacity: number;
-  }
-> = {
+interface VariantStyle {
+  colors: [string, string, string];
+  lip: string;
+  border: string;
+  topBevel: string;
+  shadow: string;
+  text: string;
+  sub: string;
+}
+
+const DARK_VARIANTS: Record<GlossyVariant, VariantStyle> = {
   emerald: {
-    colors: ['#7DF6B6', '#33D982', '#17A459'],
-    lip: '#0E733E',
-    border: 'rgba(187, 247, 208, 0.65)',
-    shadow: '0px 5px 20px rgba(41, 214, 127, 0.38)',
-    text: '#06311B',
-    sub: '#0B4D2B',
-    glossOpacity: 0.28,
+    colors: ['#5BF0AE', '#24C981', '#139E60'],
+    lip: '#0A693E',
+    border: 'rgba(167, 243, 208, 0.45)',
+    topBevel: 'rgba(255, 255, 255, 0.48)',
+    shadow: '0px 6px 18px rgba(36, 201, 129, 0.30)',
+    text: '#052E1A',
+    sub: '#094B2B',
   },
   cobalt: {
-    colors: ['#4393FF', '#2264DF', '#1646A8'],
-    lip: '#10317A',
-    border: 'rgba(186, 226, 255, 0.45)',
-    shadow: '0px 4px 16px rgba(37, 99, 235, 0.35)',
+    colors: ['#4BA3FF', '#2570E8', '#174EB5'],
+    lip: '#0E337D',
+    border: 'rgba(186, 230, 253, 0.38)',
+    topBevel: 'rgba(255, 255, 255, 0.38)',
+    shadow: '0px 5px 15px rgba(37, 112, 232, 0.28)',
     text: '#FFFFFF',
-    sub: 'rgba(255, 255, 255, 0.82)',
-    glossOpacity: 0.2,
+    sub: 'rgba(255, 255, 255, 0.86)',
   },
   violet: {
-    colors: ['#B35CFF', '#8A2EE5', '#6418B5'],
-    lip: '#480E87',
-    border: 'rgba(233, 213, 255, 0.4)',
-    shadow: '0px 4px 16px rgba(139, 92, 246, 0.35)',
+    colors: ['#A78BFA', '#7C3AED', '#5B21B6'],
+    lip: '#3B0F87',
+    border: 'rgba(233, 213, 255, 0.36)',
+    topBevel: 'rgba(255, 255, 255, 0.32)',
+    shadow: '0px 5px 15px rgba(124, 58, 237, 0.28)',
     text: '#FFFFFF',
-    sub: 'rgba(255, 255, 255, 0.82)',
-    glossOpacity: 0.2,
+    sub: 'rgba(255, 255, 255, 0.86)',
   },
   gold: {
-    colors: ['#FFF2A6', '#F7C948', '#E39D1E'],
-    lip: '#A1680A',
-    border: 'rgba(255, 247, 204, 0.8)',
-    shadow: '0px 4px 18px rgba(245, 196, 81, 0.42)',
-    text: '#1A1405',
-    sub: '#4D3604',
-    glossOpacity: 0.3,
+    colors: ['#FFE694', '#F5C451', '#D9961A'],
+    lip: '#946008',
+    border: 'rgba(255, 249, 219, 0.72)',
+    topBevel: 'rgba(255, 255, 255, 0.62)',
+    shadow: '0px 5px 16px rgba(245, 196, 81, 0.32)',
+    text: '#231703',
+    sub: '#543807',
   },
   coral: {
-    colors: ['#FB7185', '#F43F5E', '#BE123C'],
-    lip: '#881337',
-    border: 'rgba(254, 205, 211, 0.45)',
-    shadow: '0px 4px 16px rgba(244, 63, 94, 0.35)',
+    colors: ['#FF7E8E', '#F43F5E', '#C81E3E'],
+    lip: '#881329',
+    border: 'rgba(254, 205, 211, 0.42)',
+    topBevel: 'rgba(255, 255, 255, 0.36)',
+    shadow: '0px 5px 15px rgba(244, 63, 94, 0.30)',
     text: '#FFFFFF',
-    sub: 'rgba(255, 255, 255, 0.85)',
-    glossOpacity: 0.2,
+    sub: 'rgba(255, 255, 255, 0.88)',
   },
   glass: {
-    colors: ['rgba(38, 64, 102, 0.72)', 'rgba(24, 44, 74, 0.82)', 'rgba(17, 33, 58, 0.9)'],
-    lip: 'rgba(8, 16, 30, 0.9)',
-    border: 'rgba(148, 190, 255, 0.26)',
-    shadow: '0px 3px 10px rgba(0, 0, 0, 0.28)',
-    text: '#F8FAFC',
-    sub: '#B9C8D9',
-    glossOpacity: 0.1,
+    colors: ['#1C3D4E', '#15303E', '#102530'],
+    lip: '#08141B',
+    border: 'rgba(255, 248, 230, 0.18)',
+    topBevel: 'rgba(255, 255, 255, 0.14)',
+    shadow: '0px 4px 10px rgba(0, 0, 0, 0.28)',
+    text: '#FFFDF7',
+    sub: '#B8CFD9',
   },
 };
 
 /**
- * Shared Glossy Arcade Candy-Glass Button matching the Dominó Latino mockup across all screens.
+ * Tactile 3D Button with clean top rim bevel (zero Web-2.0 plastic white strip)
+ * and rounded Fredoka/Nunito typography across both Noche de Club and Día Brisa.
  */
 export function GlossyButton({
   title,
@@ -109,48 +110,49 @@ export function GlossyButton({
   onPress,
 }: GlossyButtonProps) {
   const { palette } = usePalette();
-  const baseCfg = VARIANT_CONFIG[variant];
-  const cfg =
+  const baseCfg = DARK_VARIANTS[variant];
+
+  const cfg: VariantStyle =
     variant === 'emerald'
       ? {
           ...baseCfg,
-          colors: [palette.primaryTop, palette.primaryMid, palette.primaryBottom] as [
-            string,
-            string,
-            string,
-          ],
+          colors: [palette.primaryTop, palette.primaryMid, palette.primaryBottom],
           lip: palette.primaryShadow,
           border: palette.isDark
-            ? 'rgba(187, 247, 208, 0.55)'
-            : 'rgba(255, 255, 255, 0.45)',
+            ? 'rgba(167, 243, 208, 0.48)'
+            : 'rgba(255, 255, 255, 0.42)',
+          topBevel: palette.isDark
+            ? 'rgba(255, 255, 255, 0.48)'
+            : 'rgba(255, 255, 255, 0.42)',
           shadow: palette.isDark
             ? baseCfg.shadow
-            : '0px 6px 18px rgba(237, 106, 90, 0.28)',
+            : '0px 6px 18px rgba(240, 90, 67, 0.28)',
           text: palette.textOnPrimary,
-          sub: palette.isDark ? '#0B4D2B' : 'rgba(255, 255, 255, 0.90)',
+          sub: palette.isDark ? '#084729' : 'rgba(255, 255, 255, 0.90)',
         }
       : variant === 'cobalt' && !palette.isDark
       ? {
           ...baseCfg,
-          colors: ['#54DBD8', palette.accent, '#21ABA8'] as [string, string, string],
-          lip: '#177E7C',
-          border: 'rgba(255, 255, 255, 0.55)',
-          shadow: '0px 4px 14px rgba(54, 201, 198, 0.28)',
+          colors: ['#32C5BD', palette.accent, '#148781'],
+          lip: '#0D615D',
+          border: 'rgba(255, 255, 255, 0.46)',
+          topBevel: 'rgba(255, 255, 255, 0.45)',
+          shadow: '0px 5px 14px rgba(27, 168, 160, 0.25)',
           text: palette.textOnAccent,
-          sub: '#124648',
+          sub: 'rgba(255, 255, 255, 0.90)',
         }
       : variant === 'glass' && !palette.isDark
       ? {
-          ...baseCfg,
-          colors: ['#FFFFFF', '#F5F7F1', '#E9EFE6'] as [string, string, string],
-          lip: palette.secondaryAccent,
-          border: palette.borderSubtle,
-          shadow: '0px 3px 10px rgba(26, 49, 54, 0.08)',
+          colors: ['#FFFFFF', '#FAF5EC', '#F1E9DC'],
+          lip: palette.modalCardLip,
+          border: palette.modalCardBorder,
+          topBevel: '#FFFFFF',
+          shadow: '0px 3px 9px rgba(21, 43, 50, 0.08)',
           text: palette.textPrimary,
           sub: palette.textSecondary,
-          glossOpacity: 0.25,
         }
       : baseCfg;
+
   const radius = compact ? 14 : 18;
 
   return (
@@ -177,16 +179,13 @@ export function GlossyButton({
         style={[
           styles.grad,
           compact ? styles.gradCompact : styles.gradRegular,
-          { borderRadius: radius - 1, borderColor: cfg.border },
+          {
+            borderRadius: radius - 1,
+            borderColor: cfg.border,
+            borderTopColor: cfg.topBevel,
+          },
         ]}
       >
-        <View
-          pointerEvents="none"
-          style={[
-            styles.gloss,
-            { opacity: cfg.glossOpacity, borderRadius: radius },
-          ]}
-        />
         {loading ? (
           <ActivityIndicator size="small" color={cfg.text} />
         ) : (
@@ -217,38 +216,31 @@ export function GlossyButton({
 
 const styles = StyleSheet.create({
   outer: {
-    borderBottomWidth: 3.5,
+    borderBottomWidth: 4,
   },
   disabled: {
     opacity: 0.45,
   },
   pressed: {
     transform: [{ translateY: 2 }],
-    opacity: 0.94,
+    opacity: 0.95,
   },
   grad: {
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: 1,
+    borderTopWidth: 1.5,
   },
   gradRegular: {
-    minHeight: 50,
-    paddingVertical: 9,
-    paddingHorizontal: 16,
+    minHeight: 52,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
   },
   gradCompact: {
     minHeight: 42,
     paddingVertical: 7,
-    paddingHorizontal: 12,
-  },
-  gloss: {
-    position: 'absolute',
-    top: 1.5,
-    left: 8,
-    right: 8,
-    height: '44%',
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 13,
   },
   contentWrap: {
     alignItems: 'center',
@@ -261,18 +253,19 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   titleRegular: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 17,
+    letterSpacing: 0.2,
     fontVariant: ['tabular-nums'],
   },
   titleCompact: {
+    fontFamily: FONT.extraBold,
     fontSize: 13.5,
-    fontWeight: '900',
     fontVariant: ['tabular-nums'],
   },
   sub: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontFamily: FONT.bold,
+    fontSize: 11.5,
     marginTop: 1,
   },
 });

@@ -1,22 +1,19 @@
 /**
- * Centralized tactile 3D App Palette system for live 1-tap visual comparison.
- * Includes all 4 high-contrast tactile palettes inspired by the user's mockups
- * (Índigo Crema, Cacao Coral, Noche Menta, Espresso Cielo) plus Brisa Coral.
+ * Dual Master Aesthetic System — Dominó Latino
+ * 1. "Noche de Club" (Default): Nocturnal Havana sobremesa parlor — deep obsidian-petrol room,
+ *    warm overhead amber lamp, butter-ivory host card, brushed brass & emerald felt accents.
+ * 2. "Día Brisa": Sunlit Caribbean courtyard — warm travertine linen, crisp porcelain surfaces,
+ *    sea-jade accents, and vibrant terracotta-coral primary action.
  */
 
-export type AppPaletteId =
-  | 'indigo_crema'
-  | 'cacao_coral'
-  | 'noche_menta'
-  | 'espresso_cielo'
-  | 'coral_brisa';
+export type AppPaletteId = 'noche_club' | 'dia_brisa';
 
 export interface AppPalette {
   id: AppPaletteId;
   name: string;
   shortLabel: string;
+  subtitle: string;
   isDark: boolean;
-  /** 3-5 core swatches for the 1-tap switcher pill */
   swatches: [string, string, string, string, string];
 
   // Room / Canvas Backdrops
@@ -28,13 +25,13 @@ export interface AppPalette {
   glowBottom: string;
   glowBottomOpacity: number;
 
-  // Brand Title (3D extruded)
+  // Brand Title
   titlePrimary: string;
   titleSecondary: string;
   titleShadow: string;
   kickerColor: string;
 
-  // Top Bar Pills & Tactile Gear Button
+  // Top Bar Pills & Settings Button
   topPillBg: string;
   topPillLip: string;
   topPillBorder: string;
@@ -46,7 +43,7 @@ export interface AppPalette {
   gearLip: string;
   gearIcon: string;
 
-  // Hero Greeting Card (High-contrast figure-ground anchor!)
+  // Hero Greeting Card
   heroCardBg: string;
   heroCardLip: string;
   heroCardBorder: string;
@@ -66,7 +63,7 @@ export interface AppPalette {
   dailyBtnLip: string;
   dailyBtnText: string;
 
-  // Config Tray + Tactile 3D Mode & Score Buttons
+  // Config Tray + Tactile Mode & Score Buttons
   trayBg: string;
   trayBorder: string;
   trayLabel: string;
@@ -115,14 +112,35 @@ export interface AppPalette {
   privateBtnSub: string;
   privateIconColor: string;
 
-  // Shared Semantic Surfaces & Borders (used across Lobby, WaitingRoom, Modals)
+  // Shared Semantic Surfaces & Borders (Lobby, WaitingRoom, Cards)
   surfaceCard: string;
+  surfaceCardLip: string;
   surfaceCardAlt: string;
+  surfaceCardAltLip: string;
   surfaceHighlight: string;
   surfacePill: string;
   borderSubtle: string;
   borderAccent: string;
   borderWarm: string;
+
+  // Unified Modal & Overlay System (100% consistent across all 8 modals & summaries)
+  modalBackdrop: string;
+  modalBg: string;
+  modalBorder: string;
+  modalCardBg: string;
+  modalCardLip: string;
+  modalCardBorder: string;
+  modalInputBg: string;
+  closeBtnBg: string;
+  winnerCardBg: string;
+  winnerCardBorder: string;
+  winnerText: string;
+  positiveBg: string;
+  positiveBorder: string;
+  positiveText: string;
+  dangerBg: string;
+  dangerBorder: string;
+  dangerText: string;
 
   // Typography
   textPrimary: string;
@@ -149,8 +167,9 @@ export interface AppPalette {
   starColor: string;
   starMuted: string;
 
-  // Selected Mode / Score Chips (shared Lobby pills)
+  // Selected Chips (shared Lobby / Modal pills)
   selectedBg: string;
+  selectedLip: string;
   selectedBorder: string;
   selectedText: string;
   selectedSubText: string;
@@ -169,735 +188,334 @@ export interface AppPalette {
 }
 
 export const APP_PALETTES: Record<AppPaletteId, AppPalette> = {
-  /**
-   * Mockup #2 — Índigo Crema (Default)
-   * Rich twilight indigo canvas + warm butter-cream tactile cards + mint/gold/tangerine pops
-   */
-  indigo_crema: {
-    id: 'indigo_crema',
-    name: 'Índigo Crema',
-    shortLabel: 'Índigo',
+  noche_club: {
+    id: 'noche_club',
+    name: 'Noche de Club',
+    shortLabel: 'Noche',
+    subtitle: 'Velada cálida de caoba, marfil y paño esmeralda',
     isDark: true,
-    swatches: ['#36407A', '#FBF6E2', '#8CD4C6', '#FFE05D', '#7AE8B4'],
+    swatches: ['#0A1A22', '#FBF5E6', '#FFD166', '#22C57E', '#163240'],
 
-    bgTop: '#3B4686',
-    bgMid: '#313B74',
-    bgBottom: '#262E5E',
-    glowTop: '#5C6BC0',
-    glowTopOpacity: 0.3,
-    glowBottom: '#202652',
-    glowBottomOpacity: 0.45,
+    bgTop: '#0B1D26',
+    bgMid: '#0F2631',
+    bgBottom: '#071319',
+    glowTop: '#F5C451',
+    glowTopOpacity: 0.14,
+    glowBottom: '#14626A',
+    glowBottomOpacity: 0.28,
 
-    titlePrimary: '#FFD166',
+    titlePrimary: '#FFFDF7',
     titleSecondary: '#FFD166',
-    titleShadow: '#9D6517',
-    kickerColor: '#D6DDF5',
+    titleShadow: '#593808',
+    kickerColor: '#B8CFD9',
 
-    topPillBg: '#465294',
-    topPillLip: '#273061',
-    topPillBorder: 'rgba(255, 255, 255, 0.18)',
-    topPillText: '#FFFFFF',
-    levelPillBg: '#8CD4C6',
-    levelPillLip: '#5BA598',
-    levelPillText: '#14333A',
-    gearBg: '#4E9AF8',
-    gearLip: '#2967C4',
-    gearIcon: '#FFFFFF',
+    topPillBg: '#163342',
+    topPillLip: '#08161E',
+    topPillBorder: 'rgba(255, 248, 230, 0.16)',
+    topPillText: '#FFFDF7',
+    levelPillBg: '#1B4354',
+    levelPillLip: '#0B212B',
+    levelPillText: '#FFFDF7',
+    gearBg: '#1D4152',
+    gearLip: '#0B1F29',
+    gearIcon: '#FCE39C',
 
-    heroCardBg: '#FBF6E2',
-    heroCardLip: '#D8CEA8',
-    heroCardBorder: '#FFFDF5',
-    heroCardText: '#1E2440',
-    heroCardSub: '#485070',
-    heroAvatarRing: '#8CD4C6',
-    heroEditBg: '#6B5D42',
-    heroEditText: '#FFFDF5',
+    heroCardBg: '#FBF5E6',
+    heroCardLip: '#D2C09B',
+    heroCardBorder: '#FFFDF9',
+    heroCardText: '#11252E',
+    heroCardSub: '#475F6B',
+    heroAvatarRing: '#22C57E',
+    heroEditBg: '#132B36',
+    heroEditText: '#FFD166',
 
-    dailyCardBg: '#FBF6E2',
-    dailyCardLip: '#D8CEA8',
-    dailyCardBorder: '#FFFDF5',
-    dailyCardText: '#1E2440',
-    dailyCardSub: '#555E7D',
-    dailyBtnBg: '#FF8B28',
-    dailyBtnLip: '#CC5D0A',
-    dailyBtnText: '#FFFFFF',
+    dailyCardBg: '#142E3B',
+    dailyCardLip: '#08161E',
+    dailyCardBorder: 'rgba(245, 204, 112, 0.26)',
+    dailyCardText: '#FFFDF7',
+    dailyCardSub: '#AEC4D0',
+    dailyBtnBg: '#F5B82E',
+    dailyBtnLip: '#AD750B',
+    dailyBtnText: '#1F1402',
 
-    trayBg: 'rgba(255, 255, 255, 0.09)',
-    trayBorder: 'rgba(255, 255, 255, 0.14)',
-    trayLabel: '#D2DAF5',
+    trayBg: 'rgba(8, 22, 29, 0.52)',
+    trayBorder: 'rgba(255, 246, 224, 0.12)',
+    trayLabel: '#B7CDD8',
 
-    modeBg: '#8CD4C6',
-    modeLip: '#5AA99B',
-    modeBorder: '#B7EBE0',
-    modeText: '#133138',
-    modeSub: '#224C54',
-    modeSelectedBg: '#FFE05D',
-    modeSelectedLip: '#D4A420',
-    modeSelectedBorder: '#FFF3B0',
-    modeSelectedText: '#261C04',
-    modeSelectedSub: '#4F3C0B',
+    modeBg: '#173645',
+    modeLip: '#091921',
+    modeBorder: 'rgba(255, 255, 255, 0.13)',
+    modeText: '#F4F9FB',
+    modeSub: '#9BB6C4',
+    modeSelectedBg: '#FFD166',
+    modeSelectedLip: '#C28716',
+    modeSelectedBorder: '#FFF1B8',
+    modeSelectedText: '#231703',
+    modeSelectedSub: '#593D09',
 
-    scoreBg: '#FBF6E2',
-    scoreLip: '#D5CBA5',
-    scoreBorder: '#FFFFFF',
-    scoreText: '#1E2440',
-    scoreSelectedBg: '#FF8A26',
-    scoreSelectedLip: '#C95B0A',
-    scoreSelectedBorder: '#FFB673',
-    scoreSelectedText: '#2A1100',
+    scoreBg: '#173645',
+    scoreLip: '#091921',
+    scoreBorder: 'rgba(255, 255, 255, 0.13)',
+    scoreText: '#E8F2F7',
+    scoreSelectedBg: '#FFFDF7',
+    scoreSelectedLip: '#C7B695',
+    scoreSelectedBorder: '#FFFFFF',
+    scoreSelectedText: '#10242D',
 
-    accountBg: '#FBF6E2',
-    accountLip: '#D8CEA8',
-    accountBorder: '#FFFDF5',
-    accountText: '#1E2440',
-    accountBtnBg: '#FCC97A',
-    accountBtnLip: '#D4943A',
-    accountBtnText: '#2B1B04',
+    accountBg: '#142E3B',
+    accountLip: '#08161E',
+    accountBorder: 'rgba(255, 248, 230, 0.14)',
+    accountText: '#F2F7FA',
+    accountBtnBg: '#FFD166',
+    accountBtnLip: '#C28716',
+    accountBtnText: '#231703',
 
-    onlineBtnBg: '#465294',
-    onlineBtnLip: '#273061',
-    onlineBtnBorder: 'rgba(255, 255, 255, 0.16)',
-    onlineBtnText: '#FFFFFF',
-    onlineBtnSub: '#C6D1F2',
-    onlineIconColor: '#67D4F5',
+    onlineBtnBg: '#163342',
+    onlineBtnLip: '#08161E',
+    onlineBtnBorder: 'rgba(255, 248, 230, 0.15)',
+    onlineBtnText: '#FFFDF7',
+    onlineBtnSub: '#A9C1CE',
+    onlineIconColor: '#4CC9F0',
 
-    privateBtnBg: '#465294',
-    privateBtnLip: '#273061',
-    privateBtnBorder: 'rgba(255, 255, 255, 0.16)',
-    privateBtnText: '#FFFFFF',
-    privateBtnSub: '#C6D1F2',
+    privateBtnBg: '#163342',
+    privateBtnLip: '#08161E',
+    privateBtnBorder: 'rgba(255, 248, 230, 0.15)',
+    privateBtnText: '#FFFDF7',
+    privateBtnSub: '#A9C1CE',
     privateIconColor: '#FFD166',
 
-    surfaceCard: 'rgba(40, 49, 98, 0.90)',
-    surfaceCardAlt: '#465294',
-    surfaceHighlight: '#FBF6E2',
-    surfacePill: '#465294',
-    borderSubtle: 'rgba(255, 255, 255, 0.16)',
-    borderAccent: '#8CD4C6',
-    borderWarm: 'rgba(255, 209, 102, 0.55)',
+    surfaceCard: '#132C38',
+    surfaceCardLip: '#08161E',
+    surfaceCardAlt: '#193847',
+    surfaceCardAltLip: '#0B1D26',
+    surfaceHighlight: '#FBF5E6',
+    surfacePill: '#173645',
+    borderSubtle: 'rgba(255, 248, 230, 0.14)',
+    borderAccent: '#22C57E',
+    borderWarm: 'rgba(245, 196, 81, 0.48)',
 
-    textPrimary: '#FFFFFF',
-    textSecondary: '#CED7F4',
-    textMuted: '#9AA8D6',
-    textOnPrimary: '#0E4229',
-    textOnAccent: '#133138',
+    modalBackdrop: 'rgba(4, 12, 16, 0.78)',
+    modalBg: '#0F242E',
+    modalBorder: 'rgba(245, 204, 112, 0.28)',
+    modalCardBg: '#163342',
+    modalCardLip: '#08161E',
+    modalCardBorder: 'rgba(255, 248, 230, 0.14)',
+    modalInputBg: '#0A1921',
+    closeBtnBg: 'rgba(255, 255, 255, 0.10)',
+    winnerCardBg: 'rgba(245, 196, 81, 0.14)',
+    winnerCardBorder: '#F5C451',
+    winnerText: '#FFD166',
+    positiveBg: 'rgba(34, 197, 126, 0.16)',
+    positiveBorder: 'rgba(52, 224, 150, 0.45)',
+    positiveText: '#3EE69C',
+    dangerBg: 'rgba(244, 63, 94, 0.15)',
+    dangerBorder: 'rgba(244, 63, 94, 0.42)',
+    dangerText: '#FDA4AF',
 
-    primaryTop: '#9CF2C4',
-    primaryMid: '#6EE0A8',
-    primaryBottom: '#4CC78C',
-    primaryShadow: '#2E9664',
+    textPrimary: '#FFFDF7',
+    textSecondary: '#BCD0DC',
+    textMuted: '#7F99A8',
+    textOnPrimary: '#052E1A',
+    textOnAccent: '#07291A',
+
+    primaryTop: '#5BF0AE',
+    primaryMid: '#24C981',
+    primaryBottom: '#139E60',
+    primaryShadow: '#0A693E',
 
     brandAccent: '#FFD166',
-    accent: '#8CD4C6',
-    accentSoft: '#D7F5EE',
-    accentBg: 'rgba(140, 212, 198, 0.18)',
-    secondaryAccent: '#FF8B28',
-    chipPillBg: '#272F5E',
+    accent: '#24C981',
+    accentSoft: '#D3FAE7',
+    accentBg: 'rgba(36, 201, 129, 0.16)',
+    secondaryAccent: '#4CC9F0',
+    chipPillBg: '#0D2029',
     chipPillText: '#FFD166',
-    chipIconColor: '#FFD166',
-    starColor: '#F5B82E',
-    starMuted: '#D6CBA5',
+    chipIconColor: '#F5C451',
+    starColor: '#F5C451',
+    starMuted: 'rgba(255, 248, 230, 0.20)',
 
-    selectedBg: '#FFE05D',
-    selectedBorder: '#FFF3B0',
-    selectedText: '#261C04',
-    selectedSubText: '#4F3C0B',
+    selectedBg: '#FFD166',
+    selectedLip: '#C28716',
+    selectedBorder: '#FFF1B8',
+    selectedText: '#231703',
+    selectedSubText: '#593D09',
 
     dockBg: 'transparent',
     dockBorder: 'transparent',
 
-    tableRoomTop: '#293264',
-    tableRoomMid: '#2F3970',
-    tableRoomBottom: '#222A54',
-    hudPillBg: 'rgba(34, 42, 84, 0.88)',
-    hudPillBorder: 'rgba(255, 255, 255, 0.18)',
-    hudPillText: '#FFFFFF',
+    tableRoomTop: '#08161E',
+    tableRoomMid: '#0C202A',
+    tableRoomBottom: '#061117',
+    hudPillBg: 'rgba(13, 33, 43, 0.90)',
+    hudPillBorder: 'rgba(245, 214, 138, 0.22)',
+    hudPillText: '#FFFDF7',
   },
 
-  /**
-   * Mockup #1 — Cacao Coral
-   * Warm espresso-cacao canvas + pastel sky-blue hero + cream daily + cobalt & coral 3D buttons
-   */
-  cacao_coral: {
-    id: 'cacao_coral',
-    name: 'Cacao Coral',
-    shortLabel: 'Cacao',
-    isDark: true,
-    swatches: ['#463B37', '#C0E7FF', '#5A94F6', '#FF7E76', '#F4EEE7'],
-
-    bgTop: '#4A3E3A',
-    bgMid: '#3E3330',
-    bgBottom: '#332926',
-    glowTop: '#6B5751',
-    glowTopOpacity: 0.34,
-    glowBottom: '#261E1C',
-    glowBottomOpacity: 0.45,
-
-    titlePrimary: '#FF8980',
-    titleSecondary: '#FF8980',
-    titleShadow: '#9A332E',
-    kickerColor: '#EADAD5',
-
-    topPillBg: '#5C4E49',
-    topPillLip: '#342B28',
-    topPillBorder: 'rgba(255, 240, 232, 0.2)',
-    topPillText: '#FFF8F4',
-    levelPillBg: '#675852',
-    levelPillLip: '#3C322F',
-    levelPillText: '#FFF8F4',
-    gearBg: '#5A94F6',
-    gearLip: '#3165C2',
-    gearIcon: '#FFFFFF',
-
-    heroCardBg: '#C4E9FF',
-    heroCardLip: '#7FC2EB',
-    heroCardBorder: '#E5F6FF',
-    heroCardText: '#2C2422',
-    heroCardSub: '#475058',
-    heroAvatarRing: '#5A94F6',
-    heroEditBg: '#3D7AE0',
-    heroEditText: '#FFFFFF',
-
-    dailyCardBg: '#F4EEE7',
-    dailyCardLip: '#CFC4B8',
-    dailyCardBorder: '#FFFDFB',
-    dailyCardText: '#2C2422',
-    dailyCardSub: '#605450',
-    dailyBtnBg: '#FF7D75',
-    dailyBtnLip: '#CE4741',
-    dailyBtnText: '#FFFFFF',
-
-    trayBg: 'rgba(255, 244, 238, 0.06)',
-    trayBorder: 'rgba(255, 244, 238, 0.14)',
-    trayLabel: '#E8D9D3',
-
-    modeBg: '#5A94F6',
-    modeLip: '#3267C4',
-    modeBorder: '#8DB9FF',
-    modeText: '#FFFFFF',
-    modeSub: '#E0EEFF',
-    modeSelectedBg: '#FFB4AC',
-    modeSelectedLip: '#DC736A',
-    modeSelectedBorder: '#FFE0DC',
-    modeSelectedText: '#3A1513',
-    modeSelectedSub: '#5E2723',
-
-    scoreBg: '#C4E9FF',
-    scoreLip: '#7FC2EB',
-    scoreBorder: '#E5F6FF',
-    scoreText: '#263847',
-    scoreSelectedBg: '#F56E66',
-    scoreSelectedLip: '#BF3E38',
-    scoreSelectedBorder: '#FFACA6',
-    scoreSelectedText: '#FFFFFF',
-
-    accountBg: '#463A37',
-    accountLip: '#2C2321',
-    accountBorder: 'rgba(255, 240, 232, 0.24)',
-    accountText: '#F5EAE6',
-    accountBtnBg: '#FF7D75',
-    accountBtnLip: '#CE4741',
-    accountBtnText: '#FFFFFF',
-
-    onlineBtnBg: '#C4E9FF',
-    onlineBtnLip: '#7FC2EB',
-    onlineBtnBorder: '#E5F6FF',
-    onlineBtnText: '#243542',
-    onlineBtnSub: '#475D6E',
-    onlineIconColor: '#2E6287',
-
-    privateBtnBg: '#5A94F6',
-    privateBtnLip: '#3267C4',
-    privateBtnBorder: '#8DB9FF',
-    privateBtnText: '#FFFFFF',
-    privateBtnSub: '#DCEBFF',
-    privateIconColor: '#FFD166',
-
-    surfaceCard: 'rgba(66, 54, 50, 0.92)',
-    surfaceCardAlt: '#5A4B46',
-    surfaceHighlight: '#C4E9FF',
-    surfacePill: '#5C4E49',
-    borderSubtle: 'rgba(255, 240, 232, 0.18)',
-    borderAccent: '#5A94F6',
-    borderWarm: 'rgba(255, 137, 128, 0.5)',
-
-    textPrimary: '#FFF8F5',
-    textSecondary: '#DFCFC9',
-    textMuted: '#B39F98',
-    textOnPrimary: '#FFFFFF',
-    textOnAccent: '#1D3344',
-
-    primaryTop: '#FF9890',
-    primaryMid: '#F57169',
-    primaryBottom: '#DE514A',
-    primaryShadow: '#B0342E',
-
-    brandAccent: '#FF8980',
-    accent: '#5A94F6',
-    accentSoft: '#C4E9FF',
-    accentBg: 'rgba(90, 148, 246, 0.18)',
-    secondaryAccent: '#C4E9FF',
-    chipPillBg: '#372D2A',
-    chipPillText: '#FFD166',
-    chipIconColor: '#FFD166',
-    starColor: '#E59A38',
-    starMuted: '#B7A79B',
-
-    selectedBg: '#FFB4AC',
-    selectedBorder: '#FFE0DC',
-    selectedText: '#3A1513',
-    selectedSubText: '#5E2723',
-
-    dockBg: 'transparent',
-    dockBorder: 'transparent',
-
-    tableRoomTop: '#3D322E',
-    tableRoomMid: '#463A36',
-    tableRoomBottom: '#2F2623',
-    hudPillBg: 'rgba(54, 44, 41, 0.88)',
-    hudPillBorder: 'rgba(255, 240, 232, 0.2)',
-    hudPillText: '#FFF8F5',
-  },
-
-  /**
-   * Mockup #3 — Noche Menta
-   * Deep twilight plum canvas + blush pink hero + vivid coral mode + lime-mint score & CTA
-   */
-  noche_menta: {
-    id: 'noche_menta',
-    name: 'Noche Menta',
-    shortLabel: 'Menta',
-    isDark: true,
-    swatches: ['#29284C', '#FFE2E7', '#FF6342', '#B58EA6', '#B9F490'],
-
-    bgTop: '#2E2D56',
-    bgMid: '#242345',
-    bgBottom: '#1B1A36',
-    glowTop: '#494782',
-    glowTopOpacity: 0.32,
-    glowBottom: '#141329',
-    glowBottomOpacity: 0.5,
-
-    titlePrimary: '#FF6B4A',
-    titleSecondary: '#FF6B4A',
-    titleShadow: '#8A2616',
-    kickerColor: '#DCD9F4',
-
-    topPillBg: '#353462',
-    topPillLip: '#1D1C3B',
-    topPillBorder: 'rgba(255, 255, 255, 0.14)',
-    topPillText: '#FFFFFF',
-    levelPillBg: '#8DD4F4',
-    levelPillLip: '#54A4C9',
-    levelPillText: '#142F42',
-    gearBg: '#73C2F7',
-    gearLip: '#3E8DC7',
-    gearIcon: '#FFFFFF',
-
-    heroCardBg: '#FFE3E8',
-    heroCardLip: '#DEB1BC',
-    heroCardBorder: '#FFF4F6',
-    heroCardText: '#262340',
-    heroCardSub: '#514C70',
-    heroAvatarRing: '#6B6591',
-    heroEditBg: '#2A284E',
-    heroEditText: '#FFFFFF',
-
-    dailyCardBg: '#363564',
-    dailyCardLip: '#1E1D3C',
-    dailyCardBorder: 'rgba(255, 255, 255, 0.14)',
-    dailyCardText: '#FFFFFF',
-    dailyCardSub: '#C4C1E3',
-    dailyBtnBg: '#FF6342',
-    dailyBtnLip: '#C7391D',
-    dailyBtnText: '#FFFFFF',
-
-    trayBg: 'rgba(255, 255, 255, 0.05)',
-    trayBorder: 'rgba(255, 255, 255, 0.12)',
-    trayLabel: '#DCD8F2',
-
-    modeBg: '#2D2C54',
-    modeLip: '#181733',
-    modeBorder: 'rgba(255, 255, 255, 0.14)',
-    modeText: '#F0EEFC',
-    modeSub: '#B4B0D6',
-    modeSelectedBg: '#FF6342',
-    modeSelectedLip: '#C7391D',
-    modeSelectedBorder: '#FFA08A',
-    modeSelectedText: '#FFFFFF',
-    modeSelectedSub: '#FFE2DA',
-
-    scoreBg: '#B88FA7',
-    scoreLip: '#8A647B',
-    scoreBorder: '#D4B0C5',
-    scoreText: '#FFFFFF',
-    scoreSelectedBg: '#C8FA9B',
-    scoreSelectedLip: '#84C452',
-    scoreSelectedBorder: '#E5FFCC',
-    scoreSelectedText: '#183C12',
-
-    accountBg: '#343360',
-    accountLip: '#1C1B38',
-    accountBorder: 'rgba(255, 255, 255, 0.14)',
-    accountText: '#E9E7F9',
-    accountBtnBg: '#FF6342',
-    accountBtnLip: '#C7391D',
-    accountBtnText: '#FFFFFF',
-
-    onlineBtnBg: '#33325E',
-    onlineBtnLip: '#1C1B38',
-    onlineBtnBorder: 'rgba(255, 255, 255, 0.14)',
-    onlineBtnText: '#FFFFFF',
-    onlineBtnSub: '#B8B5DA',
-    onlineIconColor: '#FFD166',
-
-    privateBtnBg: '#33325E',
-    privateBtnLip: '#1C1B38',
-    privateBtnBorder: 'rgba(255, 255, 255, 0.14)',
-    privateBtnText: '#FFFFFF',
-    privateBtnSub: '#B8B5DA',
-    privateIconColor: '#FFD166',
-
-    surfaceCard: 'rgba(46, 45, 86, 0.92)',
-    surfaceCardAlt: '#39386B',
-    surfaceHighlight: '#FFE3E8',
-    surfacePill: '#353462',
-    borderSubtle: 'rgba(255, 255, 255, 0.14)',
-    borderAccent: '#C8FA9B',
-    borderWarm: 'rgba(255, 99, 66, 0.5)',
-
-    textPrimary: '#FFFFFF',
-    textSecondary: '#CCC9E8',
-    textMuted: '#9995BF',
-    textOnPrimary: '#163D11',
-    textOnAccent: '#163D11',
-
-    primaryTop: '#DCFEB8',
-    primaryMid: '#A5EC84',
-    primaryBottom: '#78CC5E',
-    primaryShadow: '#4B9B38',
-
-    brandAccent: '#FF6342',
-    accent: '#C8FA9B',
-    accentSoft: '#E5FFCC',
-    accentBg: 'rgba(200, 250, 155, 0.16)',
-    secondaryAccent: '#B88FA7',
-    chipPillBg: '#232242',
-    chipPillText: '#FFD166',
-    chipIconColor: '#FFD166',
-    starColor: '#FFD166',
-    starMuted: 'rgba(255, 255, 255, 0.22)',
-
-    selectedBg: '#C8FA9B',
-    selectedBorder: '#E5FFCC',
-    selectedText: '#183C12',
-    selectedSubText: '#2A5922',
-
-    dockBg: 'transparent',
-    dockBorder: 'transparent',
-
-    tableRoomTop: '#252447',
-    tableRoomMid: '#2C2B54',
-    tableRoomBottom: '#1D1C38',
-    hudPillBg: 'rgba(40, 39, 76, 0.88)',
-    hudPillBorder: 'rgba(255, 255, 255, 0.16)',
-    hudPillText: '#FFFFFF',
-  },
-
-  /**
-   * Mockup #4 — Espresso Cielo
-   * Warm espresso-brown canvas + vivid cobalt-sky hero + ice-blue scores + soft coral CTA
-   */
-  espresso_cielo: {
-    id: 'espresso_cielo',
-    name: 'Espresso Cielo',
-    shortLabel: 'Cielo',
-    isDark: true,
-    swatches: ['#4E3D3B', '#5897F6', '#FFA69E', '#CBEBFF', '#F46F67'],
-
-    bgTop: '#564341',
-    bgMid: '#463735',
-    bgBottom: '#372B2A',
-    glowTop: '#785E5A',
-    glowTopOpacity: 0.32,
-    glowBottom: '#261D1C',
-    glowBottomOpacity: 0.48,
-
-    titlePrimary: '#FFF2EE',
-    titleSecondary: '#FF847A',
-    titleShadow: '#8B2E29',
-    kickerColor: '#F2C9C2',
-
-    topPillBg: '#CBEBFF',
-    topPillLip: '#88C4EA',
-    topPillBorder: '#EAF7FF',
-    topPillText: '#1E3342',
-    levelPillBg: '#CBEBFF',
-    levelPillLip: '#88C4EA',
-    levelPillText: '#1E3342',
-    gearBg: '#5594F5',
-    gearLip: '#2E62C0',
-    gearIcon: '#FFFFFF',
-
-    heroCardBg: '#5B98F6',
-    heroCardLip: '#346CD0',
-    heroCardBorder: '#91BEFF',
-    heroCardText: '#FFFFFF',
-    heroCardSub: '#EAF3FF',
-    heroAvatarRing: '#CBEBFF',
-    heroEditBg: '#346FD4',
-    heroEditText: '#FFFFFF',
-
-    dailyCardBg: '#463735',
-    dailyCardLip: '#2C2120',
-    dailyCardBorder: 'rgba(255, 236, 230, 0.18)',
-    dailyCardText: '#FFF6F4',
-    dailyCardSub: '#D6C2BE',
-    dailyBtnBg: '#FF847A',
-    dailyBtnLip: '#C94C44',
-    dailyBtnText: '#FFFFFF',
-
-    trayBg: 'rgba(255, 238, 232, 0.06)',
-    trayBorder: 'rgba(255, 238, 232, 0.15)',
-    trayLabel: '#EBD9D5',
-
-    modeBg: '#5E4B48',
-    modeLip: '#3C2F2D',
-    modeBorder: 'rgba(255, 238, 232, 0.18)',
-    modeText: '#FFF5F2',
-    modeSub: '#D9C6C2',
-    modeSelectedBg: '#FFA9A1',
-    modeSelectedLip: '#DC6C63',
-    modeSelectedBorder: '#FFDCD8',
-    modeSelectedText: '#331412',
-    modeSelectedSub: '#5A2622',
-
-    scoreBg: '#CBEBFF',
-    scoreLip: '#89C5EB',
-    scoreBorder: '#EAF7FF',
-    scoreText: '#1E3546',
-    scoreSelectedBg: '#FF867C',
-    scoreSelectedLip: '#C94B43',
-    scoreSelectedBorder: '#FFC0BA',
-    scoreSelectedText: '#2F0E0C',
-
-    accountBg: '#463735',
-    accountLip: '#2C2120',
-    accountBorder: 'rgba(255, 236, 230, 0.2)',
-    accountText: '#F0DFDB',
-    accountBtnBg: '#5E4B48',
-    accountBtnLip: '#3B2E2C',
-    accountBtnText: '#FFFFFF',
-
-    onlineBtnBg: '#4E8AEF',
-    onlineBtnLip: '#2B5CB8',
-    onlineBtnBorder: '#88B6FF',
-    onlineBtnText: '#FFFFFF',
-    onlineBtnSub: '#DCEBFF',
-    onlineIconColor: '#CBEBFF',
-
-    privateBtnBg: '#4E8AEF',
-    privateBtnLip: '#2B5CB8',
-    privateBtnBorder: '#88B6FF',
-    privateBtnText: '#FFFFFF',
-    privateBtnSub: '#DCEBFF',
-    privateIconColor: '#FFD166',
-
-    surfaceCard: 'rgba(70, 55, 53, 0.92)',
-    surfaceCardAlt: '#5E4B48',
-    surfaceHighlight: '#5B98F6',
-    surfacePill: '#5E4B48',
-    borderSubtle: 'rgba(255, 236, 230, 0.18)',
-    borderAccent: '#5B98F6',
-    borderWarm: 'rgba(255, 132, 122, 0.5)',
-
-    textPrimary: '#FFF6F4',
-    textSecondary: '#DECAC6',
-    textMuted: '#B39B96',
-    textOnPrimary: '#FFFFFF',
-    textOnAccent: '#1D3546',
-
-    primaryTop: '#FF9A91',
-    primaryMid: '#F47169',
-    primaryBottom: '#DE544C',
-    primaryShadow: '#AD342E',
-
-    brandAccent: '#FF867C',
-    accent: '#5B98F6',
-    accentSoft: '#CBEBFF',
-    accentBg: 'rgba(91, 152, 246, 0.2)',
-    secondaryAccent: '#CBEBFF',
-    chipPillBg: '#3A2D2B',
-    chipPillText: '#FFD166',
-    chipIconColor: '#FFD166',
-    starColor: '#FF867C',
-    starMuted: 'rgba(255, 236, 230, 0.22)',
-
-    selectedBg: '#FFA9A1',
-    selectedBorder: '#FFDCD8',
-    selectedText: '#331412',
-    selectedSubText: '#5A2622',
-
-    dockBg: 'transparent',
-    dockBorder: 'transparent',
-
-    tableRoomTop: '#423331',
-    tableRoomMid: '#4C3B39',
-    tableRoomBottom: '#332726',
-    hudPillBg: 'rgba(58, 45, 43, 0.88)',
-    hudPillBorder: 'rgba(255, 236, 230, 0.2)',
-    hudPillText: '#FFF6F4',
-  },
-
-  /**
-   * Daylight Option — Brisa Coral (User's earlier 5-color daylight palette, now with 3D tactile bevels)
-   */
-  coral_brisa: {
-    id: 'coral_brisa',
-    name: 'Brisa Coral',
+  dia_brisa: {
+    id: 'dia_brisa',
+    name: 'Día Brisa',
     shortLabel: 'Brisa',
+    subtitle: 'Terraza habanera soleada en lino, porcelana y coral',
     isDark: false,
-    swatches: ['#ED6A5A', '#F4F1BB', '#9BC1BC', '#E6EBE0', '#36C9C6'],
+    swatches: ['#F4EFE4', '#FFFFFF', '#1BA8A0', '#F05A43', '#152B32'],
 
-    bgTop: '#E6EBE0',
-    bgMid: '#ECF0E7',
-    bgBottom: '#DCE5D9',
-    glowTop: '#F4F1BB',
+    bgTop: '#F6F1E7',
+    bgMid: '#EFE7D8',
+    bgBottom: '#E5DAC7',
+    glowTop: '#FFFFFF',
     glowTopOpacity: 0.72,
-    glowBottom: '#9BC1BC',
-    glowBottomOpacity: 0.34,
+    glowBottom: '#9ED2CB',
+    glowBottomOpacity: 0.30,
 
-    titlePrimary: '#1A3136',
-    titleSecondary: '#ED6A5A',
-    titleShadow: 'rgba(26, 49, 54, 0.16)',
-    kickerColor: '#5B787D',
+    titlePrimary: '#152B32',
+    titleSecondary: '#E85741',
+    titleShadow: 'rgba(21, 43, 50, 0.14)',
+    kickerColor: '#567078',
 
     topPillBg: '#FFFFFF',
-    topPillLip: '#B7CECA',
-    topPillBorder: '#D8E6E2',
-    topPillText: '#1A3136',
+    topPillLip: '#CFC2AD',
+    topPillBorder: '#E7DECFE6',
+    topPillText: '#152B32',
     levelPillBg: '#FFFFFF',
-    levelPillLip: '#B7CECA',
-    levelPillText: '#1A3136',
-    gearBg: '#36C9C6',
-    gearLip: '#219A97',
-    gearIcon: '#FFFFFF',
+    levelPillLip: '#CFC2AD',
+    levelPillText: '#152B32',
+    gearBg: '#152B32',
+    gearLip: '#0A161A',
+    gearIcon: '#FFFDF7',
 
-    heroCardBg: '#FFFDF0',
-    heroCardLip: '#D8D4A4',
+    heroCardBg: '#FFFFFF',
+    heroCardLip: '#D2C5B0',
     heroCardBorder: '#FFFFFF',
-    heroCardText: '#1A3136',
-    heroCardSub: '#47656A',
-    heroAvatarRing: '#36C9C6',
-    heroEditBg: '#ED6A5A',
-    heroEditText: '#FFFFFF',
+    heroCardText: '#152B32',
+    heroCardSub: '#516A73',
+    heroAvatarRing: '#1BA8A0',
+    heroEditBg: '#152B32',
+    heroEditText: '#FFFDF7',
 
-    dailyCardBg: '#FFFFFF',
-    dailyCardLip: '#BDD4D0',
-    dailyCardBorder: '#FFFFFF',
-    dailyCardText: '#1A3136',
-    dailyCardSub: '#516E73',
-    dailyBtnBg: '#ED6A5A',
-    dailyBtnLip: '#BE4537',
+    dailyCardBg: '#FDF8EC',
+    dailyCardLip: '#D6C6A5',
+    dailyCardBorder: '#F2E7D1',
+    dailyCardText: '#152B32',
+    dailyCardSub: '#5B727A',
+    dailyBtnBg: '#F09624',
+    dailyBtnLip: '#B86A0A',
     dailyBtnText: '#FFFFFF',
 
-    trayBg: 'rgba(155, 193, 188, 0.24)',
-    trayBorder: 'rgba(155, 193, 188, 0.5)',
-    trayLabel: '#47656A',
+    trayBg: 'rgba(21, 43, 50, 0.05)',
+    trayBorder: 'rgba(21, 43, 50, 0.11)',
+    trayLabel: '#4E6770',
 
     modeBg: '#FFFFFF',
-    modeLip: '#BDD4D0',
-    modeBorder: '#FFFFFF',
-    modeText: '#1A3136',
-    modeSub: '#5B787D',
-    modeSelectedBg: '#36C9C6',
-    modeSelectedLip: '#1E9B98',
-    modeSelectedBorder: '#84E8E5',
-    modeSelectedText: '#082E30',
-    modeSelectedSub: '#10494C',
+    modeLip: '#CFC2AD',
+    modeBorder: '#EAE1D3',
+    modeText: '#152B32',
+    modeSub: '#5B747D',
+    modeSelectedBg: '#1BA8A0',
+    modeSelectedLip: '#107872',
+    modeSelectedBorder: '#6FE3DC',
+    modeSelectedText: '#FFFFFF',
+    modeSelectedSub: '#E3FFFD',
 
     scoreBg: '#FFFFFF',
-    scoreLip: '#BDD4D0',
-    scoreBorder: '#FFFFFF',
-    scoreText: '#1A3136',
-    scoreSelectedBg: '#ED6A5A',
-    scoreSelectedLip: '#BE4537',
-    scoreSelectedBorder: '#F79D92',
-    scoreSelectedText: '#FFFFFF',
+    scoreLip: '#CFC2AD',
+    scoreBorder: '#EAE1D3',
+    scoreText: '#152B32',
+    scoreSelectedBg: '#152B32',
+    scoreSelectedLip: '#091519',
+    scoreSelectedBorder: '#2D4E59',
+    scoreSelectedText: '#FFFDF7',
 
     accountBg: '#FFFFFF',
-    accountLip: '#BDD4D0',
-    accountBorder: '#FFFFFF',
-    accountText: '#3A585E',
-    accountBtnBg: '#F4F1BB',
-    accountBtnLip: '#CCC683',
-    accountBtnText: '#3A320D',
+    accountLip: '#CFC2AD',
+    accountBorder: '#EAE1D3',
+    accountText: '#152B32',
+    accountBtnBg: '#1BA8A0',
+    accountBtnLip: '#107872',
+    accountBtnText: '#FFFFFF',
 
     onlineBtnBg: '#FFFFFF',
-    onlineBtnLip: '#BDD4D0',
-    onlineBtnBorder: '#9BC1BC',
-    onlineBtnText: '#1A3136',
-    onlineBtnSub: '#516E73',
-    onlineIconColor: '#25ABA8',
+    onlineBtnLip: '#CFC2AD',
+    onlineBtnBorder: '#E5DBCB',
+    onlineBtnText: '#152B32',
+    onlineBtnSub: '#5A737C',
+    onlineIconColor: '#1BA8A0',
 
     privateBtnBg: '#FFFFFF',
-    privateBtnLip: '#BDD4D0',
-    privateBtnBorder: '#9BC1BC',
-    privateBtnText: '#1A3136',
-    privateBtnSub: '#516E73',
-    privateIconColor: '#ED6A5A',
+    privateBtnLip: '#CFC2AD',
+    privateBtnBorder: '#E5DBCB',
+    privateBtnText: '#152B32',
+    privateBtnSub: '#5A737C',
+    privateIconColor: '#E85741',
 
-    surfaceCard: 'rgba(255, 255, 255, 0.92)',
-    surfaceCardAlt: '#F5F7F1',
-    surfaceHighlight: '#FFFDF0',
-    surfacePill: 'rgba(255, 255, 255, 0.9)',
-    borderSubtle: 'rgba(155, 193, 188, 0.55)',
-    borderAccent: '#36C9C6',
-    borderWarm: 'rgba(237, 106, 90, 0.45)',
+    surfaceCard: '#FFFFFF',
+    surfaceCardLip: '#D2C5B0',
+    surfaceCardAlt: '#F5EFE3',
+    surfaceCardAltLip: '#CFC2AD',
+    surfaceHighlight: '#FDF8EC',
+    surfacePill: '#FFFFFF',
+    borderSubtle: '#E2D8C7',
+    borderAccent: '#1BA8A0',
+    borderWarm: 'rgba(232, 87, 65, 0.36)',
 
-    textPrimary: '#1A3136',
-    textSecondary: '#47656A',
-    textMuted: '#6A868B',
+    modalBackdrop: 'rgba(18, 36, 42, 0.50)',
+    modalBg: '#FAF6EE',
+    modalBorder: '#DFD4C2',
+    modalCardBg: '#FFFFFF',
+    modalCardLip: '#D2C5B0',
+    modalCardBorder: '#E6DDD0',
+    modalInputBg: '#F1EAE0',
+    closeBtnBg: 'rgba(21, 43, 50, 0.08)',
+    winnerCardBg: '#FFF8E3',
+    winnerCardBorder: '#E09F1F',
+    winnerText: '#A86406',
+    positiveBg: '#E6F8F3',
+    positiveBorder: '#1BA8A0',
+    positiveText: '#0E7A74',
+    dangerBg: '#FFF0F2',
+    dangerBorder: '#FECDD3',
+    dangerText: '#BE123C',
+
+    textPrimary: '#152B32',
+    textSecondary: '#4D666F',
+    textMuted: '#789099',
     textOnPrimary: '#FFFFFF',
-    textOnAccent: '#0B2F31',
+    textOnAccent: '#FFFFFF',
 
-    primaryTop: '#F47C6D',
-    primaryMid: '#ED6A5A',
-    primaryBottom: '#D85343',
-    primaryShadow: '#B53E30',
+    primaryTop: '#FF8470',
+    primaryMid: '#F05A43',
+    primaryBottom: '#D6402A',
+    primaryShadow: '#9B2716',
 
-    brandAccent: '#ED6A5A',
-    accent: '#36C9C6',
-    accentSoft: '#D7F5F4',
-    accentBg: 'rgba(54, 201, 198, 0.16)',
-    secondaryAccent: '#9BC1BC',
-    chipPillBg: '#F4F1BB',
-    chipPillText: '#3A320D',
-    chipIconColor: '#C28A0E',
+    brandAccent: '#E85741',
+    accent: '#1BA8A0',
+    accentSoft: '#D9F5F3',
+    accentBg: 'rgba(27, 168, 160, 0.14)',
+    secondaryAccent: '#CFC2AD',
+    chipPillBg: '#FFF8E3',
+    chipPillText: '#5C3D06',
+    chipIconColor: '#D99316',
     starColor: '#E59A1A',
-    starMuted: 'rgba(155, 193, 188, 0.55)',
+    starMuted: 'rgba(21, 43, 50, 0.18)',
 
-    selectedBg: '#36C9C6',
-    selectedBorder: '#24B0AD',
-    selectedText: '#082E30',
-    selectedSubText: '#0E484B',
+    selectedBg: '#1BA8A0',
+    selectedLip: '#107872',
+    selectedBorder: '#6FE3DC',
+    selectedText: '#FFFFFF',
+    selectedSubText: '#E3FFFD',
 
     dockBg: 'transparent',
     dockBorder: 'transparent',
 
-    tableRoomTop: '#D9E5DF',
-    tableRoomMid: '#E6EBE0',
-    tableRoomBottom: '#CFE0DB',
-    hudPillBg: 'rgba(255, 255, 255, 0.88)',
-    hudPillBorder: 'rgba(155, 193, 188, 0.72)',
-    hudPillText: '#1A3136',
+    tableRoomTop: '#E5DDD0',
+    tableRoomMid: '#EDE6DA',
+    tableRoomBottom: '#DBD1C1',
+    hudPillBg: 'rgba(255, 255, 255, 0.92)',
+    hudPillBorder: '#D8CCBA',
+    hudPillText: '#152B32',
   },
 };
 
 export const APP_PALETTE_LIST: AppPalette[] = [
-  APP_PALETTES.indigo_crema,
-  APP_PALETTES.cacao_coral,
-  APP_PALETTES.noche_menta,
-  APP_PALETTES.espresso_cielo,
-  APP_PALETTES.coral_brisa,
+  APP_PALETTES.noche_club,
+  APP_PALETTES.dia_brisa,
 ];

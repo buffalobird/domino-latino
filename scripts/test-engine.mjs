@@ -88,10 +88,10 @@ test('1v1 boneyard draw until playable, and auto-pass when boneyard empties', ()
   assert.equal(s.rightEnd, 4);
 });
 
-test('1v1 drawing last unplayable tile automatically passes turn', () => {
+test('1v1 drawing last unplayable tile automatically passes turn when opponent can still play', () => {
   const base = createInitialSetupState('1v1', 100);
   const hands = [
-    [t(6, 6), t(0, 1)],
+    [t(6, 6), t(0, 6)], // Seat 0 still holds 0-6 so hand is NOT trancado!
     [t(2, 3)],
   ];
   const boneyard = [t(1, 2)]; // Only 1 tile, not playable on 6-6
@@ -142,16 +142,15 @@ test('2v2 dominó scoring includes partner remaining tiles', () => {
   assert.equal(after.scores[0], 18);
 });
 
-test('tranca win awards sum of all other players hands; exact tie is null hand', () => {
+test('tranca is declared immediately on closing play without redundant passes; exact tie is null hand', () => {
   const base = createInitialSetupState('1v1', 100);
   const hands = [
     [t(6, 6), t(0, 1)],
     [t(2, 3)],
   ];
   let s = dealNextHand(base, Math.random, hands, []);
+  // Closing play locks the board immediately — no pass loop needed
   s = applyPlay(s, 0, '6-6', 'start');
-  s = applyPass(s, 1);
-  s = applyPass(s, 0);
   assert.equal(s.phase, 'round_summary');
   assert.equal(s.lastHandSummary.reason, 'tranca');
   assert.equal(s.lastHandSummary.pointsAwarded, 5);
@@ -162,10 +161,25 @@ test('tranca win awards sum of all other players hands; exact tie is null hand',
   ];
   let sTie = dealNextHand(base, Math.random, tieHands, []);
   sTie = applyPlay(sTie, 0, '6-6', 'start');
-  sTie = applyPass(sTie, 1);
-  sTie = applyPass(sTie, 0);
+  assert.equal(sTie.phase, 'round_summary');
   assert.equal(sTie.lastHandSummary.reason, 'tranca_tie');
   assert.equal(sTie.lastHandSummary.pointsAwarded, 0);
+});
+
+test('1v1 immediate tranca even with non-empty boneyard when no playable tile remains anywhere', () => {
+  const base = createInitialSetupState('1v1', 100);
+  const hands = [
+    [t(6, 6), t(0, 1)], // 1 pip
+    [t(2, 3)], // 5 pips
+  ];
+  const deadBoneyard = [t(0, 2), t(1, 3), t(4, 5)]; // No 6s anywhere -> dead pozo!
+  let s = dealNextHand(base, Math.random, hands, deadBoneyard);
+  s = applyPlay(s, 0, '6-6', 'start');
+  assert.equal(s.phase, 'round_summary');
+  assert.equal(s.lastHandSummary.reason, 'tranca');
+  assert.equal(s.lastHandSummary.winnerSeat, 0);
+  // Remaining boneyard tiles are never counted in tranca points
+  assert.equal(s.lastHandSummary.pointsAwarded, 5);
 });
 
 test('full simulated matches complete cleanly in 1v1 (with boneyard), 2v2, and 4ffa', () => {
@@ -260,7 +274,7 @@ test('1v1 tranca and domino never count remaining boneyard tiles in score', () =
   assert.equal(afterDomino.scores[0], 2);
 });
 
-test('2v2 tranca awards all other 3 players pips (including partner) and tie is null hand', () => {
+test('2v2 tranca declares immediately, awards all other 3 players pips (including partner), and tie is null hand', () => {
   const base = createInitialSetupState('2v2', 100);
   // Seat 0 plays 6-6 leaving 0-1 (1 pip). Others have no 6s: 1-2 (3), 2-3 (5), 3-4 (7).
   // Total other players = 3 + 5 + 7 = 15 points to Team 0.
@@ -272,10 +286,6 @@ test('2v2 tranca awards all other 3 players pips (including partner) and tie is 
   ];
   let s = dealNextHand(base, Math.random, hands, []);
   s = applyPlay(s, 0, '6-6', 'start');
-  s = applyPass(s, 1);
-  s = applyPass(s, 2);
-  s = applyPass(s, 3);
-  s = applyPass(s, 0);
   assert.equal(s.phase, 'round_summary');
   assert.equal(s.lastHandSummary.reason, 'tranca');
   assert.equal(s.lastHandSummary.winnerSeat, 0);
@@ -291,17 +301,14 @@ test('2v2 tranca awards all other 3 players pips (including partner) and tie is 
   ];
   let st = dealNextHand(base, Math.random, tieHands, []);
   st = applyPlay(st, 0, '6-6', 'start');
-  st = applyPass(st, 1);
-  st = applyPass(st, 2);
-  st = applyPass(st, 3);
-  st = applyPass(st, 0);
+  assert.equal(st.phase, 'round_summary');
   assert.equal(st.lastHandSummary.reason, 'tranca_tie');
   assert.equal(st.lastHandSummary.winnerSeat, null);
   assert.equal(st.lastHandSummary.pointsAwarded, 0);
   assert.deepEqual(st.scores, [0, 0]);
 });
 
-test('4ffa tranca and domino award exact opponent pip sums to individual winner', () => {
+test('4ffa tranca declares immediately and awards exact opponent pip sums to individual winner', () => {
   const base = createInitialSetupState('4ffa', 100);
   const hands = [
     [t(6, 6), t(0, 1)], // 1 pip
@@ -311,10 +318,7 @@ test('4ffa tranca and domino award exact opponent pip sums to individual winner'
   ];
   let s = dealNextHand(base, Math.random, hands, []);
   s = applyPlay(s, 0, '6-6', 'start');
-  s = applyPass(s, 1);
-  s = applyPass(s, 2);
-  s = applyPass(s, 3);
-  s = applyPass(s, 0);
+  assert.equal(s.phase, 'round_summary');
   assert.equal(s.lastHandSummary.reason, 'tranca');
   assert.equal(s.lastHandSummary.winnerSeat, 0);
   assert.equal(s.lastHandSummary.pointsAwarded, 9);

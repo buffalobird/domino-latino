@@ -392,7 +392,7 @@ export function KeyIcon({ size = 16, color = '#FFFFFF' }: IconProps) {
   );
 }
 
-/** Clean settings/support gear icon for top-right glossy orb */
+/** Clean settings gear icon */
 export function GearIcon({ size = 18, color = '#FFFFFF' }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
@@ -406,6 +406,84 @@ export function GearIcon({ size = 18, color = '#FFFFFF' }: IconProps) {
         stroke={color}
         strokeWidth={1.8}
         strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Crescent moon for "Noche de Club" theme selector */
+export function MoonIcon({ size = 16, color = '#FFD166' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M19.5 14.5A7.8 7.8 0 0 1 9.5 4.5A8 8 0 1 0 19.5 14.5Z"
+        fill={color}
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Warm sun for "Día Brisa" theme selector */
+export function SunIcon({ size = 16, color = '#F09624' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={4.5} fill={color} />
+      <Path
+        d="M12 2.5V5M12 19V21.5M2.5 12H5M19 12H21.5M5.3 5.3L7.1 7.1M16.9 16.9L18.7 18.7M18.7 5.3L16.9 7.1M7.1 16.9L5.3 18.7"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/** Stacked face-down porcelain dominoes icon for the Boneyard ("Pozo") */
+export function BoneyardTilesIcon({
+  size = 24,
+  faceColor = '#FFFDF7',
+  strokeColor = '#B5A287',
+  inlayColor = '#D4A84B',
+}: {
+  size?: number;
+  faceColor?: string;
+  strokeColor?: string;
+  inlayColor?: string;
+}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 28 28" fill="none">
+      {/* Back angled domino */}
+      <Rect
+        x={4}
+        y={5}
+        width={11}
+        height={17}
+        rx={2.8}
+        fill={faceColor}
+        stroke={strokeColor}
+        strokeWidth={1.3}
+        transform="rotate(-10 9.5 13.5)"
+      />
+      {/* Front upright domino back with diamond filigree */}
+      <Rect
+        x={12}
+        y={5}
+        width={11.5}
+        height={18}
+        rx={2.8}
+        fill={faceColor}
+        stroke={strokeColor}
+        strokeWidth={1.4}
+        transform="rotate(6 17.75 14)"
+      />
+      <Path
+        d="M17.8 10.2L20.5 14L17.8 17.8L15.1 14L17.8 10.2Z"
+        stroke={inlayColor}
+        strokeWidth={1.3}
+        fill="none"
       />
     </Svg>
   );

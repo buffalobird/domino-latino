@@ -1,10 +1,12 @@
 import React from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { AvatarConfig } from '@/constants/avatarCatalog';
 import { getSeatProfile } from '@/constants/seatProfiles';
 import { TileStyleId } from '@/constants/tileStyles';
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { GameState, HandSummary } from '@/engine/types';
 import { hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
@@ -31,19 +33,35 @@ function VerticalTilesStrip({
   tiles: RemainingEntry['tiles'];
   tileStyleId?: TileStyleId;
 }) {
+  const { palette } = usePalette();
+
   if (tiles.length === 0) {
     return (
-      <View style={styles.emptyBox}>
-        <Text style={styles.emptyText}>¡Se pegó!</Text>
+      <View
+        style={[
+          styles.emptyBox,
+          {
+            backgroundColor: palette.positiveBg,
+            borderColor: palette.positiveBorder,
+          },
+        ]}
+      >
+        <Text style={[styles.emptyText, { color: palette.positiveText }]}>
+          ¡Se pegó!
+        </Text>
       </View>
     );
   }
 
-  // Auto-size vertical tiles cleanly so 1..8+ tiles always stay readable inside column
   const unit = tiles.length > 6 ? 19 : tiles.length > 4 ? 22 : 25;
 
   return (
-    <View style={styles.tilesTray}>
+    <View
+      style={[
+        styles.tilesTray,
+        { backgroundColor: palette.modalInputBg },
+      ]}
+    >
       {tiles.map((tile) => (
         <DominoTile
           key={tile.id}
@@ -58,12 +76,6 @@ function VerticalTilesStrip({
   );
 }
 
-/**
- * Results overlay modeled after the reference visual:
- * - Vertical tiles placed directly UNDER each player (1v1, 4ffa) or pair (2v2),
- *   matching the exact vertical orientation used while playing on the rack.
- * - Adapted cleanly per mode: 2 columns for 1v1, 2 team columns for 2v2, 2x2 grid for 4ffa.
- */
 export function RoundSummaryView({
   state,
   playerAvatarConfig,
@@ -73,14 +85,21 @@ export function RoundSummaryView({
   tileStyleId = 'marfil',
   onContinue,
 }: RoundSummaryViewProps) {
+  const { palette } = usePalette();
   const summary = state.lastHandSummary;
   if (!summary) return null;
 
   const resolveSeat = (seat: number) => {
     const base = getSeatProfile(state.mode, seat);
     const isBot = seatIsHuman ? !seatIsHuman[seat] : base.isBot;
-    const displayName = seatNames?.[seat] ?? base.displayName;
-    const avatarConfig = seat === 0 ? playerAvatarConfig : seatAvatars?.[seat];
+    const displayName =
+      seatNames?.[seat] && !seatNames[seat].startsWith('CPU')
+        ? seatNames[seat]
+        : base.displayName;
+    const avatarConfig =
+      seat === 0
+        ? playerAvatarConfig
+        : seatAvatars?.[seat] ?? base.avatarConfig;
     return { ...base, isBot, displayName, avatarConfig };
   };
 
@@ -101,7 +120,7 @@ export function RoundSummaryView({
       : 'Tranca empatada · Mano nula';
 
   const render1v1Columns = () => {
-    const entries = summary.remainingHands; // seat 0 (Tú) & seat 1 (Bot)
+    const entries = summary.remainingHands;
     return (
       <View style={styles.twoColRow}>
         {entries.map((entry) => {
@@ -113,16 +132,34 @@ export function RoundSummaryView({
           return (
             <View
               key={entry.seat}
-              style={[styles.playerColCard, isWinner && styles.colCardWinner]}
+              style={[
+                styles.playerColCard,
+                {
+                  backgroundColor: isWinner
+                    ? palette.winnerCardBg
+                    : palette.modalCardBg,
+                  borderColor: isWinner
+                    ? palette.winnerCardBorder
+                    : palette.modalCardBorder,
+                  borderBottomColor: isWinner
+                    ? palette.winnerCardBorder
+                    : palette.modalCardLip,
+                },
+              ]}
             >
               <View
                 style={[
                   styles.avatarRing,
-                  { borderColor: isWinner ? CLUB.gold : prof.accentColor },
+                  {
+                    borderColor: isWinner
+                      ? palette.winnerCardBorder
+                      : prof.accentColor,
+                  },
                 ]}
               >
                 <AvatarIllustration
                   isBot={prof.isBot}
+                  seatHint={entry.seat}
                   accentColor={prof.accentColor}
                   mood={
                     summary.reason === 'tranca_tie'
@@ -136,24 +173,55 @@ export function RoundSummaryView({
                 />
               </View>
 
-              <Text style={styles.colName} numberOfLines={1}>
+              <Text
+                style={[styles.colName, { color: palette.textPrimary }]}
+                numberOfLines={1}
+              >
                 {prof.displayName}
               </Text>
 
-              <View style={styles.roundPtsPill}>
-                <Text style={[styles.roundPtsText, isWinner && { color: CLUB.gold }]}>
-                  {ptsThisRound > 0 ? `+${ptsThisRound}` : '0'} pts ronda
+              <View
+                style={[
+                  styles.roundPtsPill,
+                  { backgroundColor: palette.modalInputBg },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.roundPtsText,
+                    {
+                      color: isWinner
+                        ? palette.winnerText
+                        : palette.textSecondary,
+                    },
+                  ]}
+                >
+                  {ptsThisRound > 0 ? `+${ptsThisRound}` : '0'} pts mano
                 </Text>
               </View>
 
-              <Text style={styles.trayLabel}>
+              <Text style={[styles.trayLabel, { color: palette.textMuted }]}>
                 Restantes ({entry.pipSum} pts)
               </Text>
               <VerticalTilesStrip tiles={entry.tiles} tileStyleId={tileStyleId} />
 
-              <View style={styles.totalFooter}>
-                <Text style={styles.totalLabel}>TOTAL</Text>
-                <Text style={[styles.totalVal, isWinner && { color: CLUB.gold }]}>
+              <View
+                style={[
+                  styles.totalFooter,
+                  { borderTopColor: palette.modalCardBorder },
+                ]}
+              >
+                <Text style={[styles.totalLabel, { color: palette.textMuted }]}>
+                  TOTAL
+                </Text>
+                <Text
+                  style={[
+                    styles.totalVal,
+                    {
+                      color: isWinner ? palette.winnerText : palette.textPrimary,
+                    },
+                  ]}
+                >
                   {total}/{state.targetScore}
                 </Text>
               </View>
@@ -190,9 +258,21 @@ export function RoundSummaryView({
           return (
             <View
               key={team.teamId}
-              style={[styles.playerColCard, isWinner && styles.colCardWinner]}
+              style={[
+                styles.playerColCard,
+                {
+                  backgroundColor: isWinner
+                    ? palette.winnerCardBg
+                    : palette.modalCardBg,
+                  borderColor: isWinner
+                    ? palette.winnerCardBorder
+                    : palette.modalCardBorder,
+                  borderBottomColor: isWinner
+                    ? palette.winnerCardBorder
+                    : palette.modalCardLip,
+                },
+              ]}
             >
-              {/* Paired avatars */}
               <View style={styles.pairAvatarsRow}>
                 {team.members.map((m) => {
                   const prof = resolveSeat(m.seat);
@@ -201,11 +281,16 @@ export function RoundSummaryView({
                       key={m.seat}
                       style={[
                         styles.miniAvatarRing,
-                        { borderColor: isWinner ? CLUB.gold : team.accent },
+                        {
+                          borderColor: isWinner
+                            ? palette.winnerCardBorder
+                            : team.accent,
+                        },
                       ]}
                     >
                       <AvatarIllustration
                         isBot={prof.isBot}
+                        seatHint={m.seat}
                         accentColor={prof.accentColor}
                         mood={
                           summary.reason === 'tranca_tie'
@@ -222,33 +307,70 @@ export function RoundSummaryView({
                 })}
               </View>
 
-              <Text style={styles.colName}>{team.title}</Text>
+              <Text style={[styles.colName, { color: palette.textPrimary }]}>
+                {team.title}
+              </Text>
 
-              <View style={styles.roundPtsPill}>
-                <Text style={[styles.roundPtsText, isWinner && { color: CLUB.gold }]}>
-                  {ptsThisRound > 0 ? `+${ptsThisRound}` : '0'} pts ronda
+              <View
+                style={[
+                  styles.roundPtsPill,
+                  { backgroundColor: palette.modalInputBg },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.roundPtsText,
+                    {
+                      color: isWinner
+                        ? palette.winnerText
+                        : palette.textSecondary,
+                    },
+                  ]}
+                >
+                  {ptsThisRound > 0 ? `+${ptsThisRound}` : '0'} pts mano
                 </Text>
               </View>
 
-              {/* Vertical remaining tiles grouped cleanly per partner */}
               <View style={styles.pairMembersList}>
                 {team.members.map((m) => {
                   const prof = resolveSeat(m.seat);
                   return (
                     <View key={m.seat} style={styles.memberSubBlock}>
-                      <Text style={styles.memberSubLabel}>
+                      <Text
+                        style={[
+                          styles.memberSubLabel,
+                          { color: palette.textSecondary },
+                        ]}
+                      >
                         {prof.displayName} · {m.pipSum} pts
                         {m.countedInScore ? '' : ' (ganó)'}
                       </Text>
-                      <VerticalTilesStrip tiles={m.tiles} tileStyleId={tileStyleId} />
+                      <VerticalTilesStrip
+                        tiles={m.tiles}
+                        tileStyleId={tileStyleId}
+                      />
                     </View>
                   );
                 })}
               </View>
 
-              <View style={styles.totalFooter}>
-                <Text style={styles.totalLabel}>TOTAL</Text>
-                <Text style={[styles.totalVal, isWinner && { color: CLUB.gold }]}>
+              <View
+                style={[
+                  styles.totalFooter,
+                  { borderTopColor: palette.modalCardBorder },
+                ]}
+              >
+                <Text style={[styles.totalLabel, { color: palette.textMuted }]}>
+                  TOTAL
+                </Text>
+                <Text
+                  style={[
+                    styles.totalVal,
+                    {
+                      color: isWinner ? palette.winnerText : palette.textPrimary,
+                    },
+                  ]}
+                >
                   {total}/{state.targetScore}
                 </Text>
               </View>
@@ -259,69 +381,123 @@ export function RoundSummaryView({
     );
   };
 
-  const render4ffaGrid = () => {
-    return (
-      <View style={styles.fourGrid}>
-        {summary.remainingHands.map((entry) => {
-          const prof = resolveSeat(entry.seat);
-          const isWinner = summary.winnerSeat === entry.seat;
-          const ptsThisRound = isWinner ? summary.pointsAwarded : 0;
-          const total = summary.scoresAfter[entry.teamId] ?? 0;
+  const render4ffaGrid = () => (
+    <View style={styles.fourGrid}>
+      {summary.remainingHands.map((entry) => {
+        const prof = resolveSeat(entry.seat);
+        const isWinner = summary.winnerSeat === entry.seat;
+        const ptsThisRound = isWinner ? summary.pointsAwarded : 0;
+        const total = summary.scoresAfter[entry.teamId] ?? 0;
 
-          return (
-            <View
-              key={entry.seat}
-              style={[styles.gridCard, isWinner && styles.colCardWinner]}
-            >
-              <View style={styles.gridTop}>
-                <View
+        return (
+          <View
+            key={entry.seat}
+            style={[
+              styles.gridCard,
+              {
+                backgroundColor: isWinner
+                  ? palette.winnerCardBg
+                  : palette.modalCardBg,
+                borderColor: isWinner
+                  ? palette.winnerCardBorder
+                  : palette.modalCardBorder,
+                borderBottomColor: isWinner
+                  ? palette.winnerCardBorder
+                  : palette.modalCardLip,
+              },
+            ]}
+          >
+            <View style={styles.gridTop}>
+              <View
+                style={[
+                  styles.miniAvatarRing,
+                  {
+                    borderColor: isWinner
+                      ? palette.winnerCardBorder
+                      : prof.accentColor,
+                  },
+                ]}
+              >
+                <AvatarIllustration
+                  isBot={prof.isBot}
+                  seatHint={entry.seat}
+                  accentColor={prof.accentColor}
+                  mood={
+                    summary.reason === 'tranca_tie'
+                      ? 'idle'
+                      : isWinner
+                      ? 'win'
+                      : 'lose'
+                  }
+                  size={34}
+                  avatarConfig={prof.avatarConfig}
+                />
+              </View>
+              <View style={styles.gridNameCol}>
+                <Text
+                  style={[styles.gridName, { color: palette.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  {prof.displayName}
+                </Text>
+                <Text
                   style={[
-                    styles.miniAvatarRing,
-                    { borderColor: isWinner ? CLUB.gold : prof.accentColor },
+                    styles.gridScore,
+                    {
+                      color: isWinner
+                        ? palette.winnerText
+                        : palette.textSecondary,
+                    },
                   ]}
                 >
-                  <AvatarIllustration
-                    isBot={prof.isBot}
-                    accentColor={prof.accentColor}
-                    mood={
-                      summary.reason === 'tranca_tie'
-                        ? 'idle'
-                        : isWinner
-                        ? 'win'
-                        : 'lose'
-                    }
-                    size={34}
-                    avatarConfig={prof.avatarConfig}
-                  />
-                </View>
-                <View style={styles.gridNameCol}>
-                  <Text style={styles.gridName} numberOfLines={1}>
-                    {prof.displayName}
-                  </Text>
-                  <Text style={[styles.gridScore, isWinner && { color: CLUB.gold }]}>
-                    {total}/{state.targetScore}
-                    {ptsThisRound > 0 ? ` (+${ptsThisRound})` : ''}
-                  </Text>
-                </View>
+                  {total}/{state.targetScore}
+                  {ptsThisRound > 0 ? ` (+${ptsThisRound})` : ''}
+                </Text>
               </View>
-
-              <Text style={styles.memberSubLabel}>Restan {entry.pipSum} pts</Text>
-              <VerticalTilesStrip tiles={entry.tiles} tileStyleId={tileStyleId} />
             </View>
-          );
-        })}
-      </View>
-    );
-  };
+
+            <Text
+              style={[styles.memberSubLabel, { color: palette.textSecondary }]}
+            >
+              Restan {entry.pipSum} pts
+            </Text>
+            <VerticalTilesStrip tiles={entry.tiles} tileStyleId={tileStyleId} />
+          </View>
+        );
+      })}
+    </View>
+  );
 
   return (
-    <View style={styles.backdrop}>
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <Text style={styles.kicker}>RESULTADOS · MANO #{summary.handNumber}</Text>
+    <Animated.View
+      entering={FadeIn.duration(170)}
+      style={[styles.backdrop, { backgroundColor: palette.modalBackdrop }]}
+    >
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: palette.modalBg,
+            borderColor: palette.modalBorder,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.header,
+            { borderBottomColor: palette.modalCardBorder },
+          ]}
+        >
+          <Text style={[styles.kicker, { color: palette.textMuted }]}>
+            CIERRE DE MANO #{summary.handNumber}
+          </Text>
           <View style={styles.headlineRow}>
-            {summary.winnerSeat !== null && <CrownIcon size={17} color={CLUB.gold} />}
-            <Text style={styles.headline}>{headline}</Text>
+            {summary.winnerSeat !== null && (
+              <CrownIcon size={18} color={palette.winnerCardBorder} />
+            )}
+            <Text style={[styles.headline, { color: palette.textPrimary }]}>
+              {headline}
+            </Text>
           </View>
         </View>
 
@@ -336,7 +512,7 @@ export function RoundSummaryView({
         </ScrollView>
 
         <GlossyButton
-          title="Continuar"
+          title="Siguiente mano"
           variant="emerald"
           onPress={() => {
             hapticSnap();
@@ -344,7 +520,7 @@ export function RoundSummaryView({
           }}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -355,7 +531,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(6, 12, 24, 0.76)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 12,
@@ -365,18 +540,15 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 460,
     maxHeight: '88%',
-    backgroundColor: 'rgba(14, 28, 52, 0.96)',
-    borderRadius: 24,
-    borderWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.26)',
-    padding: 15,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    padding: 16,
     gap: 12,
-    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.55)',
   },
   header: {
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: CLUB.borderSubtle,
     paddingBottom: 10,
   },
   headlineRow: {
@@ -387,16 +559,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   kicker: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '800',
     letterSpacing: 0.9,
   },
   headline: {
-    color: CLUB.textPrimary,
-    fontSize: 19,
-    fontWeight: '900',
-    marginTop: 2,
+    fontFamily: FONT.display,
+    fontSize: 20,
     textAlign: 'center',
   },
   scrollBody: {
@@ -412,18 +581,12 @@ const styles = StyleSheet.create({
   },
   playerColCard: {
     flex: 1,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    borderBottomWidth: 4,
     padding: 10,
     alignItems: 'center',
     gap: 6,
-  },
-  colCardWinner: {
-    borderColor: '#F5C451',
-    backgroundColor: 'rgba(54, 42, 18, 0.62)',
-    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.22)',
   },
   avatarRing: {
     width: 54,
@@ -448,26 +611,22 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   colName: {
-    color: CLUB.textPrimary,
-    fontSize: 14,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 15,
   },
   roundPtsPill: {
-    backgroundColor: 'rgba(11, 20, 36, 0.65)',
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
   roundPtsText: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
     fontVariant: ['tabular-nums'],
   },
   trayLabel: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
     marginTop: 2,
   },
   tilesTray: {
@@ -475,7 +634,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: 'rgba(11, 20, 36, 0.45)',
     borderRadius: 12,
     padding: 6,
     width: '100%',
@@ -483,9 +641,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyBox: {
-    backgroundColor: 'rgba(46, 209, 138, 0.14)',
     borderWidth: 1,
-    borderColor: 'rgba(46, 209, 138, 0.35)',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 8,
@@ -494,9 +650,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   emptyText: {
-    color: CLUB.emerald,
-    fontSize: 12,
-    fontWeight: '900',
+    fontFamily: FONT.extraBold,
+    fontSize: 12.5,
   },
   pairMembersList: {
     width: '100%',
@@ -508,28 +663,24 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   memberSubLabel: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
   },
   totalFooter: {
     marginTop: 'auto',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: CLUB.glassBorder,
     width: '100%',
     alignItems: 'center',
   },
   totalLabel: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.extraBold,
     fontSize: 10,
-    fontWeight: '800',
     letterSpacing: 0.7,
   },
   totalVal: {
-    color: CLUB.textPrimary,
-    fontSize: 18,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 19,
     fontVariant: ['tabular-nums'],
   },
   fourGrid: {
@@ -539,10 +690,9 @@ const styles = StyleSheet.create({
   },
   gridCard: {
     width: '48.5%',
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    borderBottomWidth: 3.5,
     padding: 8,
     gap: 6,
   },
@@ -555,28 +705,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gridName: {
-    color: CLUB.textPrimary,
-    fontSize: 12,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 12.5,
   },
   gridScore: {
-    color: CLUB.textSecondary,
-    fontSize: 12,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 12.5,
     fontVariant: ['tabular-nums'],
-  },
-  continueBtn: {
-    backgroundColor: CLUB.emerald,
-    borderRadius: 16,
-    borderBottomWidth: 4,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueBtnText: {
-    color: CLUB.textInk,
-    fontSize: 17,
-    fontWeight: '900',
   },
 });

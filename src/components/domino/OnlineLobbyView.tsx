@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   Share,
@@ -12,10 +11,10 @@ import {
 } from 'react-native';
 
 import { sanitizeAvatarConfig } from '@/constants/avatarCatalog';
-import { CLUB } from '@/constants/tokens';
+import { FONT } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { usePalette } from '@/context/PaletteContext';
-import { GameMode, TARGET_SCORES, TargetScore } from '@/engine/types';
+import { GameMode, TargetScore, UI_TARGET_SCORES } from '@/engine/types';
 import { TableCompanion } from '@/lib/companionsService';
 import {
   createOnlineRoom,
@@ -30,6 +29,8 @@ import { GlossyButton } from './GlossyButton';
 import {
   ChevronLeftIcon,
   ChipIcon,
+  GlobeIcon,
+  KeyIcon,
   LockIcon,
   PlayIcon,
   PlusIcon,
@@ -66,21 +67,28 @@ export function OnlineLobbyView({
 }: OnlineLobbyViewProps) {
   const { isSignedIn } = useAuth();
   const { palette } = usePalette();
+  const [tab, setTab] = useState<'public' | 'private'>(initialTab);
   const [rooms, setRooms] = useState<OnlineRoomRow[]>([]);
   const [modeFilter, setModeFilter] = useState<GameMode | 'all'>('all');
   const [loading, setLoading] = useState(false);
   const [busyAction, setBusyAction] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Create Room inline config
+  // Create Room config
   const [createOpen, setCreateOpen] = useState(initialTab === 'private');
   const [mode, setMode] = useState<GameMode>(defaultMode);
-  const [targetScore, setTargetScore] = useState<TargetScore>(defaultTargetScore);
-  const [isPrivate, setIsPrivate] = useState(initialTab === 'private');
+  const [targetScore, setTargetScore] = useState<TargetScore>(
+    UI_TARGET_SCORES.includes(defaultTargetScore) ? defaultTargetScore : 100
+  );
   const [buyIn, setBuyIn] = useState<number>(0);
 
   // Join Private Code
   const [joinCode, setJoinCode] = useState('');
+
+  useEffect(() => {
+    setTab(initialTab);
+    setCreateOpen(initialTab === 'private');
+  }, [initialTab]);
 
   const refreshRooms = useCallback(async () => {
     if (!isSignedIn) return;
@@ -93,15 +101,14 @@ export function OnlineLobbyView({
     }
   }, [isSignedIn, modeFilter]);
 
-  // Scalable Lobby Polling (every 8s — avoids unfiltered Realtime storm when thousands are playing!)
   useEffect(() => {
-    if (!isSignedIn) return;
+    if (!isSignedIn || tab !== 'public') return;
     refreshRooms();
     const poll = setInterval(() => {
       refreshRooms();
     }, 8000);
     return () => clearInterval(poll);
-  }, [isSignedIn, refreshRooms]);
+  }, [isSignedIn, tab, refreshRooms]);
 
   const handleQuickMatch = async () => {
     setErrorMsg(null);
@@ -122,15 +129,15 @@ export function OnlineLobbyView({
     }
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (privateRoom: boolean) => {
     setErrorMsg(null);
     setBusyAction(true);
     try {
-      const effectiveBuyIn = isPrivate ? 0 : buyIn;
+      const effectiveBuyIn = privateRoom ? 0 : buyIn;
       const res = await createOnlineRoom({
         mode,
         targetScore,
-        isPrivate,
+        isPrivate: privateRoom,
         buyIn: effectiveBuyIn,
       });
       hapticSnap();
@@ -202,13 +209,13 @@ export function OnlineLobbyView({
   const pillBase = {
     backgroundColor: palette.surfaceCardAlt,
     borderColor: palette.borderSubtle,
+    borderBottomColor: palette.surfaceCardAltLip,
   };
   const pillActiveDyn = {
     backgroundColor: palette.selectedBg,
     borderColor: palette.selectedBorder,
+    borderBottomColor: palette.selectedLip,
   };
-  const pillTextDyn = { color: palette.textPrimary };
-  const pillTextActiveDyn = { color: palette.selectedText };
 
   return (
     <LinearGradient
@@ -227,10 +234,12 @@ export function OnlineLobbyView({
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.78 }]}
         >
           <ChevronLeftIcon size={18} color={palette.textPrimary} />
-          <Text style={[styles.backBtnText, { color: palette.textPrimary }]}>Volver</Text>
+          <Text style={[styles.backBtnText, { color: palette.textPrimary }]}>Inicio</Text>
         </Pressable>
 
-        <Text style={[styles.title, { color: palette.textPrimary }]}>Salas Online</Text>
+        <Text style={[styles.title, { color: palette.textPrimary }]}>
+          {tab === 'public' ? 'Salas Online' : 'Con Amigos'}
+        </Text>
 
         <View
           style={[
@@ -253,12 +262,21 @@ export function OnlineLobbyView({
         showsVerticalScrollIndicator={false}
       >
         {!isSignedIn ? (
-          <View style={styles.authGate}>
+          <View
+            style={[
+              styles.authGate,
+              {
+                backgroundColor: palette.surfaceCard,
+                borderColor: palette.borderSubtle,
+                borderBottomColor: palette.surfaceCardLip,
+              },
+            ]}
+          >
             <Text style={[styles.gateTitle, { color: palette.textPrimary }]}>
-              Inicia sesión para jugar Online
+              Entra al Club Online
             </Text>
             <Text style={[styles.gateSub, { color: palette.textSecondary }]}>
-              Conéctate con Apple o Google para entrar a mesas públicas o crear salas privadas con amigos.
+              Conéctate en segundos con Apple o Google para jugar en mesas abiertas o crear salas privadas con tus amigos.
             </Text>
             <GlossyButton
               title="Iniciar sesión"
@@ -268,221 +286,411 @@ export function OnlineLobbyView({
           </View>
         ) : (
           <>
-            {errorMsg && (
-              <View style={styles.errorBox}>
+            {/* Clean 2-Door Segmented Switcher */}
+            <View
+              style={[
+                styles.segmentedWrap,
+                {
+                  backgroundColor: palette.trayBg,
+                  borderColor: palette.trayBorder,
+                },
+              ]}
+            >
+              <Pressable
+                onPress={() => {
+                  hapticLight();
+                  setTab('public');
+                  setCreateOpen(false);
+                }}
+                style={[
+                  styles.segmentTab,
+                  tab === 'public' && {
+                    backgroundColor: palette.selectedBg,
+                    borderBottomColor: palette.selectedLip,
+                  },
+                ]}
+              >
+                <GlobeIcon
+                  size={15}
+                  color={tab === 'public' ? palette.selectedText : palette.textSecondary}
+                />
                 <Text
                   style={[
-                    styles.errorText,
-                    !palette.isDark && { color: '#9F1239' },
+                    styles.segmentTabText,
+                    {
+                      color:
+                        tab === 'public' ? palette.selectedText : palette.textSecondary,
+                    },
                   ]}
                 >
+                  Mesas Abiertas
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  hapticLight();
+                  setTab('private');
+                  setCreateOpen(true);
+                }}
+                style={[
+                  styles.segmentTab,
+                  tab === 'private' && {
+                    backgroundColor: palette.selectedBg,
+                    borderBottomColor: palette.selectedLip,
+                  },
+                ]}
+              >
+                <KeyIcon
+                  size={15}
+                  color={tab === 'private' ? palette.selectedText : palette.textSecondary}
+                />
+                <Text
+                  style={[
+                    styles.segmentTabText,
+                    {
+                      color:
+                        tab === 'private' ? palette.selectedText : palette.textSecondary,
+                    },
+                  ]}
+                >
+                  Con Amigos
+                </Text>
+              </Pressable>
+            </View>
+
+            {errorMsg && (
+              <View
+                style={[
+                  styles.errorBox,
+                  {
+                    backgroundColor: palette.dangerBg,
+                    borderColor: palette.dangerBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: palette.dangerText }]}>
                   {errorMsg}
                 </Text>
               </View>
             )}
 
-            {/* 1-Tap Scalable Online Quick Match */}
-            {initialTab !== 'private' && (
-              <GlossyButton
-                title="Sentarme ya (Online rápido)"
-                subtitle={`${
-                  modeFilter === 'all'
-                    ? defaultMode === '1v1'
-                      ? '1 vs 1'
-                      : defaultMode === '2v2'
-                      ? '2 vs 2'
-                      : '4 Jug.'
-                    : modeFilter === '1v1'
-                    ? '1 vs 1'
-                    : modeFilter === '2v2'
-                    ? '2 vs 2'
-                    : '4 Jug.'
-                } · Mesa pública gratis`}
-                variant="emerald"
-                icon={<PlayIcon size={18} color={palette.textOnPrimary} />}
-                loading={busyAction}
-                onPress={handleQuickMatch}
-              />
-            )}
-
-            {/* Join Private Room by 6-char Code */}
-            <View
-              style={[
-                styles.privateBox,
-                {
-                  backgroundColor: palette.surfaceCard,
-                  borderColor: palette.borderSubtle,
-                },
-              ]}
-            >
-              <View style={styles.boxLabelRow}>
-                <LockIcon size={13} color={palette.brandAccent} />
-                <Text style={[styles.boxLabel, { color: palette.textSecondary }]}>
-                  Unirse a sala privada con código
-                </Text>
-              </View>
-              <View style={styles.codeRow}>
-                <TextInput
-                  value={joinCode}
-                  onChangeText={setJoinCode}
-                  placeholder="Ej. K7M2P9"
-                  placeholderTextColor={palette.textMuted}
-                  autoCapitalize="characters"
-                  maxLength={6}
+            {tab === 'private' ? (
+              <>
+                {/* 1. Join Private Room by 6-char Code */}
+                <View
                   style={[
-                    styles.codeInput,
+                    styles.tactileCard,
                     {
-                      backgroundColor: palette.surfaceCardAlt,
+                      backgroundColor: palette.surfaceCard,
                       borderColor: palette.borderSubtle,
-                      color: palette.textPrimary,
+                      borderBottomColor: palette.surfaceCardLip,
                     },
                   ]}
-                />
+                >
+                  <View style={styles.boxLabelRow}>
+                    <LockIcon size={14} color={palette.brandAccent} />
+                    <Text style={[styles.cardTitleSm, { color: palette.textPrimary }]}>
+                      Tengo código de invitación
+                    </Text>
+                  </View>
+                  <View style={styles.codeRow}>
+                    <TextInput
+                      value={joinCode}
+                      onChangeText={setJoinCode}
+                      placeholder="Ej. K7M2P9"
+                      placeholderTextColor={palette.textMuted}
+                      autoCapitalize="characters"
+                      maxLength={6}
+                      style={[
+                        styles.codeInput,
+                        {
+                          backgroundColor: palette.modalInputBg,
+                          borderColor: palette.borderSubtle,
+                          color: palette.textPrimary,
+                        },
+                      ]}
+                    />
+                    <GlossyButton
+                      title="Entrar"
+                      variant="cobalt"
+                      compact
+                      disabled={busyAction}
+                      onPress={handleJoinByCode}
+                    />
+                  </View>
+                </View>
+
+                {/* 2. Create Private Table */}
+                <View
+                  style={[
+                    styles.tactileCard,
+                    {
+                      backgroundColor: palette.surfaceCard,
+                      borderColor: palette.borderSubtle,
+                      borderBottomColor: palette.surfaceCardLip,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.cardTitleSm, { color: palette.textPrimary }]}>
+                    Abrir nueva sala privada
+                  </Text>
+                  <Text style={[styles.cardSubSm, { color: palette.textSecondary }]}>
+                    Obtendrás un código de 6 letras para compartir por WhatsApp o mensaje (siempre gratis, 0 fichas).
+                  </Text>
+
+                  <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+                    MODALIDAD
+                  </Text>
+                  <View style={styles.chipRow}>
+                    {(['1v1', '2v2', '4ffa'] as GameMode[]).map((m) => (
+                      <Pressable
+                        key={m}
+                        onPress={() => {
+                          hapticLight();
+                          setMode(m);
+                        }}
+                        style={[styles.pill, pillBase, mode === m && pillActiveDyn]}
+                      >
+                        <Text
+                          style={[
+                            styles.pillText,
+                            {
+                              color:
+                                mode === m ? palette.selectedText : palette.textPrimary,
+                            },
+                          ]}
+                        >
+                          {m === '1v1' ? '1 vs 1' : m === '2v2' ? '2 vs 2' : '4 Jug.'}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+                    META DE PUNTOS
+                  </Text>
+                  <View style={styles.chipRow}>
+                    {UI_TARGET_SCORES.map((pts) => (
+                      <Pressable
+                        key={pts}
+                        onPress={() => {
+                          hapticLight();
+                          setTargetScore(pts);
+                        }}
+                        style={[
+                          styles.pill,
+                          pillBase,
+                          targetScore === pts && pillActiveDyn,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.pillText,
+                            {
+                              color:
+                                targetScore === pts
+                                  ? palette.selectedText
+                                  : palette.textPrimary,
+                            },
+                          ]}
+                        >
+                          {pts}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <GlossyButton
+                    title="Crear sala y obtener código"
+                    variant="emerald"
+                    loading={busyAction}
+                    onPress={() => handleCreate(true)}
+                    style={{ marginTop: 4 }}
+                  />
+                </View>
+
+                {/* 3. Intimate Table Companions Circle */}
+                {companions.length > 0 && (
+                  <View style={styles.companionsSection}>
+                    <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
+                      Tus compañeros de mesa
+                    </Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.companionsRow}
+                    >
+                      {companions.map((c) => (
+                        <Pressable
+                          key={c.companion_user_id}
+                          disabled={busyAction}
+                          onPress={() => handleInviteCompanion(c)}
+                          style={({ pressed }) => [
+                            styles.companionPill,
+                            {
+                              backgroundColor: palette.surfaceCard,
+                              borderColor: palette.borderWarm,
+                              borderBottomColor: palette.surfaceCardLip,
+                            },
+                            pressed && { opacity: 0.85 },
+                          ]}
+                        >
+                          <AvatarIllustration
+                            isBot={false}
+                            accentColor={palette.brandAccent}
+                            size={40}
+                            avatarConfig={c.companion_avatar ?? undefined}
+                          />
+                          <Text
+                            style={[
+                              styles.companionPillName,
+                              { color: palette.textPrimary },
+                            ]}
+                            numberOfLines={1}
+                          >
+                            {c.companion_name}
+                          </Text>
+                          <Text
+                            style={[
+                              styles.companionPillAction,
+                              { color: palette.brandAccent },
+                            ]}
+                          >
+                            Invitar
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                {/* PUBLIC TAB: 1-Tap Quick Seat */}
                 <GlossyButton
-                  title="Entrar"
-                  variant="cobalt"
-                  compact
-                  disabled={busyAction}
-                  onPress={handleJoinByCode}
+                  title="Sentarme ya"
+                  subtitle={`${
+                    modeFilter === 'all'
+                      ? defaultMode === '1v1'
+                        ? '1 vs 1'
+                        : defaultMode === '2v2'
+                        ? '2 vs 2'
+                        : '4 Jug.'
+                      : modeFilter === '1v1'
+                      ? '1 vs 1'
+                      : modeFilter === '2v2'
+                      ? '2 vs 2'
+                      : '4 Jug.'
+                  } · Mesa pública al instante`}
+                  variant="emerald"
+                  icon={<PlayIcon size={18} color={palette.textOnPrimary} />}
+                  loading={busyAction}
+                  onPress={handleQuickMatch}
                 />
-              </View>
-            </View>
 
-            {/* Create Your Own Table Card */}
-            <Pressable
-              onPress={() => {
-                hapticLight();
-                setCreateOpen((v) => !v);
-              }}
-              style={[
-                styles.createCardHeader,
-                {
-                  backgroundColor: palette.isDark
-                    ? 'rgba(46, 209, 138, 0.16)'
-                    : palette.accentSoft,
-                  borderColor: palette.accent,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.createIconCircle,
-                  { backgroundColor: palette.accent },
-                ]}
-              >
-                <PlusIcon size={22} color={palette.textOnAccent} />
-              </View>
-              <View style={styles.createHeaderText}>
-                <Text style={[styles.createTitle, { color: palette.textPrimary }]}>
-                  Crear tu propia mesa
-                </Text>
-                <Text style={[styles.createSub, { color: palette.textSecondary }]}>
-                  Elige formato, puntaje y si es pública o privada con amigos
-                </Text>
-              </View>
-            </Pressable>
-
-            {createOpen && (
-              <View
-                style={[
-                  styles.createForm,
-                  {
-                    backgroundColor: palette.surfaceCard,
-                    borderColor: palette.borderSubtle,
-                  },
-                ]}
-              >
-                <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-                  Tipo de sala
-                </Text>
-                <View style={styles.chipRow}>
-                  <Pressable
-                    onPress={() => setIsPrivate(false)}
-                    style={[styles.pill, pillBase, !isPrivate && pillActiveDyn]}
+                {/* Collapsible Public Room Creator */}
+                <Pressable
+                  onPress={() => {
+                    hapticLight();
+                    setCreateOpen((v) => !v);
+                  }}
+                  style={[
+                    styles.createCardHeader,
+                    {
+                      backgroundColor: palette.surfaceCard,
+                      borderColor: palette.borderAccent,
+                      borderBottomColor: palette.surfaceCardLip,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.createIconCircle,
+                      { backgroundColor: palette.accent },
+                    ]}
                   >
-                    <Text
-                      style={[
-                        styles.pillText,
-                        pillTextDyn,
-                        !isPrivate && pillTextActiveDyn,
-                      ]}
-                    >
-                      Pública (Lobby)
+                    <PlusIcon size={20} color={palette.textOnAccent} />
+                  </View>
+                  <View style={styles.createHeaderText}>
+                    <Text style={[styles.createTitle, { color: palette.textPrimary }]}>
+                      Abrir mi propia mesa pública
                     </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      setIsPrivate(true);
-                      setBuyIn(0);
-                    }}
-                    style={[styles.pill, pillBase, isPrivate && pillActiveDyn]}
+                    <Text style={[styles.createSub, { color: palette.textSecondary }]}>
+                      Elige modalidad, meta y salón de fichas
+                    </Text>
+                  </View>
+                </Pressable>
+
+                {createOpen && (
+                  <View
+                    style={[
+                      styles.tactileCard,
+                      {
+                        backgroundColor: palette.surfaceCard,
+                        borderColor: palette.borderSubtle,
+                        borderBottomColor: palette.surfaceCardLip,
+                      },
+                    ]}
                   >
-                    <Text
-                      style={[
-                        styles.pillText,
-                        pillTextDyn,
-                        isPrivate && pillTextActiveDyn,
-                      ]}
-                    >
-                      Privada (Amigos)
-                    </Text>
-                  </Pressable>
-                </View>
-
-                <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-                  Modalidad
-                </Text>
-                <View style={styles.chipRow}>
-                  {(['1v1', '2v2', '4ffa'] as GameMode[]).map((m) => (
-                    <Pressable
-                      key={m}
-                      onPress={() => setMode(m)}
-                      style={[styles.pill, pillBase, mode === m && pillActiveDyn]}
-                    >
-                      <Text
-                        style={[
-                          styles.pillText,
-                          pillTextDyn,
-                          mode === m && pillTextActiveDyn,
-                        ]}
-                      >
-                        {m === '1v1' ? '1 vs 1' : m === '2v2' ? '2 vs 2' : '4 Todos'}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-
-                <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-                  Puntaje objetivo
-                </Text>
-                <View style={styles.chipWrapRow}>
-                  {TARGET_SCORES.map((pts) => (
-                    <Pressable
-                      key={pts}
-                      onPress={() => setTargetScore(pts)}
-                      style={[
-                        styles.scoreMini,
-                        pillBase,
-                        targetScore === pts && pillActiveDyn,
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.pillText,
-                          pillTextDyn,
-                          targetScore === pts && pillTextActiveDyn,
-                        ]}
-                      >
-                        {pts}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-
-                {!isPrivate ? (
-                  <>
                     <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
-                      Entrada del salón (Fichas de Club)
+                      MODALIDAD
+                    </Text>
+                    <View style={styles.chipRow}>
+                      {(['1v1', '2v2', '4ffa'] as GameMode[]).map((m) => (
+                        <Pressable
+                          key={m}
+                          onPress={() => setMode(m)}
+                          style={[styles.pill, pillBase, mode === m && pillActiveDyn]}
+                        >
+                          <Text
+                            style={[
+                              styles.pillText,
+                              {
+                                color:
+                                  mode === m ? palette.selectedText : palette.textPrimary,
+                              },
+                            ]}
+                          >
+                            {m === '1v1' ? '1 vs 1' : m === '2v2' ? '2 vs 2' : '4 Jug.'}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+                      META DE PUNTOS
+                    </Text>
+                    <View style={styles.chipRow}>
+                      {UI_TARGET_SCORES.map((pts) => (
+                        <Pressable
+                          key={pts}
+                          onPress={() => setTargetScore(pts)}
+                          style={[
+                            styles.pill,
+                            pillBase,
+                            targetScore === pts && pillActiveDyn,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.pillText,
+                              {
+                                color:
+                                  targetScore === pts
+                                    ? palette.selectedText
+                                    : palette.textPrimary,
+                              },
+                            ]}
+                          >
+                            {pts}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    <Text style={[styles.fieldLabel, { color: palette.textMuted }]}>
+                      ENTRADA DEL SALÓN (FICHAS DE CLUB)
                     </Text>
                     <View style={styles.chipRow}>
                       {BUY_IN_SALONS.map((s) => {
@@ -502,8 +710,12 @@ export function OnlineLobbyView({
                             <Text
                               style={[
                                 styles.pillText,
-                                pillTextDyn,
-                                buyIn === s.value && pillTextActiveDyn,
+                                {
+                                  color:
+                                    buyIn === s.value
+                                      ? palette.selectedText
+                                      : palette.textPrimary,
+                                },
                               ]}
                             >
                               {s.label}
@@ -512,254 +724,203 @@ export function OnlineLobbyView({
                         );
                       })}
                     </View>
-                    {buyIn > 0 && (
-                      <Text
-                        style={[
-                          styles.privateComplianceHint,
-                          { color: palette.isDark ? CLUB.emerald : palette.textSecondary },
-                        ]}
-                      >
-                        Las mesas con fichas esperan jugadores reales (si no se llena, podrás pasar a jugar gratis con Bots).
-                      </Text>
-                    )}
-                  </>
-                ) : (
-                  <Text
-                    style={[
-                      styles.privateComplianceHint,
-                      { color: palette.isDark ? CLUB.emerald : palette.textSecondary },
-                    ]}
-                  >
-                    Las salas privadas son siempre amistosas (0 fichas de entrada).
-                  </Text>
+
+                    <GlossyButton
+                      title="Publicar mesa en el lobby"
+                      variant="emerald"
+                      loading={busyAction}
+                      onPress={() => handleCreate(false)}
+                      style={{ marginTop: 4 }}
+                    />
+                  </View>
                 )}
 
-                <GlossyButton
-                  title={isPrivate ? 'Crear sala privada' : 'Abrir mesa en el lobby'}
-                  variant={isPrivate ? 'cobalt' : 'emerald'}
-                  loading={busyAction}
-                  onPress={handleCreate}
-                  style={{ marginTop: 4 }}
-                />
-              </View>
-            )}
-
-            {/* Open Public Tables List with Mode Filter */}
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
-                Mesas públicas abiertas
-              </Text>
-              <Pressable
-                onPress={refreshRooms}
-                style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.75 }]}
-              >
-                <RefreshIcon size={14} color={palette.accent} />
-                <Text style={[styles.refreshText, { color: palette.accent }]}>
-                  {loading ? 'Buscando...' : 'Actualizar'}
-                </Text>
-              </Pressable>
-            </View>
-
-            <View style={styles.chipRow}>
-              {(
-                [
-                  { id: 'all', label: 'Todas' },
-                  { id: '1v1', label: '1 vs 1' },
-                  { id: '2v2', label: '2 vs 2' },
-                  { id: '4ffa', label: '4 Jug.' },
-                ] as const
-              ).map((f) => {
-                const active = modeFilter === f.id;
-                return (
+                {/* Open Public Tables List */}
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
+                    Mesas esperando jugadores
+                  </Text>
                   <Pressable
-                    key={f.id}
-                    onPress={() => {
-                      hapticLight();
-                      setModeFilter(f.id);
-                    }}
-                    style={[styles.pill, pillBase, active && pillActiveDyn]}
+                    onPress={refreshRooms}
+                    style={({ pressed }) => [styles.refreshBtn, pressed && { opacity: 0.75 }]}
                   >
-                    <Text
-                      style={[styles.pillText, pillTextDyn, active && pillTextActiveDyn]}
-                    >
-                      {f.label}
+                    <RefreshIcon size={14} color={palette.accent} />
+                    <Text style={[styles.refreshText, { color: palette.accent }]}>
+                      {loading ? 'Buscando...' : 'Actualizar'}
                     </Text>
                   </Pressable>
-                );
-              })}
-            </View>
+                </View>
 
-            {/* Intimate Table Companions Circle (Locket-style max 20 regular tablemates) */}
-            {companions.length > 0 && (
-              <View style={styles.companionsSection}>
-                <Text style={[styles.sectionTitle, { color: palette.textPrimary }]}>
-                  Tus compañeros de mesa
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.companionsRow}
-                >
-                  {companions.map((c) => (
-                    <Pressable
-                      key={c.companion_user_id}
-                      disabled={busyAction}
-                      onPress={() => handleInviteCompanion(c)}
-                      style={({ pressed }) => [
-                        styles.companionPill,
-                        {
-                          backgroundColor: palette.surfaceCard,
-                          borderColor: palette.borderWarm,
-                        },
-                        pressed && { opacity: 0.85 },
-                      ]}
-                    >
-                      <AvatarIllustration
-                        isBot={false}
-                        accentColor={palette.brandAccent}
-                        size={38}
-                        avatarConfig={c.companion_avatar ?? undefined}
-                      />
-                      <Text
-                        style={[styles.companionPillName, { color: palette.textPrimary }]}
-                        numberOfLines={1}
+                <View style={styles.chipRow}>
+                  {(
+                    [
+                      { id: 'all', label: 'Todas' },
+                      { id: '1v1', label: '1 vs 1' },
+                      { id: '2v2', label: '2 vs 2' },
+                      { id: '4ffa', label: '4 Jug.' },
+                    ] as const
+                  ).map((f) => {
+                    const active = modeFilter === f.id;
+                    return (
+                      <Pressable
+                        key={f.id}
+                        onPress={() => {
+                          hapticLight();
+                          setModeFilter(f.id);
+                        }}
+                        style={[styles.pill, pillBase, active && pillActiveDyn]}
                       >
-                        {c.companion_name}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.companionPillAction,
-                          { color: palette.brandAccent },
-                        ]}
-                      >
-                        Invitar
-                      </Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {rooms.length === 0 ? (
-              <View
-                style={[
-                  styles.emptyLobby,
-                  {
-                    backgroundColor: palette.surfaceCard,
-                    borderColor: palette.borderSubtle,
-                  },
-                ]}
-              >
-                <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>
-                  La mesa está lista para ti
-                </Text>
-                <Text style={[styles.emptySub, { color: palette.textSecondary }]}>
-                  Toca «Sentarme ya» o abre tu propia mesa arriba — te avisaremos apenas se siente alguien, o puedes jugar con Bots cuando quieras.
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.roomsList}>
-                {rooms.map((room) => {
-                  const seats = room.room_players ?? [];
-                  const slots = Array.from({ length: room.max_players }, (_, i) =>
-                    seats.find((s) => s.seat === i)
-                  );
-                  const modeLabel =
-                    room.mode === '1v1'
-                      ? '1v1'
-                      : room.mode === '2v2'
-                      ? '2v2'
-                      : '4 Todos';
-
-                  return (
-                    <View
-                      key={room.id}
-                      style={[
-                        styles.roomCard,
-                        {
-                          backgroundColor: palette.surfaceCard,
-                          borderColor: palette.borderSubtle,
-                        },
-                      ]}
-                    >
-                      <View style={styles.roomTop}>
-                        <Text style={[styles.roomMode, { color: palette.textPrimary }]}>
-                          {modeLabel} · {room.target_score} PTS
-                        </Text>
-                        <View
+                        <Text
                           style={[
-                            styles.buyInTag,
+                            styles.pillText,
                             {
-                              borderColor:
-                                room.buy_in > 0 ? palette.brandAccent : palette.accent,
+                              color: active ? palette.selectedText : palette.textPrimary,
                             },
                           ]}
                         >
-                          <Text
-                            style={[
-                              styles.buyInTagText,
-                              {
-                                color:
-                                  room.buy_in > 0 ? palette.brandAccent : palette.accent,
-                              },
-                            ]}
-                          >
-                            {room.buy_in === 0 ? 'GRATIS' : `${room.buy_in} FICHAS`}
-                          </Text>
-                        </View>
-                      </View>
+                          {f.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
 
-                      <View style={styles.seatsRow}>
-                        {slots.map((occupant, idx) => (
-                          <View key={idx} style={styles.seatSlot}>
-                            {occupant ? (
-                              <AvatarIllustration
-                                isBot={occupant.is_bot}
-                                accentColor={
-                                  idx % 2 === 0 ? palette.accent : palette.brandAccent
-                                }
-                                size={36}
-                                avatarConfig={
-                                  !occupant.is_bot && occupant.avatar_config
-                                    ? sanitizeAvatarConfig(occupant.avatar_config)
-                                    : undefined
-                                }
-                              />
-                            ) : (
-                              <View
+                {rooms.length === 0 ? (
+                  <View
+                    style={[
+                      styles.emptyLobby,
+                      {
+                        backgroundColor: palette.surfaceCard,
+                        borderColor: palette.borderSubtle,
+                        borderBottomColor: palette.surfaceCardLip,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.emptyTitle, { color: palette.textPrimary }]}>
+                      La mesa está lista para ti
+                    </Text>
+                    <Text style={[styles.emptySub, { color: palette.textSecondary }]}>
+                      Toca «Sentarme ya» arriba para abrir mesa al instante — avisaremos apenas llegue alguien o podrás iniciar cuando gustes.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.roomsList}>
+                    {rooms.map((room) => {
+                      const seats = room.room_players ?? [];
+                      const slots = Array.from({ length: room.max_players }, (_, i) =>
+                        seats.find((s) => s.seat === i)
+                      );
+                      const modeLabel =
+                        room.mode === '1v1'
+                          ? '1 vs 1'
+                          : room.mode === '2v2'
+                          ? '2 vs 2'
+                          : '4 Jug.';
+
+                      return (
+                        <View
+                          key={room.id}
+                          style={[
+                            styles.roomCard,
+                            {
+                              backgroundColor: palette.surfaceCard,
+                              borderColor: palette.borderSubtle,
+                              borderBottomColor: palette.surfaceCardLip,
+                            },
+                          ]}
+                        >
+                          <View style={styles.roomTop}>
+                            <Text
+                              style={[styles.roomMode, { color: palette.textPrimary }]}
+                            >
+                              {modeLabel} · A {room.target_score} pts
+                            </Text>
+                            <View
+                              style={[
+                                styles.buyInTag,
+                                {
+                                  borderColor:
+                                    room.buy_in > 0
+                                      ? palette.brandAccent
+                                      : palette.accent,
+                                },
+                              ]}
+                            >
+                              <Text
                                 style={[
-                                  styles.openSeatCircle,
-                                  { borderColor: palette.brandAccent },
+                                  styles.buyInTagText,
+                                  {
+                                    color:
+                                      room.buy_in > 0
+                                        ? palette.brandAccent
+                                        : palette.accent,
+                                  },
                                 ]}
                               >
-                                <PlusIcon size={16} color={palette.brandAccent} />
-                              </View>
-                            )}
-                            <Text
-                              style={[styles.seatName, { color: palette.textSecondary }]}
-                              numberOfLines={1}
-                            >
-                              {occupant ? occupant.display_name : 'Libre'}
-                            </Text>
+                                {room.buy_in === 0
+                                  ? 'AMISTOSA'
+                                  : `${room.buy_in} FICHAS`}
+                              </Text>
+                            </View>
                           </View>
-                        ))}
-                      </View>
 
-                      <GlossyButton
-                        title={
-                          room.buy_in === 0
-                            ? 'Sentarse (Gratis)'
-                            : `Jugar · ${room.buy_in} fichas`
-                        }
-                        variant={room.buy_in > 0 ? 'gold' : 'emerald'}
-                        compact
-                        disabled={busyAction}
-                        onPress={() => handleJoinById(room.id)}
-                      />
-                    </View>
-                  );
-                })}
-              </View>
+                          <View style={styles.seatsRow}>
+                            {slots.map((occupant, idx) => (
+                              <View key={idx} style={styles.seatSlot}>
+                                {occupant ? (
+                                  <AvatarIllustration
+                                    isBot={occupant.is_bot}
+                                    seatHint={idx}
+                                    accentColor={
+                                      idx % 2 === 0 ? palette.accent : palette.brandAccent
+                                    }
+                                    size={38}
+                                    avatarConfig={
+                                      !occupant.is_bot && occupant.avatar_config
+                                        ? sanitizeAvatarConfig(occupant.avatar_config)
+                                        : undefined
+                                    }
+                                  />
+                                ) : (
+                                  <View
+                                    style={[
+                                      styles.openSeatCircle,
+                                      { borderColor: palette.brandAccent },
+                                    ]}
+                                  >
+                                    <PlusIcon size={15} color={palette.brandAccent} />
+                                  </View>
+                                )}
+                                <Text
+                                  style={[
+                                    styles.seatName,
+                                    { color: palette.textSecondary },
+                                  ]}
+                                  numberOfLines={1}
+                                >
+                                  {occupant ? occupant.display_name : 'Libre'}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+
+                          <GlossyButton
+                            title={
+                              room.buy_in === 0
+                                ? 'Sentarme en esta mesa'
+                                : `Entrar · ${room.buy_in} fichas`
+                            }
+                            variant={room.buy_in > 0 ? 'gold' : 'emerald'}
+                            compact
+                            disabled={busyAction}
+                            onPress={() => handleJoinById(room.id)}
+                          />
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </>
             )}
           </>
         )}
@@ -779,97 +940,116 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: CLUB.glassBorder,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
     minHeight: 40,
-    paddingHorizontal: 8,
-    justifyContent: 'center',
+    paddingHorizontal: 6,
   },
   backBtnText: {
-    color: CLUB.textPrimary,
+    fontFamily: FONT.extraBold,
     fontSize: 14,
-    fontWeight: '800',
   },
   title: {
-    color: CLUB.textPrimary,
-    fontSize: 17,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 19,
   },
   chipsPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: CLUB.surfaceCard,
     borderWidth: 1,
-    borderColor: CLUB.borderWarm,
     borderRadius: 999,
     paddingHorizontal: 11,
     paddingVertical: 6,
   },
   chipsText: {
-    color: CLUB.gold,
-    fontSize: 13,
-    fontWeight: '900',
+    fontFamily: FONT.extraBold,
+    fontSize: 12.5,
     fontVariant: ['tabular-nums'],
   },
   scrollContent: {
     padding: 16,
-    gap: 14,
+    gap: 13,
     maxWidth: 520,
     width: '100%',
     alignSelf: 'center',
     paddingBottom: 36,
   },
   authGate: {
+    borderRadius: 22,
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
+    padding: 20,
     gap: 12,
-    paddingTop: 20,
+    marginTop: 12,
   },
   gateTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 20,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 22,
     textAlign: 'center',
   },
   gateSub: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.semi,
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
   },
-  errorBox: {
-    backgroundColor: 'rgba(244, 63, 94, 0.16)',
+  segmentedWrap: {
+    flexDirection: 'row',
+    gap: 6,
+    padding: 5,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: CLUB.coral,
+  },
+  segmentTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 40,
     borderRadius: 12,
+    borderBottomWidth: 2.5,
+    borderBottomColor: 'transparent',
+  },
+  segmentTabText: {
+    fontFamily: FONT.extraBold,
+    fontSize: 13,
+  },
+  errorBox: {
+    borderWidth: 1,
+    borderRadius: 14,
     padding: 10,
   },
   errorText: {
-    color: '#FDA4AF',
-    fontSize: 13,
-    fontWeight: '700',
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
     textAlign: 'center',
   },
-  privateBox: {
-    backgroundColor: 'rgba(22, 42, 72, 0.56)',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.22)',
-    padding: 13,
-    gap: 8,
+  tactileCard: {
+    borderRadius: 20,
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
+    padding: 14,
+    gap: 10,
   },
   boxLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  boxLabel: {
-    color: CLUB.textSecondary,
-    fontSize: 12,
-    fontWeight: '800',
+  cardTitleSm: {
+    fontFamily: FONT.display,
+    fontSize: 16.5,
+  },
+  cardSubSm: {
+    fontFamily: FONT.semi,
+    fontSize: 12.5,
+    lineHeight: 18,
+    marginTop: -4,
   },
   codeRow: {
     flexDirection: 'row',
@@ -878,44 +1058,26 @@ const styles = StyleSheet.create({
   codeInput: {
     flex: 1,
     minHeight: 44,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
-    paddingHorizontal: 12,
-    color: CLUB.textPrimary,
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: 2,
-  },
-  joinCodeBtn: {
-    minHeight: 44,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    backgroundColor: CLUB.cyan,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  joinCodeBtnText: {
-    color: CLUB.textInk,
-    fontSize: 14,
-    fontWeight: '900',
+    borderRadius: 13,
+    borderWidth: 1.25,
+    paddingHorizontal: 14,
+    fontFamily: FONT.display,
+    fontSize: 16,
+    letterSpacing: 2.5,
   },
   createCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(46, 209, 138, 0.16)',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: CLUB.emerald,
-    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
+    padding: 13,
   },
   createIconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: CLUB.emerald,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -923,147 +1085,85 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   createTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 16,
-    fontWeight: '900',
+    fontFamily: FONT.extraBold,
+    fontSize: 15,
   },
   createSub: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.semi,
     fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  createForm: {
-    backgroundColor: 'rgba(22, 42, 72, 0.56)',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.22)',
-    padding: 14,
-    gap: 10,
+    marginTop: 1,
   },
   fieldLabel: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
+    letterSpacing: 0.9,
   },
   chipRow: {
     flexDirection: 'row',
-    gap: 6,
-  },
-  chipWrapRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    gap: 7,
   },
   pill: {
     flex: 1,
     minHeight: 40,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderBottomWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
-  scoreMini: {
-    width: '31%',
-    minHeight: 38,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pillActive: {
-    backgroundColor: '#F5C451',
-    borderColor: '#FFF2A6',
-    boxShadow: '0px 0px 14px rgba(245, 196, 81, 0.45)',
-  },
   pillText: {
-    color: CLUB.textPrimary,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  pillTextActive: {
-    color: CLUB.textInk,
-  },
-  privateComplianceHint: {
-    color: CLUB.emerald,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  createSubmitBtn: {
-    backgroundColor: CLUB.emerald,
-    borderRadius: 14,
-    borderBottomWidth: 4,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
-  createSubmitText: {
-    color: CLUB.textInk,
-    fontSize: 15,
-    fontWeight: '900',
+    fontFamily: FONT.extraBold,
+    fontSize: 12.5,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 2,
   },
   sectionTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 15,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 16.5,
   },
   refreshBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
   refreshText: {
-    color: CLUB.cyan,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
   },
   emptyLobby: {
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
     padding: 20,
     alignItems: 'center',
     gap: 6,
   },
   emptyTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 15,
-    fontWeight: '800',
+    fontFamily: FONT.display,
+    fontSize: 16.5,
   },
   emptySub: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.semi,
     fontSize: 13,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 19,
   },
   roomsList: {
     gap: 10,
   },
   roomCard: {
-    backgroundColor: CLUB.surfaceCard,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
-    padding: 12,
-    gap: 10,
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderBottomWidth: 4,
+    padding: 13,
+    gap: 11,
   },
   roomTop: {
     flexDirection: 'row',
@@ -1071,21 +1171,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   roomMode: {
-    color: CLUB.textPrimary,
-    fontSize: 14,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 15,
   },
   buyInTag: {
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: CLUB.emerald,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 9,
+    paddingVertical: 2.5,
   },
   buyInTagText: {
-    color: CLUB.emerald,
-    fontSize: 11,
-    fontWeight: '900',
+    fontFamily: FONT.extraBold,
+    fontSize: 10.5,
   },
   seatsRow: {
     flexDirection: 'row',
@@ -1095,36 +1192,20 @@ const styles = StyleSheet.create({
   seatSlot: {
     alignItems: 'center',
     gap: 4,
-    width: 68,
+    width: 70,
   },
   openSeatCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: CLUB.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
   seatName: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
-  },
-  joinRoomBtn: {
-    backgroundColor: CLUB.emerald,
-    borderRadius: 12,
-    borderBottomWidth: 3,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  joinRoomText: {
-    color: CLUB.textInk,
-    fontSize: 14,
-    fontWeight: '900',
   },
   companionsSection: {
     gap: 8,
@@ -1136,24 +1217,21 @@ const styles = StyleSheet.create({
   },
   companionPill: {
     alignItems: 'center',
-    width: 82,
-    backgroundColor: CLUB.surfaceCard,
+    width: 86,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.34)',
-    paddingVertical: 9,
+    borderBottomWidth: 3.5,
+    paddingVertical: 10,
     paddingHorizontal: 6,
     gap: 4,
   },
   companionPillName: {
-    color: CLUB.ivoryTop,
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '800',
     textAlign: 'center',
   },
   companionPillAction: {
-    color: CLUB.gold,
-    fontSize: 10,
-    fontWeight: '900',
+    fontFamily: FONT.extraBold,
+    fontSize: 10.5,
   },
 });

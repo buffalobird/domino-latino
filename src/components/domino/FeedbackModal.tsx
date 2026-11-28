@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,7 +11,8 @@ import {
   View,
 } from 'react-native';
 
-import { CLUB } from '@/constants/tokens';
+import { FONT } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { trackEvent } from '@/lib/analytics';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { hapticLight, hapticSuccess } from '@/utils/feedback';
@@ -43,6 +43,7 @@ interface FeedbackModalProps {
  * App Store / Google Play reviews to stay 100% compliant with anti-review-gating rules).
  */
 export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) {
+  const { palette } = usePalette();
   const [category, setCategory] = useState<FeedbackCategory>('idea');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
@@ -117,13 +118,23 @@ export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) 
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.backdrop}
+        style={[styles.backdrop, { backgroundColor: palette.modalBackdrop }]}
       >
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.modalBg,
+              borderColor: palette.modalBorder,
+            },
+          ]}
+        >
           <View style={styles.header}>
             <View style={styles.headerTextCol}>
-              <Text style={styles.title}>Ayúdanos a mejorar</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: palette.textPrimary }]}>
+                Ayúdanos a mejorar
+              </Text>
+              <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
                 Tu mensaje llega directo al equipo de Dominó Latino
               </Text>
             </View>
@@ -131,16 +142,18 @@ export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) 
               onPress={handleClose}
               accessibilityRole="button"
               accessibilityLabel="Cerrar"
-              style={styles.closeBtn}
+              style={[styles.closeBtn, { backgroundColor: palette.closeBtnBg }]}
             >
-              <CloseIcon size={18} color={CLUB.textPrimary} />
+              <CloseIcon size={18} color={palette.textPrimary} />
             </Pressable>
           </View>
 
           {sent ? (
             <View style={styles.sentBox}>
-              <Text style={styles.sentTitle}>¡Gracias por tu comentario!</Text>
-              <Text style={styles.sentSub}>
+              <Text style={[styles.sentTitle, { color: palette.positiveText }]}>
+                ¡Gracias por tu comentario!
+              </Text>
+              <Text style={[styles.sentSub, { color: palette.textSecondary }]}>
                 Lo revisaremos pronto para seguir puliendo el juego.
               </Text>
               <GlossyButton
@@ -161,10 +174,30 @@ export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) 
                         hapticLight();
                         setCategory(c.value);
                       }}
-                      style={[styles.catPill, active && styles.catPillActive]}
+                      style={[
+                        styles.catPill,
+                        {
+                          backgroundColor: active
+                            ? palette.selectedBg
+                            : palette.modalCardBg,
+                          borderColor: active
+                            ? palette.selectedBorder
+                            : palette.modalCardBorder,
+                          borderBottomColor: active
+                            ? palette.selectedLip
+                            : palette.modalCardLip,
+                        },
+                      ]}
                     >
                       <Text
-                        style={[styles.catText, active && styles.catTextActive]}
+                        style={[
+                          styles.catText,
+                          {
+                            color: active
+                              ? palette.selectedText
+                              : palette.textSecondary,
+                          },
+                        ]}
                       >
                         {c.label}
                       </Text>
@@ -180,25 +213,36 @@ export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) 
                   if (error) setError(null);
                 }}
                 placeholder="Cuéntanos qué mejorarías o si encontraste algún fallo..."
-                placeholderTextColor={CLUB.textMuted}
+                placeholderTextColor={palette.textMuted}
                 multiline
                 maxLength={MAX_LENGTH}
                 textAlignVertical="top"
-                style={styles.input}
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: palette.modalInputBg,
+                    borderColor: palette.modalCardBorder,
+                    color: palette.textPrimary,
+                  },
+                ]}
               />
 
               <View style={styles.metaRow}>
-                <Text style={styles.hintText}>
+                <Text style={[styles.hintText, { color: palette.textMuted }]}>
                   {trimmed.length < MIN_LENGTH
                     ? `Mínimo ${MIN_LENGTH} caracteres`
                     : 'Listo para enviar'}
                 </Text>
-                <Text style={styles.counterText}>
+                <Text style={[styles.counterText, { color: palette.textMuted }]}>
                   {message.length}/{MAX_LENGTH}
                 </Text>
               </View>
 
-              {error && <Text style={styles.errorText}>{error}</Text>}
+              {error && (
+                <Text style={[styles.errorText, { color: palette.dangerText }]}>
+                  {error}
+                </Text>
+              )}
 
               <GlossyButton
                 title="Enviar comentario"
@@ -218,7 +262,6 @@ export function FeedbackModal({ visible, userId, onClose }: FeedbackModalProps) 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(6, 12, 24, 0.76)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 18,
@@ -226,13 +269,11 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 400,
-    backgroundColor: 'rgba(14, 28, 52, 0.96)',
-    borderRadius: 24,
-    borderWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.26)',
+    borderRadius: 26,
+    borderWidth: 1.5,
     padding: 18,
     gap: 12,
-    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.72)',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.55)',
   },
   header: {
     flexDirection: 'row',
@@ -244,62 +285,47 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: CLUB.textPrimary,
-    fontSize: 19,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 20,
   },
   subtitle: {
-    color: CLUB.textSecondary,
-    fontSize: 12,
-    fontWeight: '600',
+    fontFamily: FONT.semi,
+    fontSize: 12.5,
     marginTop: 2,
   },
   closeBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
   catRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 7,
   },
   catPill: {
     flex: 1,
-    minHeight: 38,
-    borderRadius: 10,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    minHeight: 40,
+    borderRadius: 12,
+    borderWidth: 1.25,
+    borderBottomWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  catPillActive: {
-    backgroundColor: 'rgba(245, 196, 81, 0.16)',
-    borderColor: CLUB.gold,
-  },
   catText: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
-  },
-  catTextActive: {
-    color: CLUB.gold,
   },
   input: {
     minHeight: 112,
     maxHeight: 160,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: CLUB.glassBorder,
+    borderRadius: 15,
+    borderWidth: 1.25,
     padding: 12,
-    color: CLUB.textPrimary,
+    fontFamily: FONT.semi,
     fontSize: 14,
-    fontWeight: '600',
   },
   metaRow: {
     flexDirection: 'row',
@@ -308,53 +334,31 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   hintText: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
   },
   counterText: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   errorText: {
-    color: '#FDA4AF',
+    fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
     textAlign: 'center',
-  },
-  primaryBtn: {
-    backgroundColor: CLUB.emerald,
-    borderRadius: 14,
-    borderBottomWidth: 4,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryBtnDisabled: {
-    opacity: 0.45,
-  },
-  primaryBtnText: {
-    color: CLUB.textInk,
-    fontSize: 15,
-    fontWeight: '900',
   },
   sentBox: {
     gap: 10,
     paddingVertical: 8,
   },
   sentTitle: {
-    color: CLUB.emerald,
-    fontSize: 17,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 19,
     textAlign: 'center',
   },
   sentSub: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.semi,
     fontSize: 13,
-    fontWeight: '600',
     textAlign: 'center',
     marginBottom: 4,
   },

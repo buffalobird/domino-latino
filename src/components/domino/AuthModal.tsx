@@ -12,8 +12,9 @@ import {
 import Svg, { Path } from 'react-native-svg';
 
 import { AvatarConfig } from '@/constants/avatarCatalog';
-import { CLUB } from '@/constants/tokens';
+import { FONT } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
+import { usePalette } from '@/context/PaletteContext';
 import { hapticLight } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
 import { CloseIcon } from './Icons';
@@ -63,7 +64,8 @@ function AppleLogo({ size = 20, color = '#FFFFFF' }: { size?: number; color?: st
 
 /**
  * Industry-standard Bottom Sheet for OAuth (Apple HIG & Google Identity compliant 52px full-width buttons)
- * and signed-in account management (Sign Out + Apple 5.1.1(v) Delete Account).
+ * and signed-in account management (Sign Out + Apple 5.1.1(v) Delete Account),
+ * styled seamlessly in Noche de Club & Día Brisa.
  */
 export function AuthModal({
   visible,
@@ -82,6 +84,7 @@ export function AuthModal({
     signOut,
     deleteAccount,
   } = useAuth();
+  const { palette } = usePalette();
 
   const title =
     reason === 'online_public'
@@ -140,41 +143,74 @@ export function AuthModal({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, { backgroundColor: palette.modalBackdrop }]}>
         <Pressable style={styles.dismissArea} onPress={onClose} />
 
-        <View style={styles.sheet}>
-          <View style={styles.grabHandle} />
+        <View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: palette.modalBg,
+              borderColor: palette.modalBorder,
+            },
+          ]}
+        >
+          <View
+            style={[styles.grabHandle, { backgroundColor: palette.borderSubtle }]}
+          />
 
           <View style={styles.topRow}>
             <View style={{ width: 40 }} />
-            <Text style={styles.kicker}>DOMINÓ LATINO</Text>
+            <Text style={[styles.kicker, { color: palette.brandAccent }]}>
+              DOMINÓ LATINO
+            </Text>
             <Pressable
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Cerrar"
-              style={styles.closeBtn}
+              style={[styles.closeBtn, { backgroundColor: palette.closeBtnBg }]}
             >
-              <CloseIcon size={18} color={CLUB.textPrimary} />
+              <CloseIcon size={18} color={palette.textPrimary} />
             </Pressable>
           </View>
 
           {isSignedIn && user ? (
             <View style={styles.signedBody}>
-              <View style={styles.profileRow}>
+              <View
+                style={[
+                  styles.profileRow,
+                  {
+                    backgroundColor: palette.modalCardBg,
+                    borderColor: palette.modalCardBorder,
+                    borderBottomColor: palette.modalCardLip,
+                  },
+                ]}
+              >
                 <AvatarIllustration
                   isBot={false}
-                  accentColor={CLUB.emerald}
+                  accentColor={palette.accent}
                   size={52}
                   avatarConfig={avatarConfig}
                 />
                 <View style={styles.profileTextCol}>
-                  <Text style={styles.profileName} numberOfLines={1}>
+                  <Text
+                    style={[styles.profileName, { color: palette.textPrimary }]}
+                    numberOfLines={1}
+                  >
                     {label}
                   </Text>
                   <View style={styles.syncRow}>
-                    <View style={styles.syncDot} />
-                    <Text style={styles.syncLabel}>Cuenta sincronizada</Text>
+                    <View
+                      style={[
+                        styles.syncDot,
+                        { backgroundColor: palette.positiveText },
+                      ]}
+                    />
+                    <Text
+                      style={[styles.syncLabel, { color: palette.positiveText }]}
+                    >
+                      Cuenta sincronizada
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -186,12 +222,22 @@ export function AuthModal({
                 }}
                 disabled={authBusy !== null}
                 accessibilityRole="button"
-                style={({ pressed }) => [styles.signOutBtn, pressed && { opacity: 0.85 }]}
+                style={({ pressed }) => [
+                  styles.signOutBtn,
+                  {
+                    backgroundColor: palette.modalCardBg,
+                    borderColor: palette.modalCardBorder,
+                    borderBottomColor: palette.modalCardLip,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}
               >
                 {authBusy === 'signout' ? (
-                  <ActivityIndicator size="small" color={CLUB.textPrimary} />
+                  <ActivityIndicator size="small" color={palette.textPrimary} />
                 ) : (
-                  <Text style={styles.signOutText}>Cerrar sesión</Text>
+                  <Text style={[styles.signOutText, { color: palette.textPrimary }]}>
+                    Cerrar sesión
+                  </Text>
                 )}
               </Pressable>
 
@@ -202,18 +248,28 @@ export function AuthModal({
                 style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.75 }]}
               >
                 {authBusy === 'delete' ? (
-                  <ActivityIndicator size="small" color="#FDA4AF" />
+                  <ActivityIndicator size="small" color={palette.dangerText} />
                 ) : (
-                  <Text style={styles.deleteText}>Eliminar cuenta permanentemente</Text>
+                  <Text style={[styles.deleteText, { color: palette.dangerText }]}>
+                    Eliminar cuenta permanentemente
+                  </Text>
                 )}
               </Pressable>
 
-              {authError && <Text style={styles.errorText}>{authError}</Text>}
+              {authError && (
+                <Text style={[styles.errorText, { color: palette.dangerText }]}>
+                  {authError}
+                </Text>
+              )}
             </View>
           ) : (
             <View style={styles.guestBody}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>{subtitle}</Text>
+              <Text style={[styles.title, { color: palette.textPrimary }]}>
+                {title}
+              </Text>
+              <Text style={[styles.subtitle, { color: palette.textSecondary }]}>
+                {subtitle}
+              </Text>
 
               <View style={styles.buttonsStack}>
                 {/* Apple HIG compliant full-width Sign in with Apple button (52px) */}
@@ -226,6 +282,11 @@ export function AuthModal({
                   accessibilityRole="button"
                   style={({ pressed }) => [
                     styles.appleBtn,
+                    {
+                      borderColor: palette.isDark
+                        ? 'rgba(255, 255, 255, 0.24)'
+                        : '#000000',
+                    },
                     pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
                   ]}
                 >
@@ -249,6 +310,12 @@ export function AuthModal({
                   accessibilityRole="button"
                   style={({ pressed }) => [
                     styles.googleBtn,
+                    {
+                      borderColor: palette.isDark
+                        ? 'rgba(255, 255, 255, 0.92)'
+                        : '#D6CBB8',
+                      borderBottomColor: palette.isDark ? '#CBD5E1' : '#C2B49C',
+                    },
                     pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
                   ]}
                 >
@@ -263,10 +330,14 @@ export function AuthModal({
                 </Pressable>
               </View>
 
-              {authError && <Text style={styles.errorText}>{authError}</Text>}
+              {authError && (
+                <Text style={[styles.errorText, { color: palette.dangerText }]}>
+                  {authError}
+                </Text>
+              )}
 
-              <Text style={styles.footnote}>
-                Puedes jugar Partida Rápida contra Bots cuando quieras sin iniciar sesión.
+              <Text style={[styles.footnote, { color: palette.textMuted }]}>
+                Puedes jugar Partida Rápida con los compañeros del Club cuando quieras sin iniciar sesión.
               </Text>
             </View>
           )}
@@ -279,18 +350,15 @@ export function AuthModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(4, 10, 22, 0.72)',
     justifyContent: 'flex-end',
   },
   dismissArea: {
     flex: 1,
   },
   sheet: {
-    backgroundColor: 'rgba(13, 27, 50, 0.98)',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    borderTopWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.28)',
+    borderTopWidth: 1.5,
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 32,
@@ -298,12 +366,12 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     alignSelf: 'center',
     gap: 12,
+    boxShadow: '0px -12px 36px rgba(0, 0, 0, 0.35)',
   },
   grabHandle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.24)',
     alignSelf: 'center',
   },
   topRow: {
@@ -312,16 +380,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   kicker: {
-    color: CLUB.gold,
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1.1,
+    letterSpacing: 1.2,
   },
   closeBtn: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -329,15 +395,13 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 23,
     textAlign: 'center',
   },
   subtitle: {
-    color: '#B9C8D9',
+    fontFamily: FONT.semi,
     fontSize: 14,
-    fontWeight: '600',
     textAlign: 'center',
     lineHeight: 20,
     paddingHorizontal: 6,
@@ -352,16 +416,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     minHeight: 52,
-    borderRadius: 14,
+    borderRadius: 15,
     backgroundColor: '#000000',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.26)',
     paddingHorizontal: 16,
   },
   appleText: {
     color: '#FFFFFF',
+    fontFamily: FONT.extraBold,
     fontSize: 16,
-    fontWeight: '800',
   },
   googleBtn: {
     flexDirection: 'row',
@@ -369,19 +432,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     minHeight: 52,
-    borderRadius: 14,
+    borderRadius: 15,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1.25,
+    borderBottomWidth: 3,
     paddingHorizontal: 16,
   },
   googleText: {
     color: '#0D1520',
+    fontFamily: FONT.extraBold,
     fontSize: 16,
-    fontWeight: '800',
   },
   footnote: {
-    color: '#7E95AE',
+    fontFamily: FONT.semi,
     fontSize: 12,
-    fontWeight: '600',
     textAlign: 'center',
     marginTop: 2,
   },
@@ -393,19 +457,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: 'rgba(22, 42, 72, 0.65)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.2)',
+    borderRadius: 18,
+    borderWidth: 1.25,
+    borderBottomWidth: 3.5,
     padding: 12,
   },
   profileTextCol: {
     flex: 1,
   },
   profileName: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 18,
   },
   syncRow: {
     flexDirection: 'row',
@@ -417,26 +479,22 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: CLUB.emerald,
   },
   syncLabel: {
-    color: CLUB.emerald,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
   },
   signOutBtn: {
     minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: 'rgba(38, 64, 102, 0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(148, 190, 255, 0.24)',
+    borderRadius: 15,
+    borderWidth: 1.25,
+    borderBottomWidth: 3.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   signOutText: {
-    color: '#F8FAFC',
+    fontFamily: FONT.extraBold,
     fontSize: 15,
-    fontWeight: '800',
   },
   deleteBtn: {
     minHeight: 42,
@@ -445,14 +503,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   deleteText: {
-    color: '#FDA4AF',
+    fontFamily: FONT.bold,
     fontSize: 13,
-    fontWeight: '700',
   },
   errorText: {
-    color: '#FDA4AF',
+    fontFamily: FONT.bold,
     fontSize: 12,
-    fontWeight: '700',
     textAlign: 'center',
   },
 });

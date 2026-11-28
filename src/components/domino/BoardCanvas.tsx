@@ -66,7 +66,7 @@ interface PositionedGhost {
 
 const BASE_UNIT = 32;
 const GAP = 2;
-const TURN_EXTRA_CLEARANCE = 6; // Prevents adjacent doubles on consecutive rows from ever touching
+const TURN_EXTRA_CLEARANCE = 3; // Subtle clearance preventing double-on-double touch while keeping corners aligned
 
 /**
  * Heavy porcelain tile placement feel (fixes user feedback #2: "rebota demasiado"):
@@ -743,8 +743,8 @@ const styles = StyleSheet.create({
   startGhostTarget: {
     padding: 18,
     borderRadius: 20,
-    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-    borderWidth: 1.5,
+    backgroundColor: 'rgba(255, 248, 225, 0.14)',
+    borderWidth: 1.75,
     borderStyle: 'dashed',
     borderColor: CLUB.ghostBorder,
   },

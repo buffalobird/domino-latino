@@ -334,6 +334,34 @@ export function getLegalMoves(state: RoomGameState, seat: number): { tile: Tile;
   return moves;
 }
 
+function tileMatchesEnds(tile: Tile, leftEnd: number, rightEnd: number): boolean {
+  return (
+    tile.a === leftEnd ||
+    tile.b === leftEnd ||
+    tile.a === rightEnd ||
+    tile.b === rightEnd
+  );
+}
+
+/**
+ * Returns true as soon as the board is mathematically locked (trancado):
+ * no player at the table AND no tile remaining in the boneyard matches either open end.
+ */
+export function isOnlineBoardTrancado(state: RoomGameState): boolean {
+  if (state.chain.length === 0 || state.leftEnd === null || state.rightEnd === null) {
+    return false;
+  }
+  const { leftEnd, rightEnd } = state;
+  const anyPlayerCanPlay = state.players.some((p) =>
+    p.hand.some((t) => tileMatchesEnds(t, leftEnd, rightEnd))
+  );
+  if (anyPlayerCanPlay) return false;
+  const boneyardHasPlayable = state.boneyard.some((t) =>
+    tileMatchesEnds(t, leftEnd, rightEnd)
+  );
+  return !boneyardHasPlayable;
+}
+
 function resolveHandEnd(
   state: RoomGameState,
   trigger: 'domino' | 'tranca',
@@ -476,7 +504,16 @@ export function applyOnlinePlay(
     currentTurnSeat: getNextClockwiseSeat(seat, state.players.length),
   };
 
-  return didDomino ? resolveHandEnd(nextState, 'domino', seat) : nextState;
+  if (didDomino) {
+    return resolveHandEnd(nextState, 'domino', seat);
+  }
+  if (isOnlineBoardTrancado(nextState)) {
+    const lockedPlayers = nextState.players.map((p) =>
+      p.seat === seat ? { ...p, lastAction: '¡Trancó!' } : p
+    );
+    return resolveHandEnd({ ...nextState, players: lockedPlayers }, 'tranca', null);
+  }
+  return nextState;
 }
 
 export function applyOnlineDraw(
@@ -520,6 +557,9 @@ export function applyOnlineDraw(
     history: [...state.history, entry],
   };
 
+  if (nextBoneyard.length === 0 && isOnlineBoardTrancado(nextState)) {
+    return resolveHandEnd(nextState, 'tranca', null);
+  }
   if (nextBoneyard.length === 0 && getLegalMoves(nextState, seat).length === 0) {
     return applyOnlinePass(nextState, seat);
   }
@@ -552,14 +592,14 @@ export function applyOnlinePass(state: RoomGameState, seat: number): RoomGameSta
   const nextState: RoomGameState = {
     ...state,
     players: state.players.map((p) =>
-      p.seat === seat ? { ...p, lastAction: 'Paso turno' } : p
+      p.seat === seat ? { ...p, lastAction: '¡Pasó!' } : p
     ),
     consecutivePasses,
     history: [...state.history, entry],
     currentTurnSeat: getNextClockwiseSeat(seat, state.players.length),
   };
 
-  return consecutivePasses >= state.players.length
+  return consecutivePasses >= state.players.length || isOnlineBoardTrancado(nextState)
     ? resolveHandEnd(nextState, 'tranca', null)
     : nextState;
 }

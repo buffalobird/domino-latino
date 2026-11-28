@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, PropsWithChildren } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
 import { reportClientError } from '@/lib/remoteConfig';
 import { GlossyButton } from './GlossyButton';
 
@@ -10,7 +10,7 @@ interface ErrorBoundaryState {
 }
 
 /**
- * Global React ErrorBoundary in Club Caribe styling.
+ * Global React ErrorBoundary in warm Club parlor styling.
  * Prevents white-screen crashes, reports stack traces to `public.app_error_logs`,
  * and lets the player recover cleanly without losing saved local progress.
  */
@@ -69,47 +69,32 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: 'rgba(14, 28, 52, 0.96)',
-    borderRadius: 24,
-    borderWidth: 1.25,
-    borderColor: 'rgba(148, 190, 255, 0.26)',
+    backgroundColor: '#0F242E',
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: CLUB.glassBorder,
     padding: 22,
     gap: 12,
     alignItems: 'center',
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.55)',
   },
   kicker: {
     color: CLUB.gold,
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '900',
     letterSpacing: 1.2,
   },
   title: {
     color: CLUB.textPrimary,
-    fontSize: 20,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 21,
     textAlign: 'center',
   },
   body: {
     color: CLUB.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: FONT.semi,
+    fontSize: 13.5,
     textAlign: 'center',
     lineHeight: 19,
-  },
-  btn: {
-    width: '100%',
-    marginTop: 4,
-    backgroundColor: CLUB.emerald,
-    borderRadius: 14,
-    borderBottomWidth: 4,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnText: {
-    color: CLUB.textInk,
-    fontSize: 16,
-    fontWeight: '900',
   },
 });

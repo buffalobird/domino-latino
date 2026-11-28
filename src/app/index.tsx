@@ -19,6 +19,7 @@ import { MatchOverView } from '@/components/domino/MatchOverView';
 import { OnlineLobbyView } from '@/components/domino/OnlineLobbyView';
 import { BotSpeed } from '@/components/domino/PauseModal';
 import { RoundSummaryView } from '@/components/domino/RoundSummaryView';
+import { SettingsModal } from '@/components/domino/SettingsModal';
 import { SetupView } from '@/components/domino/SetupView';
 import { ThemesModal } from '@/components/domino/ThemesModal';
 import { WaitingRoomView } from '@/components/domino/WaitingRoomView';
@@ -31,7 +32,7 @@ import {
 } from '@/constants/socialReactions';
 import { TABLE_THEMES, TableThemeId } from '@/constants/tableThemes';
 import { TILE_STYLES, TileStyleId } from '@/constants/tileStyles';
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
 import { useAuth } from '@/context/AuthContext';
 import { usePalette } from '@/context/PaletteContext';
 import { AiDifficulty, chooseAiMove } from '@/engine/ai';
@@ -181,11 +182,16 @@ export default function DominoAppScreen() {
   const [summaryRevealReady, setSummaryRevealReady] = useState(true);
   const [companions, setCompanions] = useState<TableCompanion[]>([]);
 
-  // Economy, Auth & Feedback Modals + Remote Kill-Switch Config
+  // Economy, Settings, Auth & Feedback Modals + Remote Kill-Switch Config
   const [dailyModalOpen, setDailyModalOpen] = useState(false);
   const [themesModalOpen, setThemesModalOpen] = useState(false);
   const [avatarStudioOpen, setAvatarStudioOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [lastMatchReward, setLastMatchReward] = useState<{
+    chips: number;
+    xp: number;
+  } | null>(null);
   const [authModal, setAuthModal] = useState<{ open: boolean; reason: AuthModalReason }>({
     open: false,
     reason: 'profile',
@@ -479,29 +485,56 @@ export default function DominoAppScreen() {
       wSeat === 0
         ? retentionRef.current.avatarConfig
         : wSeat !== null && isOnline && onlineSeatMeta
-        ? onlineSeatMeta.seatAvatars[wSeat]
-        : undefined;
+        ? onlineSeatMeta.seatAvatars[wSeat] ?? prof?.avatarConfig
+        : prof?.avatarConfig;
+
+    const humanWonMoment =
+      activeTablePhase === 'match_over'
+        ? activeTableState.matchWinnerIndex === 0
+        : wSeat !== null &&
+          (activeTableState.mode === '2v2'
+            ? activeSummary.winnerScoreIndex === 0
+            : wSeat === 0);
+
+    const isTrancaReason =
+      activeSummary.reason === 'tranca' || activeSummary.reason === 'tranca_tie';
+    // Brief natural beat so players clearly see the closing tile land on the board
+    // before the "¡TRANCA!" / "¡DOMINÓ!" banner and summary appear.
+    const revealDelayMs = isTrancaReason ? 600 : 260;
+    const bannerDurationMs = isTrancaReason ? 1150 : 950;
 
     setSummaryRevealReady(false);
-    setHandEndMoment({
-      reason: activeSummary.reason,
-      winnerName,
-      points: activeSummary.pointsAwarded,
-      winnerAvatar,
-      isWinnerBot,
-      accentColor: prof?.accentColor ?? CLUB.gold,
-    });
-    if (screenMode === 'online_room') {
-      hapticSuccess();
-      playGameSound('win', stateRef.current.soundEnabled);
-    }
+    setHandEndMoment(null);
 
-    const timer = setTimeout(() => {
-      setHandEndMoment(null);
-      setSummaryRevealReady(true);
-    }, 950);
+    let finishTimer: ReturnType<typeof setTimeout> | null = null;
+    const showBannerTimer = setTimeout(() => {
+      setHandEndMoment({
+        reason: activeSummary.reason,
+        winnerName,
+        points: activeSummary.pointsAwarded,
+        winnerAvatar,
+        isWinnerBot,
+        winnerSeatHint: wSeat ?? 1,
+        accentColor: prof?.accentColor ?? CLUB.gold,
+      });
+      if (humanWonMoment) {
+        hapticSuccess();
+        playGameSound('win', stateRef.current.soundEnabled);
+      } else {
+        hapticLight();
+        playGameSound('draw', stateRef.current.soundEnabled);
+      }
 
-    return () => clearTimeout(timer);
+      finishTimer = setTimeout(() => {
+        setHandEndMoment(null);
+        setSummaryRevealReady(true);
+      }, bannerDurationMs);
+    }, revealDelayMs);
+
+    return () => {
+      clearTimeout(showBannerTimer);
+      if (finishTimer) clearTimeout(finishTimer);
+    };
   }, [
     screenMode,
     activeOnlineRoomId,
@@ -581,20 +614,16 @@ export default function DominoAppScreen() {
   // 4. Local Match Completion -> XP + Club Chips + Stars + Cloud Sync
   useEffect(() => {
     if (!hydrated || screenMode !== 'local') return;
-    if (state.phase === 'round_summary') {
-      hapticSuccess();
-      playGameSound('win', state.soundEnabled);
-    } else if (state.phase === 'match_over') {
-      hapticSuccess();
-      playGameSound('win', state.soundEnabled);
+    if (state.phase === 'match_over') {
+      const humanWon = state.matchWinnerIndex === 0;
       const matchKey = `${state.mode}-${state.targetScore}-${state.handNumber}-${state.scores.join('-')}-${state.matchWinnerIndex}`;
       if (recordedMatchIdRef.current !== matchKey) {
         recordedMatchIdRef.current = matchKey;
-        const humanWon = state.matchWinnerIndex === 0;
         const { updated, chipsEarned, xpEarned } = recordMatchResult(
           retentionRef.current,
           humanWon
         );
+        setLastMatchReward({ chips: chipsEarned, xp: xpEarned });
         setRetention(updated);
         saveRetentionProgress(updated);
 
@@ -1050,6 +1079,7 @@ export default function DominoAppScreen() {
 
   const handleStartQuickMatch = useCallback(() => {
     recordedMatchIdRef.current = null;
+    setLastMatchReward(null);
     setSeatMoods({});
     setScreenMode('local');
     trackEvent(
@@ -1111,6 +1141,7 @@ export default function DominoAppScreen() {
 
   const handleRematch = useCallback(() => {
     recordedMatchIdRef.current = null;
+    setLastMatchReward(null);
     setSeatMoods({});
     setState((prev) =>
       startNewMatch(prev.mode, prev.targetScore, prev.sortMode, prev.soundEnabled)
@@ -1118,6 +1149,7 @@ export default function DominoAppScreen() {
   }, []);
 
   const handleReturnToSetup = useCallback(() => {
+    setLastMatchReward(null);
     setSeatMoods({});
     setScreenMode('local');
     setOnlineRoom(null);
@@ -1345,11 +1377,7 @@ export default function DominoAppScreen() {
             onOpenDailyRewards={() => setDailyModalOpen(true)}
             onOpenThemes={() => setThemesModalOpen(true)}
             onOpenAvatarStudio={() => setAvatarStudioOpen(true)}
-            onOpenFeedback={() => setFeedbackModalOpen(true)}
-            onOpenAuth={() => {
-              pendingOnlineTabRef.current = null;
-              setAuthModal({ open: true, reason: 'profile' });
-            }}
+            onOpenSettings={() => setSettingsModalOpen(true)}
           />
         )}
 
@@ -1396,6 +1424,7 @@ export default function DominoAppScreen() {
           <MatchOverView
             state={state}
             retention={retention}
+            lastReward={lastMatchReward}
             onRematch={handleRematch}
             onChangeMode={handleReturnToSetup}
           />
@@ -1508,6 +1537,28 @@ export default function DominoAppScreen() {
           onClose={() => setAvatarStudioOpen(false)}
         />
 
+        <SettingsModal
+          visible={settingsModalOpen}
+          soundEnabled={state.soundEnabled}
+          botSpeed={botSpeed}
+          aiDifficulty={aiDifficulty}
+          sortMode={state.sortMode}
+          avatarConfig={retention.avatarConfig}
+          onToggleSound={handleToggleSound}
+          onCycleBotSpeed={handleCycleBotSpeed}
+          onCycleAiDifficulty={handleCycleAiDifficulty}
+          onToggleSort={() =>
+            handleToggleSort(state.sortMode === 'value' ? 'doubles' : 'value')
+          }
+          onOpenAuth={() => {
+            pendingOnlineTabRef.current = null;
+            setAuthModal({ open: true, reason: 'profile' });
+          }}
+          onOpenThemes={() => setThemesModalOpen(true)}
+          onOpenFeedback={() => setFeedbackModalOpen(true)}
+          onClose={() => setSettingsModalOpen(false)}
+        />
+
         <FeedbackModal
           visible={feedbackModalOpen}
           userId={user?.id ?? null}
@@ -1556,27 +1607,27 @@ const styles = StyleSheet.create({
   },
   updateKicker: {
     color: CLUB.gold,
+    fontFamily: FONT.extraBold,
     fontSize: 11,
-    fontWeight: '900',
     letterSpacing: 1.1,
   },
   updateTitle: {
     color: CLUB.textPrimary,
-    fontSize: 20,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 21,
     textAlign: 'center',
   },
   updateBody: {
     color: CLUB.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
+    fontFamily: FONT.semi,
+    fontSize: 13.5,
     textAlign: 'center',
     lineHeight: 19,
   },
   updateMeta: {
     color: CLUB.textMuted,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
   },
   updateBtn: {
     width: '100%',
@@ -1591,7 +1642,7 @@ const styles = StyleSheet.create({
   },
   updateBtnText: {
     color: CLUB.textInk,
+    fontFamily: FONT.display,
     fontSize: 15,
-    fontWeight: '900',
   },
 });

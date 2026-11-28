@@ -1,20 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { AvatarConfig } from '@/constants/avatarCatalog';
 import { getSeatProfile } from '@/constants/seatProfiles';
-import { CLUB } from '@/constants/tokens';
+import { CLUB, FONT } from '@/constants/tokens';
+import { usePalette } from '@/context/PaletteContext';
 import { GameState } from '@/engine/types';
 import { RetentionProgress } from '@/storage/gameStorage';
 import { hapticLight, hapticSnap } from '@/utils/feedback';
 import { AvatarIllustration } from './AvatarIllustration';
 import { DominoTile } from './DominoTile';
 import { GlossyButton } from './GlossyButton';
-import { StarIcon, TrophyIcon } from './Icons';
+import { ChipIcon, StarIcon, TrophyIcon } from './Icons';
 
 interface MatchOverViewProps {
   state: GameState;
   retention: RetentionProgress;
+  lastReward?: { chips: number; xp: number } | null;
   seatAvatars?: Record<number, AvatarConfig | undefined>;
   seatIsHuman?: Record<number, boolean>;
   seatNames?: Record<number, string>;
@@ -28,6 +31,7 @@ interface MatchOverViewProps {
 export function MatchOverView({
   state,
   retention,
+  lastReward = null,
   seatAvatars,
   seatIsHuman,
   seatNames,
@@ -37,17 +41,23 @@ export function MatchOverView({
   onRematch,
   onChangeMode,
 }: MatchOverViewProps) {
+  const { palette } = usePalette();
   const summary = state.lastHandSummary;
   const humanWon = state.matchWinnerIndex === 0;
   const remainingStars = Math.max(0, 3 - retention.dailyStars);
-  const [countdown, setCountdown] = useState(10);
   const [localSaved, setLocalSaved] = useState<string[]>(savedCompanionIds);
 
   const resolveSeat = (seat: number) => {
     const base = getSeatProfile(state.mode, seat);
     const isBot = seatIsHuman ? !seatIsHuman[seat] : base.isBot;
-    const displayName = seatNames?.[seat] ?? base.displayName;
-    const avatarConfig = seat === 0 ? retention.avatarConfig : seatAvatars?.[seat];
+    const displayName =
+      seatNames?.[seat] && !seatNames[seat].startsWith('CPU')
+        ? seatNames[seat]
+        : base.displayName;
+    const avatarConfig =
+      seat === 0
+        ? retention.avatarConfig
+        : seatAvatars?.[seat] ?? base.avatarConfig;
     const userId = seatUserIds?.[seat] ?? null;
     return { ...base, isBot, displayName, avatarConfig, userId };
   };
@@ -55,15 +65,6 @@ export function MatchOverView({
   const humanCoPlayers = (summary?.remainingHands ?? [])
     .map((m) => resolveSeat(m.seat))
     .filter((p) => p.seat !== 0 && !p.isBot && Boolean(p.userId));
-
-  useEffect(() => {
-    if (countdown <= 0) {
-      onRematch();
-      return;
-    }
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown, onRematch]);
 
   const winnerDisplayLabel =
     state.matchWinnerIndex === null
@@ -97,7 +98,20 @@ export function MatchOverView({
             return (
               <View
                 key={team.teamId}
-                style={[styles.colCard, isWin && styles.colCardWin]}
+                style={[
+                  styles.colCard,
+                  {
+                    backgroundColor: isWin
+                      ? palette.winnerCardBg
+                      : palette.modalCardBg,
+                    borderColor: isWin
+                      ? palette.winnerCardBorder
+                      : palette.modalCardBorder,
+                    borderBottomColor: isWin
+                      ? palette.winnerCardBorder
+                      : palette.modalCardLip,
+                  },
+                ]}
               >
                 <View style={styles.pairRow}>
                   {team.members.map((m) => {
@@ -107,11 +121,16 @@ export function MatchOverView({
                         key={m.seat}
                         style={[
                           styles.miniRing,
-                          { borderColor: isWin ? CLUB.gold : team.accent },
+                          {
+                            borderColor: isWin
+                              ? palette.winnerCardBorder
+                              : team.accent,
+                          },
                         ]}
                       >
                         <AvatarIllustration
                           isBot={prof.isBot}
+                          seatHint={m.seat}
                           accentColor={prof.accentColor}
                           mood={isWin ? 'win' : 'lose'}
                           size={34}
@@ -121,8 +140,17 @@ export function MatchOverView({
                     );
                   })}
                 </View>
-                <Text style={styles.colName}>{team.title}</Text>
-                <Text style={[styles.colScore, isWin && { color: CLUB.gold }]}>
+                <Text style={[styles.colName, { color: palette.textPrimary }]}>
+                  {team.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.colScore,
+                    {
+                      color: isWin ? palette.winnerText : palette.textSecondary,
+                    },
+                  ]}
+                >
                   {state.scores[team.teamId]}/{state.targetScore}
                 </Text>
 
@@ -130,13 +158,25 @@ export function MatchOverView({
                   const prof = resolveSeat(m.seat);
                   return (
                     <View key={m.seat} style={styles.subTray}>
-                      <Text style={styles.subLabel}>
+                      <Text style={[styles.subLabel, { color: palette.textMuted }]}>
                         {prof.displayName} ({m.pipSum})
                       </Text>
                       {m.tiles.length === 0 ? (
-                        <Text style={styles.closedSmall}>¡Se pegó!</Text>
+                        <Text
+                          style={[
+                            styles.closedSmall,
+                            { color: palette.positiveText },
+                          ]}
+                        >
+                          ¡Se pegó!
+                        </Text>
                       ) : (
-                        <View style={styles.vTilesWrap}>
+                        <View
+                          style={[
+                            styles.vTilesWrap,
+                            { backgroundColor: palette.modalInputBg },
+                          ]}
+                        >
                           {m.tiles.map((t) => (
                             <DominoTile
                               key={t.id}
@@ -159,7 +199,6 @@ export function MatchOverView({
       );
     }
 
-    // 1v1 (2 columns) or 4ffa (2x2 grid)
     return (
       <View style={state.mode === '1v1' ? styles.twoColRow : styles.fourGrid}>
         {summary.remainingHands.map((entry) => {
@@ -171,33 +210,67 @@ export function MatchOverView({
               key={entry.seat}
               style={[
                 state.mode === '1v1' ? styles.colCard : styles.gridCard,
-                isWin && styles.colCardWin,
+                {
+                  backgroundColor: isWin
+                    ? palette.winnerCardBg
+                    : palette.modalCardBg,
+                  borderColor: isWin
+                    ? palette.winnerCardBorder
+                    : palette.modalCardBorder,
+                  borderBottomColor: isWin
+                    ? palette.winnerCardBorder
+                    : palette.modalCardLip,
+                },
               ]}
             >
               <View
                 style={[
                   styles.avatarRing,
-                  { borderColor: isWin ? CLUB.gold : prof.accentColor },
+                  {
+                    borderColor: isWin
+                      ? palette.winnerCardBorder
+                      : prof.accentColor,
+                  },
                 ]}
               >
                 <AvatarIllustration
                   isBot={prof.isBot}
+                  seatHint={entry.seat}
                   accentColor={prof.accentColor}
                   mood={isWin ? 'win' : 'lose'}
                   size={state.mode === '1v1' ? 44 : 34}
                   avatarConfig={prof.avatarConfig}
                 />
               </View>
-              <Text style={styles.colName} numberOfLines={1}>
+              <Text
+                style={[styles.colName, { color: palette.textPrimary }]}
+                numberOfLines={1}
+              >
                 {prof.displayName}
               </Text>
-              <Text style={[styles.colScore, isWin && { color: CLUB.gold }]}>
+              <Text
+                style={[
+                  styles.colScore,
+                  {
+                    color: isWin ? palette.winnerText : palette.textSecondary,
+                  },
+                ]}
+              >
                 {state.scores[entry.teamId]}/{state.targetScore}
               </Text>
               {entry.tiles.length === 0 ? (
-                <Text style={styles.closedSmall}>¡Se pegó!</Text>
+                <Text
+                  style={[styles.closedSmall, { color: palette.positiveText }]}
+                >
+                  ¡Se pegó!
+                </Text>
               ) : (
-                <View style={styles.vTilesWrap}>
+                <View
+                  style={[
+                    styles.vTilesWrap,
+                    { backgroundColor: palette.modalInputBg },
+                  ]}
+                >
                   {entry.tiles.map((t) => (
                     <DominoTile
                       key={t.id}
@@ -218,16 +291,39 @@ export function MatchOverView({
   };
 
   return (
-    <View style={styles.backdrop}>
-      <View style={styles.card}>
-        <View style={[styles.banner, humanWon ? styles.bannerWin : styles.bannerLoss]}>
+    <Animated.View
+      entering={FadeIn.duration(180)}
+      style={[styles.backdrop, { backgroundColor: palette.modalBackdrop }]}
+    >
+      <View
+        style={[
+          styles.card,
+          {
+            backgroundColor: palette.modalBg,
+            borderColor: palette.modalBorder,
+          },
+        ]}
+      >
+        <View
+          style={[
+            styles.banner,
+            {
+              backgroundColor: humanWon
+                ? palette.positiveBg
+                : palette.modalCardBg,
+              borderColor: humanWon
+                ? palette.positiveBorder
+                : palette.borderWarm,
+            },
+          ]}
+        >
           <View style={styles.headlineRow}>
-            {humanWon && <TrophyIcon size={22} color={CLUB.gold} />}
-            <Text style={styles.headline}>
-              {humanWon ? '¡Victoria!' : `Ganó ${winnerDisplayLabel}`}
+            {humanWon && <TrophyIcon size={23} color={palette.winnerCardBorder} />}
+            <Text style={[styles.headline, { color: palette.textPrimary }]}>
+              {humanWon ? '¡Victoria en la mesa!' : `Ganó ${winnerDisplayLabel}`}
             </Text>
           </View>
-          <Text style={styles.sub}>
+          <Text style={[styles.sub, { color: palette.textSecondary }]}>
             Meta de {state.targetScore} pts en {state.handNumber}{' '}
             {state.handNumber === 1 ? 'mano' : 'manos'}
           </Text>
@@ -238,41 +334,82 @@ export function MatchOverView({
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 3-Star Daily Challenge Retention Hook */}
-          <View style={styles.challengeRow}>
+          {/* Earned Club Chips + XP + Daily Stars Celebration Row */}
+          <View
+            style={[
+              styles.challengeRow,
+              {
+                backgroundColor: palette.modalCardBg,
+                borderColor: palette.borderWarm,
+                borderBottomColor: palette.modalCardLip,
+              },
+            ]}
+          >
             <View style={styles.starsRow}>
               {[0, 1, 2].map((idx) => (
                 <StarIcon
                   key={idx}
-                  size={19}
-                  color={CLUB.gold}
+                  size={18}
+                  color={idx < retention.dailyStars ? palette.starColor : palette.starMuted}
                   filled={idx < retention.dailyStars}
                 />
               ))}
             </View>
             <View style={styles.challengeCol}>
-              <Text style={styles.challengeTitle}>
+              <Text
+                style={[styles.challengeTitle, { color: palette.textPrimary }]}
+              >
                 {remainingStars === 0
                   ? 'Reto diario completado'
-                  : `Reto diario: ${retention.dailyStars}/3`}
+                  : `Reto diario · ${retention.dailyStars}/3`}
               </Text>
-              <Text style={styles.challengeSub}>
+              <Text
+                style={[styles.challengeSub, { color: palette.textSecondary }]}
+              >
                 {humanWon
                   ? `Racha activa: ${retention.winStreak}`
-                  : 'Revancha rápida para recuperar tu estrella'}
+                  : 'Buena partida · ¿Echamos la revancha?'}
               </Text>
             </View>
+
+            {lastReward && (
+              <View
+                style={[
+                  styles.rewardBadge,
+                  { backgroundColor: palette.chipPillBg },
+                ]}
+              >
+                <ChipIcon size={13} color={palette.chipIconColor} />
+                <Text
+                  style={[styles.rewardBadgeText, { color: palette.chipPillText }]}
+                >
+                  +{lastReward.chips} · +{lastReward.xp} XP
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Vertical Tiles Under Each Player / Pair */}
           {renderFinalColumns()}
 
-          {/* Intimate Table Companions Circle (Online humans only) */}
           {humanCoPlayers.length > 0 && onSaveCompanion && (
-            <View style={styles.companionsCard}>
-              <Text style={styles.companionsTitle}>¿Te gustó jugar con ellos?</Text>
-              <Text style={styles.companionsSub}>
-                Guárdalos en tu círculo de Compañeros para invitarlos en 1 toque.
+            <View
+              style={[
+                styles.companionsCard,
+                {
+                  backgroundColor: palette.modalCardBg,
+                  borderColor: palette.borderWarm,
+                },
+              ]}
+            >
+              <Text
+                style={[styles.companionsTitle, { color: palette.textPrimary }]}
+              >
+                ¿Buena compañía en la mesa?
+              </Text>
+              <Text
+                style={[styles.companionsSub, { color: palette.textSecondary }]}
+              >
+                Guárdalos en tu círculo para invitarlos en 1 toque cuando quieras.
               </Text>
               <View style={styles.companionsList}>
                 {humanCoPlayers.map((p) => {
@@ -283,10 +420,16 @@ export function MatchOverView({
                       <AvatarIllustration
                         isBot={false}
                         accentColor={p.accentColor}
-                        size={32}
+                        size={34}
                         avatarConfig={p.avatarConfig}
                       />
-                      <Text style={styles.companionName} numberOfLines={1}>
+                      <Text
+                        style={[
+                          styles.companionName,
+                          { color: palette.textPrimary },
+                        ]}
+                        numberOfLines={1}
+                      >
                         {p.displayName}
                       </Text>
                       <Pressable
@@ -300,13 +443,24 @@ export function MatchOverView({
                         }}
                         style={[
                           styles.companionBtn,
-                          isSaved && styles.companionBtnSaved,
+                          {
+                            backgroundColor: isSaved
+                              ? palette.positiveBg
+                              : palette.chipPillBg,
+                            borderColor: isSaved
+                              ? palette.positiveBorder
+                              : palette.borderWarm,
+                          },
                         ]}
                       >
                         <Text
                           style={[
                             styles.companionBtnText,
-                            isSaved && styles.companionBtnTextSaved,
+                            {
+                              color: isSaved
+                                ? palette.positiveText
+                                : palette.chipPillText,
+                            },
                           ]}
                         >
                           {isSaved ? 'En tu mesa ✓' : '+ Compañero'}
@@ -322,7 +476,7 @@ export function MatchOverView({
 
         <View style={styles.actions}>
           <GlossyButton
-            title={`Revancha (${countdown}s)`}
+            title="Jugar revancha"
             variant="emerald"
             onPress={() => {
               hapticSnap();
@@ -331,7 +485,7 @@ export function MatchOverView({
           />
 
           <GlossyButton
-            title="Cambiar modo"
+            title="Volver al inicio"
             variant="glass"
             compact
             onPress={() => {
@@ -341,7 +495,7 @@ export function MatchOverView({
           />
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -352,7 +506,6 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    backgroundColor: 'rgba(6, 12, 24, 0.78)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 12,
@@ -362,66 +515,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 460,
     maxHeight: '90%',
-    backgroundColor: CLUB.glassBgStrong,
-    borderRadius: 24,
-    borderWidth: 1.25,
-    borderColor: CLUB.glassBorder,
-    padding: 15,
-    gap: 10,
-    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.76)',
-  },
-  companionsCard: {
-    backgroundColor: 'rgba(19, 44, 52, 0.85)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 196, 81, 0.30)',
-    padding: 12,
-    gap: 6,
-  },
-  companionsTitle: {
-    color: CLUB.ivoryTop,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  companionsSub: {
-    color: CLUB.textSecondary,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  companionsList: {
-    gap: 7,
-    marginTop: 4,
-  },
-  companionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  companionName: {
-    flex: 1,
-    color: CLUB.ivoryTop,
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  companionBtn: {
-    backgroundColor: 'rgba(245, 196, 81, 0.16)',
-    borderWidth: 1,
-    borderColor: CLUB.gold,
-    borderRadius: 999,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-  },
-  companionBtnSaved: {
-    backgroundColor: 'rgba(39, 209, 136, 0.16)',
-    borderColor: CLUB.emerald,
-  },
-  companionBtnText: {
-    color: CLUB.goldSoft,
-    fontSize: 11.5,
-    fontWeight: '800',
-  },
-  companionBtnTextSaved: {
-    color: CLUB.emerald,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    padding: 16,
+    gap: 11,
+    boxShadow: '0px 18px 44px rgba(0, 0, 0, 0.58)',
   },
   headlineRow: {
     flexDirection: 'row',
@@ -429,30 +527,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   banner: {
-    borderRadius: 16,
+    borderRadius: 18,
     paddingVertical: 12,
     paddingHorizontal: 14,
     alignItems: 'center',
     gap: 2,
-    borderWidth: 1,
-  },
-  bannerWin: {
-    backgroundColor: 'rgba(46, 209, 138, 0.16)',
-    borderColor: CLUB.emerald,
-  },
-  bannerLoss: {
-    backgroundColor: 'rgba(139, 92, 246, 0.18)',
-    borderColor: CLUB.violet,
+    borderWidth: 1.25,
   },
   headline: {
-    color: CLUB.textPrimary,
+    fontFamily: FONT.display,
     fontSize: 23,
-    fontWeight: '900',
   },
   sub: {
-    color: CLUB.textSecondary,
-    fontSize: 12,
-    fontWeight: '700',
+    fontFamily: FONT.bold,
+    fontSize: 12.5,
   },
   scrollBody: {
     flexGrow: 0,
@@ -463,30 +551,39 @@ const styles = StyleSheet.create({
   challengeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: 'rgba(34, 27, 16, 0.68)',
-    borderRadius: 15,
+    gap: 9,
+    borderRadius: 16,
     borderWidth: 1.25,
-    borderColor: 'rgba(245, 196, 81, 0.72)',
+    borderBottomWidth: 3.5,
     padding: 10,
-    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.22)',
   },
   starsRow: {
     flexDirection: 'row',
-    gap: 3,
+    gap: 2,
   },
   challengeCol: {
     flex: 1,
   },
   challengeTitle: {
-    color: CLUB.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
+    fontFamily: FONT.extraBold,
+    fontSize: 12.5,
   },
   challengeSub: {
-    color: CLUB.textSecondary,
+    fontFamily: FONT.semi,
     fontSize: 11,
-    fontWeight: '600',
+  },
+  rewardBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  rewardBadgeText: {
+    fontFamily: FONT.extraBold,
+    fontSize: 11,
+    fontVariant: ['tabular-nums'],
   },
   twoColRow: {
     flexDirection: 'row',
@@ -500,28 +597,21 @@ const styles = StyleSheet.create({
   },
   colCard: {
     flex: 1,
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
+    borderBottomWidth: 3.5,
     padding: 10,
-    alignItems: 'center',
-    gap: 6,
-  },
-  gridCard: {
-    width: '48.5%',
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: CLUB.glassBorder,
-    padding: 8,
     alignItems: 'center',
     gap: 5,
   },
-  colCardWin: {
-    borderColor: '#F5C451',
-    backgroundColor: 'rgba(54, 42, 18, 0.62)',
-    boxShadow: '0px 0px 18px rgba(245, 196, 81, 0.22)',
+  gridCard: {
+    width: '48.5%',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderBottomWidth: 3.5,
+    padding: 8,
+    alignItems: 'center',
+    gap: 5,
   },
   pairRow: {
     flexDirection: 'row',
@@ -540,14 +630,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   colName: {
-    color: CLUB.textPrimary,
-    fontSize: 13,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 14,
   },
   colScore: {
-    color: CLUB.textSecondary,
-    fontSize: 15,
-    fontWeight: '900',
+    fontFamily: FONT.display,
+    fontSize: 15.5,
     fontVariant: ['tabular-nums'],
   },
   subTray: {
@@ -557,14 +645,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   subLabel: {
-    color: CLUB.textMuted,
+    fontFamily: FONT.bold,
     fontSize: 11,
-    fontWeight: '700',
   },
   closedSmall: {
-    color: CLUB.emerald,
+    fontFamily: FONT.extraBold,
     fontSize: 12,
-    fontWeight: '800',
     paddingVertical: 6,
   },
   vTilesWrap: {
@@ -572,41 +658,49 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: 'rgba(11, 20, 36, 0.45)',
     borderRadius: 10,
     padding: 6,
     width: '100%',
   },
-  actions: {
+  companionsCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 12,
+    gap: 6,
+  },
+  companionsTitle: {
+    fontFamily: FONT.extraBold,
+    fontSize: 13,
+  },
+  companionsSub: {
+    fontFamily: FONT.semi,
+    fontSize: 11.5,
+  },
+  companionsList: {
+    gap: 7,
+    marginTop: 4,
+  },
+  companionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
-  primaryBtn: {
-    backgroundColor: CLUB.emerald,
-    borderRadius: 16,
-    borderBottomWidth: 4,
-    borderBottomColor: CLUB.emeraldDark,
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
+  companionName: {
+    flex: 1,
+    fontFamily: FONT.extraBold,
+    fontSize: 13,
   },
-  primaryBtnText: {
-    color: CLUB.textInk,
-    fontSize: 17,
-    fontWeight: '900',
-    fontVariant: ['tabular-nums'],
-  },
-  secondaryBtn: {
-    backgroundColor: CLUB.surfaceCardLight,
-    borderRadius: 14,
+  companionBtn: {
     borderWidth: 1,
-    borderColor: CLUB.glassBorder,
-    minHeight: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
   },
-  secondaryBtnText: {
-    color: CLUB.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
+  companionBtnText: {
+    fontFamily: FONT.extraBold,
+    fontSize: 11.5,
+  },
+  actions: {
+    gap: 8,
   },
 });
